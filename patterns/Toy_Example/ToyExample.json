@@ -1,0 +1,63 @@
+{
+  "system": {
+    "name": "Toy Example System",
+    "description": "A simple example system for testing and demonstration.",
+    "components": {
+      "toy_model": {
+        "name": "Toy Example",
+        "description": "A simple component used for testing and demonstrating the analysis framework.",
+        "parameters": {
+          "x1": { "type": "float", "description": "Input parameter 1." },
+          "x2": { "type": "float", "description": "Input parameter 2." },
+          "x3": { "type": "float", "description": "Input parameter 3." }
+        },
+        "decisions": {
+          "model_function": {
+            "description": "The underlying mathematical function used to generate the data.",
+            "policies": {
+              "linear": { "description": "A linear combination of inputs." },
+              "non-linear": { "description": "A non-linear combination of inputs." }
+            }
+          }
+        }
+      }
+    }
+  },
+  "dataspace": {
+    "source_file": "experiments.csv",
+    "policy_identification": {
+      "from": "column",
+      "column": "model",
+      "policies": {
+        "model_1": {
+          "name": "linear-system",
+          "description": "System using the linear model.",
+          "component_policies": { "toy_model": "linear" }
+        },
+        "model_2": {
+          "name": "non-linear-system",
+          "description": "System using the non-linear model.",
+          "component_policies": { "toy_model": "non-linear" }
+        }
+      }
+    },
+    "quality_objectives": [
+      {
+        "name": "y1",
+        "metric": "unit",
+        "description": "Output quality attribute 1.",
+        "maximize": true
+      },
+      {
+        "name": "y2",
+        "metric": "unit",
+        "description": "Output quality attribute 2.",
+        "maximize": true
+      }
+    ]
+  },
+  "metadata": {
+    "version": "2.0",
+    "notes": "This definition is inferred from 'tests/test_toy_plugin.py'."
+  }
+}

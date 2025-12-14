@@ -1,0 +1,71 @@
+{
+  "system": {
+    "name": "CQRS System",
+    "description": "A system implementing the CQRS pattern to separate read and write operations.",
+    "components": {
+      "cqrs_service": {
+        "name": "CQRS",
+        "description": "A component that separates read and write operations into different models.",
+        "parameters": {
+          "N_read": { "type": "integer", "description": "Number of read users." },
+          "N_write": { "type": "integer", "description": "Number of write users." },
+          "r_Z_read": { "type": "float", "description": "Rate of think time for read users." },
+          "C_DB": { "type": "integer", "description": "Capacity of the shared database." },
+          "C_DB_read": { "type": "integer", "description": "Capacity of the read database." },
+          "C_DB_write": { "type": "integer", "description": "Capacity of the write database." }
+        },
+        "decisions": {
+          "separation_strategy": {
+            "description": "The strategy for separating read and write database models.",
+            "policies": {
+              "sw": { "description": "Software separation: logical separation using a single database." },
+              "hw": { "description": "Hardware separation: physical separation using dedicated databases." }
+            }
+          }
+        }
+      }
+    }
+  },
+  "dataspace": {
+    "policy_identification": {
+      "from": "file",
+      "policies": [
+        {
+          "name": "sw",
+          "description": "System policy using software separation.",
+          "source_file": "separated_SW/dataset.csv",
+          "column_renames": { "R0": "response_time", "U_DBread": "utilization" },
+          "component_policies": {
+            "cqrs_service": "sw"
+          }
+        },
+        {
+          "name": "hw",
+          "description": "System policy using hardware separation.",
+          "source_file": "separated_HW/dataset.csv",
+          "column_renames": { "R0": "response_time", "U_DBwrite": "utilization" },
+          "component_policies": {
+            "cqrs_service": "hw"
+          }
+        }
+      ]
+    },
+    "quality_objectives": [
+      {
+        "name": "response_time",
+        "metric": "ms",
+        "description": "Average response time for all operations.",
+        "maximize": false
+      },
+      {
+        "name": "utilization",
+        "metric": "percentage",
+        "description": "Average utilization of the database resources.",
+        "maximize": false
+      }
+    ]
+  },
+  "metadata": {
+    "version": "2.0"
+  }
+}

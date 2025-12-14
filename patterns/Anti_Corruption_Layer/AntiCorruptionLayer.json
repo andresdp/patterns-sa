@@ -1,0 +1,56 @@
+{
+  "system": {
+    "name": "Anti-Corruption Layer System",
+    "description": "A system isolating a modern application from a legacy one using an Anti-Corruption Layer.",
+    "components": {
+      "acl_component": {
+        "name": "Anti-Corruption Layer",
+        "description": "A component that isolates a modern application from a legacy system by introducing a translation layer.",
+        "parameters": {
+          "N_A": { "type": "integer", "description": "Number of users of type A." },
+          "N_B": { "type": "integer", "description": "Number of users of type B." }
+        },
+        "decisions": {
+          "acl_usage_policy": {
+            "description": "The policy for how the Anti-Corruption Layer is used.",
+            "policies": {
+              "default-policy": { "description": "A single default policy for using the ACL." }
+            }
+          }
+        }
+      }
+    }
+  },
+  "dataspace": {
+    "source_file": "multi_N25.csv",
+    "column_renames": { "R0": "response_time", "Uacl": "utilization" },
+    "policy_identification": {
+      "from": "column",
+      "column": "policy",
+      "policies": {
+        "0": {
+          "name": "default-system",
+          "description": "System with the default ACL policy.",
+          "component_policies": {
+            "acl_component": "default-policy"
+          }
+        }
+      }
+    },
+    "quality_objectives": [
+      {
+        "name": "response_time",
+        "metric": "ms",
+        "description": "The end-to-end time to serve a request.",
+        "maximize": false
+      },
+      {
+        "name": "utilization",
+        "metric": "percentage",
+        "description": "The utilization of the Anti-Corruption Layer.",
+        "maximize": false
+      }
+    ]
+  },
+  "metadata": { "version": "2.0" }
+}
