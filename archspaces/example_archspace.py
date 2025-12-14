@@ -1,50 +1,92 @@
-import pandas as pd
-from ema_workbench import load_results
+"""Example usage of the ArchSpace plugin system.
 
-from collections import Counter
-from natsort import natsorted
-import itertools
+This module demonstrates programmatic usage patterns for the core pieces we
+added: the Toy plugin, ETL normalizer, reporting utilities and the local
+explainer. Keep this file as a minimal, importable example for developers.
 
-from archspace import ArchSpace
+Example (in Python):
+
+    from archspaces.example_archspace import run_toy_example
+    run_toy_example("patterns/Toy_Example/sample.csv", "patterns/Toy_Example/out")
+
+"""
+from typing import Optional
+import os
+from archspaces.plugins.toy import ToyPlugin
+from patterns.Toy_Example.etl import normalize
+from archspaces import reporting
+from archspaces.llm_explainers import LocalTemplateExplainer
+from archspaces.frontend_adapter import assemble_payload
 
 
-class ToyExample(ArchSpace):
+def run_toy_example(input_path: str, outdir: str, normalize_input: bool = True) -> dict:
+    """Run the Toy example pipeline programmatically and return artifact paths.
 
-    OUTPUTS = ['cost', 'executionTime', 'probSuccessfulExecution']
-    INPUT_PARAMETERS = []
+    Args:
+        input_path: path to raw CSV (or normalized CSV)
+        outdir: directory to write artifacts
+        normalize_input: if True, run the pandas ETL normalizer first
 
-    COST_LABELS = ['cheap', 'average', 'expensive'] #['very-cheap', 'cheap', 'average', 'expensive', 'very-expensive']
-    PERFORMANCE_LABELS = ['fast', 'average', 'slow'] #['very-fast', 'fast', 'average', 'low', 'very-low'] #['fast', 'average', 'low']
-    RELIABILITY_LABELS = ['highly-reliable', 'average', 'unreliable'] #['unreliable', 'often-unreliable', 'average', 'reliable', 'highly-reliable']
+    Returns:
+        A dict mapping artifact names to file paths.
+    """
+    os.makedirs(outdir, exist_ok=True)
 
-    ALL_TRADEOFF_LABELS = natsorted([','.join(t) for t in itertools.product(*[COST_LABELS, PERFORMANCE_LABELS, RELIABILITY_LABELS])])
+    if normalize_input:
+        df = normalize(input_path)
+    else:
+        # plugin.parse expects a CSV path; write df to a temp path if needed
+        df = None
 
-    ALL_LABELS = dict()
-    ALL_LABELS['executionTime'] = PERFORMANCE_LABELS
-    ALL_LABELS['probSuccessfulExecution'] = RELIABILITY_LABELS
-    ALL_LABELS['cost'] = COST_LABELS
+    plugin = ToyPlugin()
+    # If we have a DataFrame already, compute metrics directly
+    if df is not None:
+        metrics = plugin.compute_metrics(df)
+    else:
+        df2 = plugin.parse(input_path)
+        metrics = plugin.compute_metrics(df2)
 
-    def __init__(self):
-        # super().__init__()
-        self.experiments_df_ = None
-        self.outcomes_df_ = None
+    # Export CSV and JSON
+    csv_path = os.path.join(outdir, "metrics.csv")
+    json_path = os.path.join(outdir, "metrics.json")
+    reporting.save_metrics_csv(metrics, csv_path)
+    reporting.save_metrics_json(metrics, json_path)
 
-    def load_results(self, path):
-        results = load_results(path)
-        self.experiments_df_, outcomes = results
-        self.outcomes_df_ = pd.DataFrame(outcomes)
+    artifacts = {"metrics_csv": csv_path, "metrics_json": json_path}
 
-        # Drop void architecture
-        config_0_0_0_to_remove = self.experiments_df_[(self.experiments_df_.d1Services==0)&(self.experiments_df_.d2Services==0)&(self.experiments_df_.d3Services==0)].index
-        if len(config_0_0_0_to_remove) > 0:
-            print("Removing void architecture!", self.experiments_df_.shape, len(self.get_configurations()))
-            self.experiments_df_.drop(self.experiments_df_.index[config_0_0_0_to_remove], inplace=True)
-            self.experiments_df_.reset_index(drop=True, inplace=True)
-            self.outcomes_df_.drop(self.outcomes_df_.index[config_0_0_0_to_remove], inplace=True)
-            self.outcomes_df_.reset_index(drop=True, inplace=True)
+    # Optional histogram
+    if df is not None and "latency" in df.columns:
+        hist_path = os.path.join(outdir, "latency_hist.png")
+        reporting.plot_metric_histogram("latency", df["latency"].tolist(), hist_path)
+        artifacts["latency_hist"] = hist_path
 
-        return self.experiments_df_, self.outcomes_df_
-    
-    def get_configurations(self):
-        all_configs = set(self.experiments_df_['policy'])
-        return list(all_configs)
+    # Explanation
+    explainer = LocalTemplateExplainer()
+    explanation = explainer.explain(metrics)
+    explain_path = os.path.join(outdir, "explanation.json")
+    import json
+    with open(explain_path, "w") as fh:
+        json.dump(explanation, fh, indent=2)
+    artifacts["explanation"] = explain_path
+
+    # Frontend payload
+    payload = assemble_payload(metrics, charts=[{"name": "latency_hist", "path": artifacts.get("latency_hist")}])
+    payload_path = os.path.join(outdir, "frontend_payload.json")
+    with open(payload_path, "w") as fh:
+        json.dump(payload, fh, indent=2)
+    artifacts["frontend_payload"] = payload_path
+
+    # Backwards-compatible report from plugin
+    artifacts.update(plugin.export_report(metrics, outdir))
+
+    return artifacts
+
+
+if __name__ == "__main__":
+    import argparse
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--input", required=True)
+    parser.add_argument("--outdir", default="patterns/Toy_Example/out")
+    args = parser.parse_args()
+    art = run_toy_example(args.input, args.outdir)
+    print("Artifacts:", art)

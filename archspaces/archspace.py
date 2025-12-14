@@ -398,6 +398,10 @@ class ArchSpace:
             return all_boxes
         else:
             box1 = all_boxes[0]
+
+
+
+
             if method == 'rhodium':
                 df = ArchSpace.get_box_limits(box1)[['min', 'max']]
                 return box1, df.to_dict(orient='index'), prim_alg
@@ -702,6 +706,48 @@ class ArchSpace:
         
         df = pd.DataFrame.from_dict(main_dict, orient='columns').sort_index()
         return df
+
+
+    # Backwards-compatible delegating wrapper (placed at EOF)
+    try:
+        from archspaces.compat import LegacyArchSpace
+    except Exception:
+        LegacyArchSpace = None
+
+
+    class ArchSpaceCompat:
+        """Compatibility wrapper that delegates to the new `ArchSpaceCore` via
+        `LegacyArchSpace`. This class will be bound to the module name `ArchSpace`
+        for backward compatibility by assignment at the module level.
+        """
+
+        def __init__(self, *args, **kwargs):
+            if LegacyArchSpace is None:
+                raise RuntimeError("LegacyArchSpace backend is not available")
+            self._legacy = LegacyArchSpace(*args, **kwargs)
+
+        def __getattr__(self, name):
+            if hasattr(self._legacy, name):
+                return getattr(self._legacy, name)
+            core = getattr(self._legacy, "_core", None)
+            if core is not None and hasattr(core, name):
+                return getattr(core, name)
+            raise AttributeError(f"'{type(self).__name__}' object has no attribute '{name}'")
+
+        def __dir__(self):
+            attrs = set(super().__dir__())
+            try:
+                attrs.update(dir(self._legacy))
+                core = getattr(self._legacy, "_core", None)
+                if core is not None:
+                    attrs.update(dir(core))
+            except Exception:
+                pass
+            return sorted(list(attrs))
+
+
+    # Export compatibility class under the original name so imports remain stable.
+    ArchSpace = ArchSpaceCompat
 
 # --------------------------------------------------------------
 
