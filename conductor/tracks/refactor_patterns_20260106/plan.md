@@ -8,11 +8,11 @@
 - [x] Task: Refactor `ArchSpace` to become a coordinator that initializes these new components and delegates tasks to them.
 - [ ] Task: Conductor - User Manual Verification 'Phase 1: Framework Decomposition' (Protocol in workflow.md)
 
-## Phase 2: Declarative Loading & Strategy Implementation (Refactoring Proposal Phase 2)
-- [ ] Task: Implement `ScenarioDiscoveryManager` with `IScenarioDiscoveryStrategy` (Strategies: `PrimStrategy`, `CartStrategy`).
-- [ ] Task: Implement `ExplanationManager` with `IExplanationStrategy` (Strategy: `TemplateExplainerStrategy`).
-- [ ] Task: Implement the generic `DataLoader` that parses `*.json` system definitions (as per `docs/json_schema_usage.md`).
-- [ ] Task: Update `ArchSpace` to integrate with the new Managers and Loader.
+## Phase 2: Declarative Loading & Strategy Implementation (Refactoring Proposal Phase 2) [checkpoint: c4cdefb]
+- [x] Task: Implement `ScenarioDiscoveryManager` with `IScenarioDiscoveryStrategy` (Strategies: `PrimStrategy`, `CartStrategy`).
+- [x] Task: Implement `ExplanationManager` with `IExplanationStrategy` (Strategy: `TemplateExplainerStrategy`).
+- [x] Task: Implement the generic `DataLoader` that parses `*.json` system definitions (as per `docs/json_schema_usage.md`).
+- [x] Task: Update `ArchSpace` to integrate with the new Managers and Loader.
 - [ ] Task: Conductor - User Manual Verification 'Phase 2: Declarative Loading & Strategy Implementation' (Protocol in workflow.md)
 
 ## Phase 3: Toy Example Migration (Proof of Concept)
