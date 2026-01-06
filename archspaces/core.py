@@ -5,10 +5,11 @@ import numpy as np
 from natsort import natsorted
 from collections import Counter
 
-from .loader import DataLoader, PandasDataLoader
+from .loader import DataLoader, PandasDataLoader, GenericDataLoader
 from .validator import SchemaValidator, SimpleValidator
 from .metrics import MetricsEngine, ToyMetricsEngine
-from .discovery import ScenarioDiscovery, PRIMDiscovery, CARTDiscovery
+from .discovery import ScenarioDiscovery, PRIMDiscovery, CARTDiscovery, ScenarioDiscoveryManager
+from .explanations import ExplanationManager
 
 
 class DataProcessor:
@@ -158,14 +159,16 @@ class ArchSpaceCore:
                  loader: Optional[DataLoader] = None,
                  validator: Optional[SchemaValidator] = None,
                  metrics_engine: Optional[MetricsEngine] = None,
-                 discovery_engine: Optional[ScenarioDiscovery] = None,
+                 discovery_manager: Optional[ScenarioDiscoveryManager] = None,
+                 explanation_manager: Optional[ExplanationManager] = None,
                  data_processor: Optional[DataProcessor] = None,
                  robustness_analyzer: Optional[RobustnessAnalyzer] = None,
                  tradeoff_analyzer: Optional[TradeoffAnalyzer] = None):
-        self.loader = loader or PandasDataLoader()
+        self.loader = loader or GenericDataLoader()
         self.validator = validator or SimpleValidator()
         self.metrics_engine = metrics_engine or ToyMetricsEngine()
-        self.discovery_engine = discovery_engine or PRIMDiscovery()
+        self.discovery_manager = discovery_manager or ScenarioDiscoveryManager()
+        self.explanation_manager = explanation_manager or ExplanationManager()
         
         self.data_processor = data_processor or DataProcessor()
         self.robustness_analyzer = robustness_analyzer or RobustnessAnalyzer()
@@ -174,6 +177,12 @@ class ArchSpaceCore:
     def load_data(self, source: Any) -> pd.DataFrame:
         return self.loader.load(source)
 
+    def load_detailed_data(self, source: Any) -> Tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
+        """Returns (raw_df, experiments_df, outcomes_df) using GenericDataLoader."""
+        if isinstance(self.loader, GenericDataLoader):
+            return self.loader.load_data(source)
+        raise TypeError("Detailed data loading requires GenericDataLoader")
+
     def validate(self, df: pd.DataFrame) -> bool:
         return self.validator.validate(df)
 
@@ -181,22 +190,12 @@ class ArchSpaceCore:
         return self.metrics_engine.compute(df)
 
     def discover_scenarios(self, df: pd.DataFrame, outcome: str, method: Optional[str] = None, **kwargs):
-        # We assume df here is experiments + outcomes, or at least contains what's needed.
-        # But discovery engines defined earlier take (experiments, outcomes).
-        # We might need to split df if it's combined, or pass it to both.
-        # For now, let's assume the caller splits or handles it, or we pass the same df.
-        
         experiments_df = kwargs.get('experiments_df', df)
         outcomes_df = kwargs.get('outcomes_df', df)
+        return self.discovery_manager.discover(experiments_df, outcomes_df, method=method, **kwargs)
 
-        if method is None or method.lower() == "prim":
-            engine = self.discovery_engine if isinstance(self.discovery_engine, PRIMDiscovery) else PRIMDiscovery()
-        elif method.lower() == "cart":
-            engine = CARTDiscovery()
-        else:
-            warnings.warn(f"Unknown discovery method '{method}', defaulting to PRIM")
-            engine = PRIMDiscovery()
-        return engine.discover(experiments_df, outcomes_df, **kwargs)
+    def explain(self, artifact: Any, method: Optional[str] = None, **kwargs) -> Dict[str, str]:
+        return self.explanation_manager.explain(artifact, method=method, **kwargs)
 
     def discretize(self, df: pd.DataFrame, **kwargs) -> Tuple[pd.DataFrame, Counter]:
         return self.data_processor.discretize(df, **kwargs)

@@ -299,4 +299,30 @@ class CARTDiscovery(ScenarioDiscovery):
         return (min_bound, max_bound)
 
 
-__all__ = ["ScenarioDiscovery", "PRIMDiscovery", "CARTDiscovery"]
+class ScenarioDiscoveryManager:
+    """Manages scenario discovery strategies."""
+    
+    def __init__(self):
+        self._strategies = {
+            'prim': PRIMDiscovery,
+            'cart': CARTDiscovery
+        }
+
+    def get_strategy(self, method: Optional[str]) -> ScenarioDiscovery:
+        if method is None:
+            method = 'prim'
+        
+        strategy_class = self._strategies.get(method.lower())
+        if strategy_class:
+            return strategy_class()
+        
+        # Default or fallback
+        # warnings.warn(f"Unknown discovery method '{method}', defaulting to PRIM")
+        return PRIMDiscovery()
+
+    def discover(self, experiments_df: pd.DataFrame, outcomes_df: pd.DataFrame, method: Optional[str] = None, **kwargs) -> Any:
+        strategy = self.get_strategy(method)
+        return strategy.discover(experiments_df, outcomes_df, **kwargs)
+
+
+__all__ = ["ScenarioDiscovery", "PRIMDiscovery", "CARTDiscovery", "ScenarioDiscoveryManager"]

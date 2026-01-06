@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import List, Dict, Any, Optional
+from typing import List, Dict, Any, Optional, Union
 
 from pydantic import BaseModel, Field, field_validator
 
@@ -9,6 +9,7 @@ class ArchitecturalPattern(BaseModel):
     name: str
     description: str = ""
     parameters: Dict[str, Any] = Field(default_factory=dict)
+    decisions: Dict[str, Any] = Field(default_factory=dict) # Added for new schema
 
     model_config = {"extra": "allow", "validate_assignment": True}
 
@@ -48,7 +49,8 @@ class ConfigurationSpace(BaseModel):
 
 class QualityObjective(BaseModel):
     name: str
-    metric: str
+    description: str = "" # Added
+    metric: str = "" # Optional/Default
     maximize: bool = True
     threshold: Optional[float] = None
 
@@ -98,10 +100,53 @@ class ArchitectureSpace(BaseModel):
     def dict(self, *args, **kwargs):
         return self.model_dump(*args, **kwargs)
 
+# --- New Schema Models ---
+
+class System(BaseModel):
+    name: str
+    description: str = ""
+    components: Dict[str, ArchitecturalPattern] = Field(default_factory=dict)
+
+class Policy(BaseModel):
+    name: str
+    description: str = ""
+    component_policies: Dict[str, str] = Field(default_factory=dict)
+    source_file: Optional[str] = None
+
+class PolicyIdentification(BaseModel):
+    from_: str = Field(alias="from")
+    column: Optional[str] = None
+    policies: Union[Dict[str, Policy], List[Policy]]
+
+class Dataspace(BaseModel):
+    policy_identification: PolicyIdentification
+    quality_objectives: List[QualityObjective] = Field(default_factory=list)
+    source_file: Optional[str] = None
+    column_renames: Dict[str, str] = Field(default_factory=dict)
+    discovery_options: Dict[str, Any] = Field(default_factory=dict)
+
+class SystemDefinition(BaseModel):
+    mode: str = "static"
+    system: System
+    dataspace: Dataspace
+    metadata: Dict[str, Any] = Field(default_factory=dict)
+
+    @classmethod
+    def from_json(cls, path: str):
+        import json
+        with open(path, 'r') as f:
+            data = json.load(f)
+        return cls.model_validate(data)
+
 
 __all__ = [
     "ArchitecturalPattern",
     "ConfigurationSpace",
     "QualityObjective",
     "ArchitectureSpace",
+    "SystemDefinition",
+    "System",
+    "Dataspace",
+    "PolicyIdentification",
+    "Policy"
 ]
