@@ -1,11 +1,11 @@
 # Track Plan: Refactor and Standardize Pattern Analysis Scripts
 
-## Phase 1: Framework Decomposition (Refactoring Proposal Phase 1)
-- [ ] Task: Create `DataProcessor` class to handle data discretization and labeling logic extracted from `ArchSpace`.
-- [ ] Task: Create `RobustnessAnalyzer` class to isolate robustness calculation logic.
-- [ ] Task: Create `ScenarioDiscoverer` (or `ScenarioDiscoveryManager`) class to encapsulate PRIM and CART logic.
-- [ ] Task: Create `TradeoffAnalyzer` class for trade-off calculations.
-- [ ] Task: Refactor `ArchSpace` to become a coordinator that initializes these new components and delegates tasks to them.
+## Phase 1: Framework Decomposition (Refactoring Proposal Phase 1) [checkpoint: 1e475f2]
+- [x] Task: Create `DataProcessor` class to handle data discretization and labeling logic extracted from `ArchSpace`.
+- [x] Task: Create `RobustnessAnalyzer` class to isolate robustness calculation logic.
+- [x] Task: Create `ScenarioDiscoverer` (or `ScenarioDiscoveryManager`) class to encapsulate PRIM and CART logic.
+- [x] Task: Create `TradeoffAnalyzer` class for trade-off calculations.
+- [x] Task: Refactor `ArchSpace` to become a coordinator that initializes these new components and delegates tasks to them.
 - [ ] Task: Conductor - User Manual Verification 'Phase 1: Framework Decomposition' (Protocol in workflow.md)
 
 ## Phase 2: Declarative Loading & Strategy Implementation (Refactoring Proposal Phase 2)
