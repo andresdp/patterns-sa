@@ -1,0 +1,32 @@
+
+import unittest
+import pandas as pd
+from archspaces.core import ArchSpaceCore, DataProcessor, RobustnessAnalyzer, TradeoffAnalyzer
+
+class TestArchSpaceCore(unittest.TestCase):
+    def setUp(self):
+        self.core = ArchSpaceCore()
+        self.df = pd.DataFrame({
+            'A': [1, 2, 3, 4],
+            'B': [10, 20, 30, 40],
+            'outcome': [0, 0, 1, 1]
+        })
+
+    def test_components_initialization(self):
+        self.assertIsInstance(self.core.data_processor, DataProcessor)
+        self.assertIsInstance(self.core.robustness_analyzer, RobustnessAnalyzer)
+        self.assertIsInstance(self.core.tradeoff_analyzer, TradeoffAnalyzer)
+
+    def test_discretize_delegation(self):
+        discrete_df, tradeoffs = self.core.discretize(self.df, n_bins=2)
+        self.assertEqual(len(discrete_df), 4)
+        self.assertIsNotNone(tradeoffs)
+
+    def test_robustness_delegation(self):
+        discrete_df, _ = self.core.discretize(self.df, n_bins=2)
+        robustness, tradeoff = self.core.compute_robustness(discrete_df)
+        self.assertIsNotNone(tradeoff)
+        self.assertTrue(0 <= robustness <= 1)
+
+if __name__ == '__main__':
+    unittest.main()
