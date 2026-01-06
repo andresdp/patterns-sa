@@ -1,59 +1,37 @@
 # Track Plan: Refactor and Standardize Pattern Analysis Scripts
 
-## Phase 1: Setup and Toy Example
-- [ ] Task: Create a base `PatternAnalysis` class or interface in `archspaces/` if a common abstraction is missing to standardize how scripts are called.
-- [ ] Task: Refactor `patterns/Toy_Example/` to use the standardized script approach.
-    - [ ] Sub-task: Analyze `patterns/Toy_Example/` notebooks to understand logic.
-    - [ ] Sub-task: Write tests for Toy Example extraction.
-    - [ ] Sub-task: Extract logic to `patterns/Toy_Example/analysis.py`.
-    - [ ] Sub-task: Update `patterns/Toy_Example/*.ipynb` to use `analysis.py`.
-- [ ] Task: Conductor - User Manual Verification 'Phase 1: Setup and Toy Example' (Protocol in workflow.md)
+## Phase 1: Framework Decomposition (Refactoring Proposal Phase 1)
+- [ ] Task: Create `DataProcessor` class to handle data discretization and labeling logic extracted from `ArchSpace`.
+- [ ] Task: Create `RobustnessAnalyzer` class to isolate robustness calculation logic.
+- [ ] Task: Create `ScenarioDiscoverer` (or `ScenarioDiscoveryManager`) class to encapsulate PRIM and CART logic.
+- [ ] Task: Create `TradeoffAnalyzer` class for trade-off calculations.
+- [ ] Task: Refactor `ArchSpace` to become a coordinator that initializes these new components and delegates tasks to them.
+- [ ] Task: Conductor - User Manual Verification 'Phase 1: Framework Decomposition' (Protocol in workflow.md)
 
-## Phase 2: Gateway Patterns Refactoring
-- [ ] Task: Refactor `patterns/Gateway_Aggregation/`.
-    - [ ] Sub-task: Analyze notebooks.
-    - [ ] Sub-task: Write tests.
-    - [ ] Sub-task: Extract logic to `patterns/Gateway_Aggregation/analysis.py`.
-    - [ ] Sub-task: Update notebooks.
-- [ ] Task: Refactor `patterns/Gateway_Offloading/`.
-    - [ ] Sub-task: Analyze notebooks.
-    - [ ] Sub-task: Write tests.
-    - [ ] Sub-task: Extract logic to `patterns/Gateway_Offloading/analysis.py`.
-    - [ ] Sub-task: Update notebooks.
-- [ ] Task: Conductor - User Manual Verification 'Phase 2: Gateway Patterns Refactoring' (Protocol in workflow.md)
+## Phase 2: Declarative Loading & Strategy Implementation (Refactoring Proposal Phase 2)
+- [ ] Task: Implement `ScenarioDiscoveryManager` with `IScenarioDiscoveryStrategy` (Strategies: `PrimStrategy`, `CartStrategy`).
+- [ ] Task: Implement `ExplanationManager` with `IExplanationStrategy` (Strategy: `TemplateExplainerStrategy`).
+- [ ] Task: Implement the generic `DataLoader` that parses `*.json` system definitions (as per `docs/json_schema_usage.md`).
+- [ ] Task: Update `ArchSpace` to integrate with the new Managers and Loader.
+- [ ] Task: Conductor - User Manual Verification 'Phase 2: Declarative Loading & Strategy Implementation' (Protocol in workflow.md)
 
-## Phase 3: Structural Patterns Refactoring
-- [ ] Task: Refactor `patterns/Anti_Corruption_Layer/`.
-    - [ ] Sub-task: Analyze notebooks.
-    - [ ] Sub-task: Write tests.
-    - [ ] Sub-task: Extract logic to `patterns/Anti_Corruption_Layer/analysis.py`.
-    - [ ] Sub-task: Update notebooks.
-- [ ] Task: Refactor `patterns/Backends_for_Frontends/`.
-    - [ ] Sub-task: Analyze notebooks.
-    - [ ] Sub-task: Write tests.
-    - [ ] Sub-task: Extract logic to `patterns/Backends_for_Frontends/analysis.py`.
-    - [ ] Sub-task: Update notebooks.
-- [ ] Task: Conductor - User Manual Verification 'Phase 3: Structural Patterns Refactoring' (Protocol in workflow.md)
+## Phase 3: Toy Example Migration (Proof of Concept)
+- [ ] Task: Create `patterns/Toy_Example/ToyExample.json` conforming to the JSON schema.
+- [ ] Task: Refactor `patterns/Toy_Example/analysis.py` to use the new `DataLoader` and refactored `ArchSpace` coordinator.
+- [ ] Task: Verify `Toy_Example` output matches legacy results.
+- [ ] Task: Conductor - User Manual Verification 'Phase 3: Toy Example Migration' (Protocol in workflow.md)
 
-## Phase 4: Data and Compute Patterns Refactoring
-- [ ] Task: Refactor `patterns/CQRS/`.
-    - [ ] Sub-task: Analyze notebooks.
-    - [ ] Sub-task: Write tests.
-    - [ ] Sub-task: Extract logic to `patterns/CQRS/analysis.py`.
-    - [ ] Sub-task: Update notebooks.
-- [ ] Task: Refactor `patterns/Pipes_and_Filters/`.
-    - [ ] Sub-task: Analyze notebooks.
-    - [ ] Sub-task: Write tests.
-    - [ ] Sub-task: Extract logic to `patterns/Pipes_and_Filters/analysis.py`.
-    - [ ] Sub-task: Update notebooks.
-- [ ] Task: Refactor `patterns/Static_Content_Hosting/`.
-    - [ ] Sub-task: Analyze notebooks.
-    - [ ] Sub-task: Write tests.
-    - [ ] Sub-task: Extract logic to `patterns/Static_Content_Hosting/analysis.py`.
-    - [ ] Sub-task: Update notebooks.
-- [ ] Task: Conductor - User Manual Verification 'Phase 4: Data and Compute Patterns Refactoring' (Protocol in workflow.md)
+## Phase 4: Gateway & Structural Patterns Migration
+- [ ] Task: Migrate `Gateway_Aggregation`: Create JSON and refactor to `analysis.py`.
+- [ ] Task: Migrate `Gateway_Offloading`: Create JSON and refactor to `analysis.py`.
+- [ ] Task: Migrate `Anti_Corruption_Layer`: Create JSON and refactor to `analysis.py`.
+- [ ] Task: Migrate `Backends_for_Frontends`: Create JSON and refactor to `analysis.py`.
+- [ ] Task: Conductor - User Manual Verification 'Phase 4: Gateway & Structural Patterns Migration' (Protocol in workflow.md)
 
-## Phase 5: Verification and Final Polish
-- [ ] Task: Run full regression test suite across all refactored patterns to ensure no regressions.
-- [ ] Task: Update project documentation (`README.md`, `docs/`) to reflect the new script-based workflow.
-- [ ] Task: Conductor - User Manual Verification 'Phase 5: Verification and Final Polish' (Protocol in workflow.md)
+## Phase 5: Data/Compute Patterns Migration & Final Polish
+- [ ] Task: Migrate `CQRS`: Create JSON and refactor to `analysis.py`.
+- [ ] Task: Migrate `Pipes_and_Filters`: Create JSON and refactor to `analysis.py`.
+- [ ] Task: Migrate `Static_Content_Hosting`: Create JSON and refactor to `analysis.py`.
+- [ ] Task: Run full regression test suite across all patterns.
+- [ ] Task: Update `README.md` and `docs/` to reflect the completed refactoring and new usage patterns.
+- [ ] Task: Conductor - User Manual Verification 'Phase 5: Data/Compute Patterns Migration & Final Polish' (Protocol in workflow.md)

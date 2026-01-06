@@ -1,32 +1,35 @@
 # Track Specification: Refactor and Standardize Pattern Analysis Scripts
 
 ## Goal
-To refactor the existing architectural pattern analysis logic, currently embedded in Jupyter notebooks, into standardized, reusable Python scripts that leverage the `ArchSpace` framework. This will ensure consistency, improve maintainability, and facilitate automated testing across all pattern directories.
+To execute the architectural refactoring of the `ArchSpace` framework as outlined in `docs/refactoring_proposal.md`, and subsequently migrate all pattern analysis logic from Jupyter notebooks to standardized Python scripts that utilize this new, modular architecture.
 
 ## Core Requirements
-- **Convert Notebooks to Scripts:** Extract analysis logic from `patterns/**/analysis.ipynb` and other notebooks into modular Python scripts (e.g., `analysis.py`).
-- **Standardize ArchSpace Usage:** Ensure all new scripts consistently use the `ArchSpace` classes (e.g., `archspaces/archspace.py`, `archspaces/core.py`) for data loading, analysis, and visualization.
-- **Minimize Notebook Logic:** Reduce Jupyter notebooks to thin presentation layers that import and call functions from the new Python scripts.
-- **Ensure Reproducibility:** The refactored scripts must produce the same outputs (visualizations, metrics) as the original notebooks.
-- **Maintain Directory Structure:** Keep the existing `patterns/<PatternName>/` structure but replace or augment notebooks with the new scripts.
+1.  **Framework Refactoring (Per `docs/refactoring_proposal.md`):**
+    -   Decompose the `ArchSpace` "God Class" into single-responsibility components: `DataProcessor`, `RobustnessAnalyzer`, `ScenarioDiscoverer`, `TradeoffAnalyzer`.
+    -   Implement the "Coordinator" pattern for `ArchSpace`.
+    -   Implement the `ScenarioDiscoveryManager` and `ExplanationManager` with strategy patterns.
+
+2.  **Declarative Data Loading (Per `docs/json_schema_usage.md`):**
+    -   Implement a generic `DataLoader` that reads system definitions from JSON files.
+    -   Ensure compatibility with the defined JSON schema (System, Component, Dataspace).
+
+3.  **Pattern Migration:**
+    -   Convert existing notebooks (`.ipynb`) in `patterns/` to standardized Python scripts (`analysis.py`).
+    -   Update each pattern to include a `*.json` definition file.
+    -   Ensure all patterns utilize the new, refactored `ArchSpace` components.
 
 ## In Scope
-- Refactoring `patterns/Anti_Corruption_Layer/`
-- Refactoring `patterns/Backends_for_Frontends/`
-- Refactoring `patterns/CQRS/`
-- Refactoring `patterns/Gateway_Aggregation/`
-- Refactoring `patterns/Gateway_Offloading/`
-- Refactoring `patterns/Pipes_and_Filters/`
-- Refactoring `patterns/Static_Content_Hosting/`
-- Refactoring `patterns/Toy_Example/` (if applicable)
+-   Refactoring `archspaces/` core modules.
+-   Creating/Updating JSON definitions for all patterns.
+-   Refactoring `patterns/Toy_Example/` as the proof-of-concept.
+-   Refactoring all other existing patterns (`Gateway`, `CQRS`, `ACL`, etc.).
 
 ## Out of Scope
-- Adding new architectural patterns.
-- Modifying the core `ArchSpace` framework logic (unless bugs are found).
-- Significant changes to the visualization styles (keep parity with existing).
+-   Adding new architectural patterns (only refactoring existing ones).
+-   Changing the underlying simulation data (CSVs remain the same).
 
 ## Success Criteria
-- All target patterns have a corresponding `analysis.py` (or similar) script.
-- All refactored notebooks run without errors and produce identical results using the new scripts.
-- Code coverage for the new scripts is >50%.
-- `pytest` passes for all new test modules.
+-   `ArchSpace` class is significantly smaller and delegates to helper classes.
+-   `pytest` suite passes for the new framework components.
+-   All patterns have a valid `*.json` definition.
+-   All patterns run via `analysis.py` using the new framework and produce equivalent results to the legacy notebooks.
