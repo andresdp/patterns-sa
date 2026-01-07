@@ -19,11 +19,11 @@
 - [x] Task: Reorganize `archspaces/` modules into the ADEPT modular structure (as per `docs/functional.md` section 3.1).
 - [x] Task: Implement `ParameterRegistry` to handle Lever/Uncertainty/Outcome categorization and hierarchy.
 - [x] Task: Extend `GenericDataLoader` to support `AdaptiveProcess` metadata and temporal `BehavioralTrace` loading.
-- [ ] Task: Conductor - User Manual Verification 'Phase 3: ADEPT Core' (Protocol in workflow.md)
+- [x] Task: Conductor - User Manual Verification 'Phase 3: ADEPT Core' (Protocol in workflow.md)
 
 ## Phase 4: Enhanced Discretization-Based Exploration
-- [ ] Task: Formalize `QualityBin` and `DiscretizationScheme` entities within the `DataProcessor`.
-- [ ] Task: Update `ScenarioDiscoveryManager` to explicitly support the "Discretization" paradigm mode with multi-dimensional targets.
+- [x] Task: Formalize `QualityBin` and `DiscretizationScheme` entities within the `DataProcessor`.
+- [x] Task: Update `ScenarioDiscoveryManager` to explicitly support the "Discretization" paradigm mode with multi-dimensional targets.
 - [ ] Task: Conductor - User Manual Verification 'Phase 4: Exploration Paradigm' (Protocol in workflow.md)
 
 ## Phase 5: Static Pattern Migration (Microservices)

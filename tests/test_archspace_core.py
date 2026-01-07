@@ -21,9 +21,10 @@ class TestArchSpaceCore(unittest.TestCase):
         self.assertIsInstance(self.core.tradeoff_analyzer, TradeoffAnalyzer)
 
     def test_discretize_delegation(self):
-        discrete_df, tradeoffs = self.core.discretize(self.df, n_bins=2)
+        discrete_df, schemes = self.core.discretize(self.df, n_bins=2)
         self.assertEqual(len(discrete_df), 4)
-        self.assertIsNotNone(tradeoffs)
+        self.assertIsInstance(schemes, list)
+        self.assertEqual(len(schemes), 3)
 
     def test_robustness_delegation(self):
         discrete_df, _ = self.core.discretize(self.df, n_bins=2)

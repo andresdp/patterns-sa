@@ -23,10 +23,14 @@ class TestDataProcessor(unittest.TestCase):
             'A': ['low', 'high'],
             'B': ['low', 'high']
         }
-        discrete_df, tradeoffs = self.processor.discretize(self.data, n_bins=2, all_labels=all_labels)
+        discrete_df, schemes = self.processor.discretize(self.data, n_bins=2, all_labels=all_labels)
         self.assertEqual(len(discrete_df), 10)
         self.assertIn('low', discrete_df['A'].values)
         self.assertIn('high', discrete_df['A'].values)
+        self.assertEqual(len(schemes), 2)
+        self.assertEqual(schemes[0].objective_name, 'A')
+        self.assertEqual(len(schemes[0].bins), 2)
+        self.assertEqual(schemes[0].bins[0].label, 'low')
 
     def test_get_tradeoffs(self):
         discrete_df = pd.DataFrame({

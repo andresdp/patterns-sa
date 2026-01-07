@@ -1,7 +1,8 @@
-from typing import Dict, Optional, Tuple
+from typing import Dict, Optional, Tuple, List
 import pandas as pd
 import numpy as np
 from collections import Counter
+from ..core.models import QualityBin, DiscretizationScheme
 
 
 class DataProcessor:
@@ -52,7 +53,7 @@ class DataProcessor:
         return Counter(tradeoffs)
 
     @staticmethod
-    def discretize(df: pd.DataFrame, n_bins: int = 3, mins_maxs: Tuple[Optional[float], Optional[float]] = (None, None), all_labels: Optional[Dict] = None) -> Tuple[pd.DataFrame, Counter]:
+    def discretize(df: pd.DataFrame, n_bins: int = 3, mins_maxs: Tuple[Optional[float], Optional[float]] = (None, None), all_labels: Optional[Dict] = None) -> Tuple[pd.DataFrame, List[DiscretizationScheme]]:
         """Transforms a continuous DataFrame into categorical bins. 
         
         Args:
@@ -62,9 +63,11 @@ class DataProcessor:
             all_labels: Dictionary mapping column names to lists of label strings.
             
         Returns:
-            A tuple containing (discretized_df, tradeoffs_counter).
+            A tuple containing (discretized_df, list_of_discretization_schemes).
         """
         discrete_df = df.copy()
+        schemes = []
+        
         for idx, c in enumerate(df.columns):
             qa = df[c]
             min_max = (None, None)
@@ -72,12 +75,29 @@ class DataProcessor:
                 min_max = mins_maxs[idx]
             qa_bins = DataProcessor.get_bins(qa, n_bins, min_max=min_max)
             
+            labels = None
             if all_labels and c in all_labels:
-                qa_labels = pd.cut(qa, bins=qa_bins, labels=all_labels[c])
+                labels = all_labels[c]
+                qa_labels = pd.cut(qa, bins=qa_bins, labels=labels)
             else:
                 qa_labels = pd.cut(qa, bins=qa_bins)
+                # If no labels, use interval strings as labels
+                labels = [str(interval) for interval in qa_labels.cat.categories]
 
             discrete_df[c] = qa_labels
+            
+            # Create scheme
+            bins = []
+            for i in range(len(labels)):
+                bins.append(QualityBin(
+                    label=str(labels[i]),
+                    min_value=float(qa_bins[i]),
+                    max_value=float(qa_bins[i+1])
+                ))
+            
+            schemes.append(DiscretizationScheme(
+                objective_name=c,
+                bins=bins
+            ))
 
-        available_tradeoffs = DataProcessor.get_tradeoffs(discrete_df)
-        return discrete_df, available_tradeoffs
+        return discrete_df, schemes

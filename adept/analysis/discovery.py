@@ -56,14 +56,17 @@ class PRIMDiscovery(ScenarioDiscovery):
         n_boxes = kwargs.get('n_boxes', False)
         verbose = kwargs.get('verbose', True)
         
-        if property is None:
-             raise ValueError("Property (ROI) must be defined for PRIM")
+        y = kwargs.get('y_mask')
+        
+        if y is None:
+            if property is None:
+                 raise ValueError("Either 'property' or 'y_mask' must be defined for PRIM")
 
-        # Construct ROI mask
-        y = pd.Series([True] * len(outcomes_df), index=outcomes_df.index)
-        for outcome, (min_val, max_val) in property.items():
-            if outcome in outcomes_df.columns:
-                y = y & (outcomes_df[outcome] >= min_val) & (outcomes_df[outcome] <= max_val)
+            # Construct ROI mask
+            y = pd.Series([True] * len(outcomes_df), index=outcomes_df.index)
+            for outcome, (min_val, max_val) in property.items():
+                if outcome in outcomes_df.columns:
+                    y = y & (outcomes_df[outcome] >= min_val) & (outcomes_df[outcome] <= max_val)
         
         x = experiments_df.copy()
         to_drop = ['policy', 'model', 'scenario']
@@ -338,8 +341,37 @@ class ScenarioDiscoveryManager:
         
         return PRIMDiscovery()
 
-    def discover(self, experiments_df: pd.DataFrame, outcomes_df: pd.DataFrame, method: Optional[str] = None, **kwargs) -> Any:
-        """Delegates discovery to the selected strategy."""
+    def discover(self, experiments_df: pd.DataFrame, outcomes_df: pd.DataFrame, outcome: str, method: Optional[str] = None, **kwargs) -> Any:
+        """Delegates discovery to the selected strategy.
+        
+        Special handling for 'Discretization' paradigm:
+        If kwargs contains 'target_spec' with paradigm='discretization', 
+        it creates the target mask 'y' based on 'target_bin'.
+        """
+        target_spec = kwargs.get('target_spec')
+        if target_spec and target_spec.get('paradigm') == 'discretization':
+            target_bin = target_spec.get('target_bin')
+            discrete_df = kwargs.get('discrete_outcomes_df')
+            
+            if discrete_df is None:
+                raise ValueError("discrete_outcomes_df is required for discretization paradigm")
+            
+            # Create mask y based ONLY on the target outcome column
+            if outcome in discrete_df.columns:
+                y = (discrete_df[outcome] == target_bin)
+            else:
+                # If outcome name doesn't match directly, it might be a multi-dimensional tradeoff label
+                # In that case, we fall back to the string representation of the whole row
+                from .discretization import DataProcessor
+                temp = discrete_df.to_string(header=False, index=False, index_names=False).split('\n')
+                row_labels = [','.join(ele.split()) for ele in temp]
+                y = pd.Series([label == target_bin for label in row_labels], index=discrete_df.index)
+            
+            if method == 'cart':
+                kwargs['discrete_outcomes'] = y
+            else:
+                kwargs['y_mask'] = y
+
         strategy = self.get_strategy(method)
         return strategy.discover(experiments_df, outcomes_df, **kwargs)
 

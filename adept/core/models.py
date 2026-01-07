@@ -191,6 +191,23 @@ class BehavioralTrace(BaseModel):
     model_config = {"arbitrary_types_allowed": True}
 
 
+class QualityBin(BaseModel):
+    """Represents a categorical region in outcome space.
+    
+    E.g., label='fast', range=(0.0, 0.5).
+    """
+    label: str
+    min_value: float
+    max_value: float
+
+
+class DiscretizationScheme(BaseModel):
+    """The mapping from continuous metric values to categorical bins for an objective."""
+    objective_name: str
+    bins: List[QualityBin]
+    method: str = "equal_width"
+
+
 # --- ADEPT Schema Models ---
 
 class System(BaseModel):
@@ -269,6 +286,8 @@ __all__ = [
     "ArchitectureSpace",
     "AdaptiveProcess",
     "BehavioralTrace",
+    "QualityBin",
+    "DiscretizationScheme",
     "SystemDefinition",
     "System",
     "Dataspace",

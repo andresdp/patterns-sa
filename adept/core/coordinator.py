@@ -3,6 +3,7 @@ import pandas as pd
 from collections import Counter
 
 from .loader import DataLoader, GenericDataLoader
+from .models import SystemDefinition, DiscretizationScheme
 from ..utils.validation import SchemaValidator, SimpleValidator
 from ..analysis.discretization import DataProcessor
 from ..analysis.robustness import RobustnessAnalyzer
@@ -67,7 +68,7 @@ class ArchSpaceCore:
         """
         experiments_df = kwargs.get('experiments_df', df)
         outcomes_df = kwargs.get('outcomes_df', df)
-        return self.discovery_manager.discover(experiments_df, outcomes_df, method=method, **kwargs)
+        return self.discovery_manager.discover(experiments_df, outcomes_df, outcome=outcome, method=method, **kwargs)
 
     def explain(self, artifact: Any, method: Optional[str] = None, **kwargs) -> Dict[str, str]:
         """Generates natural language explanations for analysis artifacts.
@@ -76,7 +77,7 @@ class ArchSpaceCore:
         """
         return self.explanation_manager.explain(artifact, method=method, **kwargs)
 
-    def discretize(self, df: pd.DataFrame, **kwargs) -> Tuple[pd.DataFrame, Counter]:
+    def discretize(self, df: pd.DataFrame, **kwargs) -> Tuple[pd.DataFrame, List[DiscretizationScheme]]:
         """Transforms continuous data into categorical regions.
         
         Delegates to the DataProcessor.
