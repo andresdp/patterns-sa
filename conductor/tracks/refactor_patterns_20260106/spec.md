@@ -1,35 +1,34 @@
-# Track Specification: Refactor and Standardize Pattern Analysis Scripts
+# Track Specification: ADEPT Framework Implementation
 
 ## Goal
-To execute the architectural refactoring of the `ArchSpace` framework as outlined in `docs/refactoring_proposal.md`, and subsequently migrate all pattern analysis logic from Jupyter notebooks to standardized Python scripts that utilize this new, modular architecture.
+To implement the **ADEPT** (Architectural Decision Exploration and Pattern Tradeoffs) framework, evolving the existing ArchSpace toolkit into a unified system for data-driven architectural analysis. This track focuses on core data modeling, enhanced discretization-based exploration, and migration of existing patterns to the new ADEPT architecture.
 
 ## Core Requirements
-1.  **Framework Refactoring (Per `docs/refactoring_proposal.md`):**
-    -   Decompose the `ArchSpace` "God Class" into single-responsibility components: `DataProcessor`, `RobustnessAnalyzer`, `ScenarioDiscoverer`, `TradeoffAnalyzer`.
-    -   Implement the "Coordinator" pattern for `ArchSpace`.
-    -   Implement the `ScenarioDiscoveryManager` and `ExplanationManager` with strategy patterns.
+1.  **ADEPT Core Modeling:**
+    -   Implement the parameter hierarchy (Levers, Uncertainties, Outcomes) at System, Pattern, and Infrastructure levels.
+    -   Support for **Adaptive Processes** and **Behavioral Traces** to analyze temporal behavior in stateful systems (e.g., Federated Learning).
+    -   Reorganize the framework into the modular structure proposed in `docs/functional.md`.
 
-2.  **Declarative Data Loading (Per `docs/json_schema_usage.md`):**
-    -   Implement a generic `DataLoader` that reads system definitions from JSON files.
-    -   Ensure compatibility with the defined JSON schema (System, Component, Dataspace).
+2.  **Enhanced Discretization Paradigm:**
+    -   Formalize `QualityBin` and `DiscretizationScheme` entities.
+    -   Integrate discretization-based scenario discovery (PRIM/CART) into the unified ADEPT API.
 
 3.  **Pattern Migration:**
-    -   Convert existing notebooks (`.ipynb`) in `patterns/` to standardized Python scripts (`analysis.py`).
-    -   Update each pattern to include a `*.json` definition file.
-    -   Ensure all patterns utilize the new, refactored `ArchSpace` components.
+    -   Convert legacy notebooks and scripts to use the ADEPT `SystemDefinition` (JSON) and `ArchSpaceCore` coordinator.
+    -   Support both static (microservices) and adaptive (FL) patterns.
 
 ## In Scope
--   Refactoring `archspaces/` core modules.
--   Creating/Updating JSON definitions for all patterns.
--   Refactoring `patterns/Toy_Example/` as the proof-of-concept.
--   Refactoring all other existing patterns (`Gateway`, `CQRS`, `ACL`, etc.).
+-   Reorganizing `archspaces/` into `adept/` or an equivalent modular structure.
+-   Implementing advanced metadata parsing in `DataLoader`.
+-   Migrating all existing patterns (`Toy`, `Gateway`, `CQRS`, `ACL`, `FL`, `AWS_Petshop`).
+-   Implementing the `LLMExplainerStrategy`.
 
 ## Out of Scope
--   Adding new architectural patterns (only refactoring existing ones).
--   Changing the underlying simulation data (CSVs remain the same).
+-   Experiment Orchestration / Simulation execution (sampling and simulation remain external for now).
+-   Pareto-Epsilon Optimization paradigm (deferred to a future track).
 
 ## Success Criteria
--   `ArchSpace` class is significantly smaller and delegates to helper classes.
--   `pytest` suite passes for the new framework components.
--   All patterns have a valid `*.json` definition.
--   All patterns run via `analysis.py` using the new framework and produce equivalent results to the legacy notebooks.
+-   The framework supports the Lever/Uncertainty/Outcome parameter hierarchy.
+-   Adaptive processes can be loaded and analyzed via behavioral traces.
+-   All existing patterns are migrated to standardized `analysis.py` scripts and `*.json` definitions.
+-   `pytest` suite passes for all ADEPT core components and migrated patterns.

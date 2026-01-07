@@ -1,4 +1,4 @@
-# Track Plan: Refactor and Standardize Pattern Analysis Scripts
+# Track Plan: ADEPT Framework Implementation
 
 ## Phase 1: Framework Decomposition (Refactoring Proposal Phase 1) [checkpoint: 1e475f2]
 - [x] Task: Create `DataProcessor` class to handle data discretization and labeling logic extracted from `ArchSpace`.
@@ -15,23 +15,29 @@
 - [x] Task: Update `ArchSpace` to integrate with the new Managers and Loader.
 - [ ] Task: Conductor - User Manual Verification 'Phase 2: Declarative Loading & Strategy Implementation' (Protocol in workflow.md)
 
-## Phase 3: Toy Example Migration (Proof of Concept)
-- [ ] Task: Create `patterns/Toy_Example/ToyExample.json` conforming to the JSON schema.
-- [ ] Task: Refactor `patterns/Toy_Example/analysis.py` to use the new `DataLoader` and refactored `ArchSpace` coordinator.
-- [ ] Task: Verify `Toy_Example` output matches legacy results.
-- [ ] Task: Conductor - User Manual Verification 'Phase 3: Toy Example Migration' (Protocol in workflow.md)
+## Phase 3: ADEPT Core & Advanced Data Modeling
+- [ ] Task: Reorganize `archspaces/` modules into the ADEPT modular structure (as per `docs/functional.md` section 3.1).
+- [ ] Task: Implement `ParameterRegistry` to handle Lever/Uncertainty/Outcome categorization and hierarchy.
+- [ ] Task: Extend `GenericDataLoader` to support `AdaptiveProcess` metadata and temporal `BehavioralTrace` loading.
+- [ ] Task: Conductor - User Manual Verification 'Phase 3: ADEPT Core' (Protocol in workflow.md)
 
-## Phase 4: Gateway & Structural Patterns Migration
-- [ ] Task: Migrate `Gateway_Aggregation`: Create JSON and refactor to `analysis.py`.
-- [ ] Task: Migrate `Gateway_Offloading`: Create JSON and refactor to `analysis.py`.
-- [ ] Task: Migrate `Anti_Corruption_Layer`: Create JSON and refactor to `analysis.py`.
-- [ ] Task: Migrate `Backends_for_Frontends`: Create JSON and refactor to `analysis.py`.
-- [ ] Task: Conductor - User Manual Verification 'Phase 4: Gateway & Structural Patterns Migration' (Protocol in workflow.md)
+## Phase 4: Enhanced Discretization-Based Exploration
+- [ ] Task: Formalize `QualityBin` and `DiscretizationScheme` entities within the `DataProcessor`.
+- [ ] Task: Update `ScenarioDiscoveryManager` to explicitly support the "Discretization" paradigm mode with multi-dimensional targets.
+- [ ] Task: Conductor - User Manual Verification 'Phase 4: Exploration Paradigm' (Protocol in workflow.md)
 
-## Phase 5: Data/Compute Patterns Migration & Final Polish
-- [ ] Task: Migrate `CQRS`: Create JSON and refactor to `analysis.py`.
-- [ ] Task: Migrate `Pipes_and_Filters`: Create JSON and refactor to `analysis.py`.
-- [ ] Task: Migrate `Static_Content_Hosting`: Create JSON and refactor to `analysis.py`.
-- [ ] Task: Run full regression test suite across all patterns.
-- [ ] Task: Update `README.md` and `docs/` to reflect the completed refactoring and new usage patterns.
-- [ ] Task: Conductor - User Manual Verification 'Phase 5: Data/Compute Patterns Migration & Final Polish' (Protocol in workflow.md)
+## Phase 5: Static Pattern Migration (Microservices)
+- [ ] Task: Migrate `Toy_Example` to the full ADEPT model as a proof-of-concept.
+- [ ] Task: Migrate microservices patterns: `Gateway_Aggregation`, `Gateway_Offloading`, `CQRS`, and `Anti_Corruption_Layer`.
+- [ ] Task: Conductor - User Manual Verification 'Phase 5: Static Migration' (Protocol in workflow.md)
+
+## Phase 6: Adaptive Pattern Migration (Temporal Behavior)
+- [ ] Task: Implement basic analysis logic for `BehavioralTrace` data (temporal sensitivity and convergence checks).
+- [ ] Task: Migrate adaptive datasets: `Federated Learning` patterns and `AWS_Petshop`.
+- [ ] Task: Conductor - User Manual Verification 'Phase 6: Adaptive Migration' (Protocol in workflow.md)
+
+## Phase 7: Explainability & Documentation
+- [ ] Task: Implement `LLMExplainerStrategy` for natural language rule translation.
+- [ ] Task: Standardize all visualization functions into a unified ADEPT Plotting API.
+- [ ] Task: Update `README.md` and `docs/` with final ADEPT branding and usage guidelines.
+- [ ] Task: Conductor - User Manual Verification 'Phase 7: Final Polish' (Protocol in workflow.md)
