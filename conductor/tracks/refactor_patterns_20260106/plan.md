@@ -15,7 +15,7 @@
 - [x] Task: Update `ArchSpace` to integrate with the new Managers and Loader.
 - [x] Task: Conductor - User Manual Verification 'Phase 2: Declarative Loading & Strategy Implementation' (Protocol in workflow.md)
 
-## Phase 3: ADEPT Core & Advanced Data Modeling
+## Phase 3: ADEPT Core & Advanced Data Modeling [checkpoint: c8eb00d]
 - [x] Task: Reorganize `archspaces/` modules into the ADEPT modular structure (as per `docs/functional.md` section 3.1).
 - [x] Task: Implement `ParameterRegistry` to handle Lever/Uncertainty/Outcome categorization and hierarchy.
 - [x] Task: Extend `GenericDataLoader` to support `AdaptiveProcess` metadata and temporal `BehavioralTrace` loading.
