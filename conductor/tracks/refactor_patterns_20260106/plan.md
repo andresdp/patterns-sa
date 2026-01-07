@@ -21,7 +21,7 @@
 - [x] Task: Extend `GenericDataLoader` to support `AdaptiveProcess` metadata and temporal `BehavioralTrace` loading.
 - [x] Task: Conductor - User Manual Verification 'Phase 3: ADEPT Core' (Protocol in workflow.md)
 
-## Phase 4: Enhanced Discretization-Based Exploration
+## Phase 4: Enhanced Discretization-Based Exploration [checkpoint: 0b754c3]
 - [x] Task: Formalize `QualityBin` and `DiscretizationScheme` entities within the `DataProcessor`.
 - [x] Task: Update `ScenarioDiscoveryManager` to explicitly support the "Discretization" paradigm mode with multi-dimensional targets.
 - [ ] Task: Conductor - User Manual Verification 'Phase 4: Exploration Paradigm' (Protocol in workflow.md)
