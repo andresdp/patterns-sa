@@ -208,17 +208,43 @@ class DiscretizationScheme(BaseModel):
     method: str = "equal_width"
 
 
+class Tradeoff(BaseModel):
+    """Represents a specific combination of quality attribute treatments.
+    
+    A tradeoff is a first-class element that defines a region of interest 
+    in the multi-dimensional outcome space. It serves as a bridge between 
+    raw performance data and architectural requirements.
+    
+    It can internally link to:
+    - Discretization (QualityBins)
+    - Epsilon Constraints (Future)
+    - Optimization Goals (Future)
+    """
+    name: str
+    description: str = ""
+    # Mapping of objective names to their respective treatment values
+    # (e.g., bin labels for discretization)
+    elements: Dict[str, Any] = Field(default_factory=dict)
+    
+    # The analytical paradigm this tradeoff belongs to
+    paradigm: str = "discretization"
+
+    model_config = {"extra": "allow", "validate_assignment": True}
+
+
 # --- ADEPT Schema Models ---
 
 class System(BaseModel):
     """The root container for an architectural model.
     
-    Composes pattern instances and adaptive processes into a unified system.
+    Composes pattern instances, adaptive processes, and tradeoff definitions 
+    into a unified system.
     """
     name: str
     description: str = ""
     components: Dict[str, ArchitecturalPattern] = Field(default_factory=dict)
     adaptive_processes: List[AdaptiveProcess] = Field(default_factory=list)
+    tradeoffs: List[Tradeoff] = Field(default_factory=list)
 
 
 class Policy(BaseModel):
@@ -288,6 +314,7 @@ __all__ = [
     "BehavioralTrace",
     "QualityBin",
     "DiscretizationScheme",
+    "Tradeoff",
     "SystemDefinition",
     "System",
     "Dataspace",

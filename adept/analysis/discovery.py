@@ -347,9 +347,36 @@ class ScenarioDiscoveryManager:
         Special handling for 'Discretization' paradigm:
         If kwargs contains 'target_spec' with paradigm='discretization', 
         it creates the target mask 'y' based on 'target_bin'.
+        
+        Also supports passing a 'Tradeoff' object via 'tradeoff' kwarg.
         """
+        tradeoff = kwargs.get('tradeoff')
         target_spec = kwargs.get('target_spec')
-        if target_spec and target_spec.get('paradigm') == 'discretization':
+        
+        # If a first-class Tradeoff object is provided, use its definition
+        if tradeoff:
+            from ..core.models import Tradeoff
+            if not isinstance(tradeoff, Tradeoff):
+                 # Handle cases where it might be a dict
+                 tradeoff = Tradeoff.model_validate(tradeoff)
+            
+            if tradeoff.paradigm == 'discretization':
+                discrete_df = kwargs.get('discrete_outcomes_df')
+                if discrete_df is None:
+                    raise ValueError("discrete_outcomes_df is required for discretization tradeoff")
+                
+                # Create mask y based on all elements in the tradeoff
+                y = pd.Series([True] * len(discrete_df), index=discrete_df.index)
+                for obj_name, target_label in tradeoff.elements.items():
+                    if obj_name in discrete_df.columns:
+                        y = y & (discrete_df[obj_name] == target_label)
+                
+                if method == 'cart':
+                    kwargs['discrete_outcomes'] = y
+                else:
+                    kwargs['y_mask'] = y
+
+        elif target_spec and target_spec.get('paradigm') == 'discretization':
             target_bin = target_spec.get('target_bin')
             discrete_df = kwargs.get('discrete_outcomes_df')
             
