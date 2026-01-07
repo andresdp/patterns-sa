@@ -1,4 +1,4 @@
-from archspaces.definitions import (
+from adept.core.models import (
     ArchitecturalPattern,
     ConfigurationSpace,
     QualityObjective,

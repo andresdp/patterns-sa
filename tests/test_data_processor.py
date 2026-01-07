@@ -2,7 +2,7 @@
 import unittest
 import pandas as pd
 import numpy as np
-from archspaces.core import DataProcessor
+from adept.analysis.discretization import DataProcessor
 
 class TestDataProcessor(unittest.TestCase):
     def setUp(self):

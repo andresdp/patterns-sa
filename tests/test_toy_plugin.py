@@ -1,6 +1,6 @@
 import os
 from tools.mock_generator import generate_toy_csv
-from archspaces.plugins.toy import ToyPlugin
+from adept.core.plugins.toy import ToyPlugin
 
 
 def test_toy_plugin_end_to_end(tmp_path):

@@ -1,7 +1,10 @@
 
 import unittest
 import pandas as pd
-from archspaces.core import ArchSpaceCore, DataProcessor, RobustnessAnalyzer, TradeoffAnalyzer
+from adept.core.coordinator import ArchSpaceCore
+from adept.analysis.discretization import DataProcessor
+from adept.analysis.robustness import RobustnessAnalyzer
+from adept.analysis.tradeoffs import TradeoffAnalyzer
 
 class TestArchSpaceCore(unittest.TestCase):
     def setUp(self):

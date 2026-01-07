@@ -6,19 +6,19 @@
 - [x] Task: Create `ScenarioDiscoverer` (or `ScenarioDiscoveryManager`) class to encapsulate PRIM and CART logic.
 - [x] Task: Create `TradeoffAnalyzer` class for trade-off calculations.
 - [x] Task: Refactor `ArchSpace` to become a coordinator that initializes these new components and delegates tasks to them.
-- [ ] Task: Conductor - User Manual Verification 'Phase 1: Framework Decomposition' (Protocol in workflow.md)
+- [x] Task: Conductor - User Manual Verification 'Phase 1: Framework Decomposition' (Protocol in workflow.md)
 
 ## Phase 2: Declarative Loading & Strategy Implementation (Refactoring Proposal Phase 2) [checkpoint: c4cdefb]
 - [x] Task: Implement `ScenarioDiscoveryManager` with `IScenarioDiscoveryStrategy` (Strategies: `PrimStrategy`, `CartStrategy`).
 - [x] Task: Implement `ExplanationManager` with `IExplanationStrategy` (Strategy: `TemplateExplainerStrategy`).
 - [x] Task: Implement the generic `DataLoader` that parses `*.json` system definitions (as per `docs/json_schema_usage.md`).
 - [x] Task: Update `ArchSpace` to integrate with the new Managers and Loader.
-- [ ] Task: Conductor - User Manual Verification 'Phase 2: Declarative Loading & Strategy Implementation' (Protocol in workflow.md)
+- [x] Task: Conductor - User Manual Verification 'Phase 2: Declarative Loading & Strategy Implementation' (Protocol in workflow.md)
 
 ## Phase 3: ADEPT Core & Advanced Data Modeling
-- [ ] Task: Reorganize `archspaces/` modules into the ADEPT modular structure (as per `docs/functional.md` section 3.1).
-- [ ] Task: Implement `ParameterRegistry` to handle Lever/Uncertainty/Outcome categorization and hierarchy.
-- [ ] Task: Extend `GenericDataLoader` to support `AdaptiveProcess` metadata and temporal `BehavioralTrace` loading.
+- [x] Task: Reorganize `archspaces/` modules into the ADEPT modular structure (as per `docs/functional.md` section 3.1).
+- [x] Task: Implement `ParameterRegistry` to handle Lever/Uncertainty/Outcome categorization and hierarchy.
+- [x] Task: Extend `GenericDataLoader` to support `AdaptiveProcess` metadata and temporal `BehavioralTrace` loading.
 - [ ] Task: Conductor - User Manual Verification 'Phase 3: ADEPT Core' (Protocol in workflow.md)
 
 ## Phase 4: Enhanced Discretization-Based Exploration

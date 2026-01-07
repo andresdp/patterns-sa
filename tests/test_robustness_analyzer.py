@@ -1,7 +1,8 @@
 
 import unittest
 import pandas as pd
-from archspaces.core import RobustnessAnalyzer, DataProcessor
+from adept.analysis.robustness import RobustnessAnalyzer
+from adept.analysis.discretization import DataProcessor
 
 class TestRobustnessAnalyzer(unittest.TestCase):
     def setUp(self):

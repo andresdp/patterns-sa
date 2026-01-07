@@ -1,1 +1,0 @@
-{"system": {"name": "TestSys", "components": {"comp1": {"name": "Patt1", "parameters": {"N_A": {"type": "integer"}}}}}, "dataspace": {"source_file": "test_data.csv", "quality_objectives": [{"name": "R0", "metric": "response_time"}], "policy_identification": {"from": "column", "column": "config", "policies": {"c1": {"name": "Config 1"}, "c2": {"name": "Config 2"}}}}}

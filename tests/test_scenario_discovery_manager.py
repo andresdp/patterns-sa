@@ -1,7 +1,7 @@
 
 import unittest
 import pandas as pd
-from archspaces.discovery import ScenarioDiscoveryManager, PRIMDiscovery, CARTDiscovery
+from adept.analysis.discovery import ScenarioDiscoveryManager, PRIMDiscovery, CARTDiscovery
 
 class TestScenarioDiscoveryManager(unittest.TestCase):
     def setUp(self):

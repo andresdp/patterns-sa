@@ -2,7 +2,7 @@
 import unittest
 import pandas as pd
 import numpy as np
-from archspaces.core import TradeoffAnalyzer
+from adept.analysis.tradeoffs import TradeoffAnalyzer
 
 class TestTradeoffAnalyzer(unittest.TestCase):
     def setUp(self):

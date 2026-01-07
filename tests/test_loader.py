@@ -3,8 +3,8 @@ import unittest
 import pandas as pd
 import json
 import os
-from archspaces.loader import GenericDataLoader
-from archspaces.definitions import SystemDefinition
+from adept.core.loader import GenericDataLoader
+from adept.core.models import SystemDefinition
 
 class TestGenericDataLoader(unittest.TestCase):
     def setUp(self):

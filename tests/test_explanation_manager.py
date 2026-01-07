@@ -1,6 +1,6 @@
 
 import unittest
-from archspaces.explanations import ExplanationManager, TemplateExplainerStrategy
+from adept.analysis.explainer import ExplanationManager, TemplateExplainerStrategy
 
 class TestExplanationManager(unittest.TestCase):
     def setUp(self):
