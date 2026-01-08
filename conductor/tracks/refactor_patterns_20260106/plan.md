@@ -27,7 +27,7 @@
 - [ ] Task: Conductor - User Manual Verification 'Phase 4: Exploration Paradigm' (Protocol in workflow.md)
 
 ## Phase 5: Static Pattern Migration (Microservices)
-- [ ] Task: Migrate `Toy_Example` to the full ADEPT model as a proof-of-concept.
+- [x] Task: Migrate `Toy_Example` to the full ADEPT model as a proof-of-concept.
 - [ ] Task: Migrate microservices patterns: `Gateway_Aggregation`, `Gateway_Offloading`, `CQRS`, and `Anti_Corruption_Layer`.
 - [ ] Task: Conductor - User Manual Verification 'Phase 5: Static Migration' (Protocol in workflow.md)
 
