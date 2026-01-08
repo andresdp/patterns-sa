@@ -65,8 +65,8 @@ def run_analysis(json_path: str, outdir: str) -> None:
 
 def main():
     parser = argparse.ArgumentParser()
-    # Default to the local ToyExample.json
-    parser.add_argument("--config", default="patterns/Toy_Example/ToyExample.json")
+    # Default to the local ArchExample.json
+    parser.add_argument("--config", default="patterns/Toy_Example/ArchExample.json")
     parser.add_argument("--outdir", default="patterns/Toy_Example/out")
     args = parser.parse_args()
     

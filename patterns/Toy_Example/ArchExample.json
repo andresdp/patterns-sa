@@ -1,0 +1,111 @@
+{
+  "system": {
+    "name": "Arch Example System",
+    "description": "A simple architecture system for testing and demonstration of the ADEPT framework.",
+    "components": {
+      "arch_example_pattern": {
+        "name": "Arch Example Pattern",
+        "description": "A simple component-and-device pattern that defines a design space to explore.",
+        "parameters": {
+          "deviceCPUCyles": { "type": "float" },
+          "deviceCost": { "type": "float" },
+          "lbExecTime": { "type": "float" },
+          "lbFailureProb": { "type": "float" },
+          "serviceCost": { "type": "float" },
+          "serviceFailureProb": { "type": "float" },
+          "d1Services": { "type": "integer" },
+          "d2Services": { "type": "integer" },
+          "d3Services": { "type": "integer" }
+        },
+      "decisions": {
+        "deployment_strategy": {
+          "description": "The number of devices effectively deployed and the number of services per device.",
+          "policies": {
+            "one_device_low_utilization": { "description": "One device with 2 services." },
+            "two_replicas_low_utilization": { "description": "Two devices with 2 services each." },
+            "three_replicas_low_utilization": { "description": "Three devices with 2 services each." },
+            "one_device_high_utilization": { "description": "One device with 5 services." },
+            "two_replicas_high_utilization": { "description": "Two devices with 5 services each." },
+            "three_replicas_high_utilization": { "description": "Three devices with 5 services each." }
+          }
+        }
+      }
+    }
+  },
+    "adaptive_processes": [],
+    "tradeoffs": [
+      {
+        "name": "Inexpensive-but-reliable",
+        "description": "Low cost and average availability",
+        "elements": { "cost": "low", "probSuccessfulExecution": "high" },
+        "paradigm": "discretization"
+      },
+      {
+        "name": "Fast-and-reliable",
+        "description": "Fast execution time and high availability",
+        "elements": { "executionTime": "low", "probSuccessfulExecution": "high" },
+        "paradigm": "discretization"
+      }
+    ]
+  },
+  "dataspace": {
+    "source_file": "data/merged.csv",
+    "policy_identification": {
+      "from": "column",
+      "column": "policy",
+      "policies": {
+        "1": { 
+          "name": "one_device_low_utilization", 
+          "description": "One device with 2 services.", 
+          "component_policies": { "arch_example_pattern": "one_device_low_utilization" }
+        },
+        "2": { 
+          "name": "two_replicas_low_utilization", 
+          "description": "Two devices with 2 services each.", 
+          "component_policies": { "arch_example_pattern": "two_replicas_low_utilization" }
+        },
+        "3": { 
+          "name": "three_replicas_low_utilization", 
+          "description": "Three devices with 2 services each.", 
+          "component_policies": { "arch_example_pattern": "three_replicas_low_utilization" }
+        },
+        "4": { 
+          "name": "one_device_high_utilization", 
+          "description": "One device with 5 services.", 
+          "component_policies": { "arch_example_pattern": "one_device_high_utilization" }
+        },
+        "5": { 
+          "name": "two_replicas_high_utilization", 
+          "description": "Two devices with 5 services each.",
+          "component_policies": { "arch_example_pattern": "two_replicas_high_utilization" }
+        },
+        "6": { 
+          "name": "three_replicas_high_utilization", 
+          "description": "Three devices with 5 services each.", 
+          "component_policies": { "arch_example_pattern": "three_replicas_high_utilization" }
+        }
+      }
+    },
+    "quality_objectives": [
+      {
+        "name": "cost",
+        "metric": "currency",
+        "maximize": false
+      },
+      {
+        "name": "executionTime",
+        "metric": "time",
+        "maximize": false
+      },
+      {
+        "name": "probSuccessfulExecution",
+        "metric": "probability",
+        "maximize": true
+      }
+    ]
+  },
+  "metadata": {
+    "version": "2.0",
+    "notes": "Updated to match actual Toy_Example data columns."
+  }
+}
