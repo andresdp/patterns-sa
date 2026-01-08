@@ -1,0 +1,53 @@
+{
+  "system": "Toy Example System",
+  "tradeoffs": {
+    "tradeoff_CostEfficiency": {
+      "deviceCPUCyles": {
+        "min": 102.0,
+        "max": 150.0
+      },
+      "deviceCost": {
+        "min": 0.0,
+        "max": 13.0
+      },
+      "lbExecTime": {
+        "min": 11.0,
+        "max": 48.0
+      },
+      "lbFailureProb": {
+        "min": 10.0,
+        "max": 28.0
+      },
+      "serviceCost": {
+        "min": 1.0,
+        "max": 3.0
+      },
+      "serviceFailureProb": {
+        "min": 10.0,
+        "max": 35.0
+      }
+    },
+    "tradeoff_Performance": {
+      "deviceCPUCyles": {
+        "min": 100.0,
+        "max": 130.0
+      },
+      "deviceCost": {
+        "min": 0.0,
+        "max": 37.0
+      },
+      "lbExecTime": {
+        "min": 10.0,
+        "max": 18.0
+      },
+      "lbFailureProb": {
+        "min": 12.0,
+        "max": 43.0
+      },
+      "serviceFailureProb": {
+        "min": 29.0,
+        "max": 50.0
+      }
+    }
+  }
+}

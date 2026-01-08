@@ -1,77 +1,77 @@
-"""Runnable analysis for the Toy Example using the Toy plugin.
+"""ADEPT analysis for the Toy Example.
 
-This runner uses the Toy ETL to normalize inputs, the Toy plugin to
-compute metrics, the reporting utilities to export CSV/JSON/plots and the
-LocalTemplateExplainer to produce a textual explanation. It also assembles
-a small frontend payload.
-
-Usage:
-    python patterns/Toy_Example/analysis.py --input patterns/Toy_Example/sample.csv --outdir patterns/Toy_Example/out
+This script demonstrates the use of the ADEPT framework to:
+1. Load a system definition and its associated data.
+2. Perform discretization of outcomes.
+3. Discover scenarios for a first-class Tradeoff entity.
 """
 import argparse
 import os
 import json
-from archspaces.plugin_api import PluginRegistry
-from archspaces.plugins.toy import ToyPlugin
-from patterns.Toy_Example.etl import normalize
-from archspaces import reporting
-from archspaces.llm_explainers import LocalTemplateExplainer
-from archspaces.frontend_adapter import assemble_payload
+import pandas as pd
+from adept.core.coordinator import ArchSpaceCore
 
-
-def run(input_path: str, outdir: str) -> None:
+def run_analysis(json_path: str, outdir: str) -> None:
     os.makedirs(outdir, exist_ok=True)
+    
+    # 1. Initialize ADEPT Coordinator
+    core = ArchSpaceCore()
+    
+    print(f"Loading system definition from: {json_path}")
+    # 2. Load metadata-driven data
+    df, experiments_df, outcomes_df = core.loader.load_data(json_path)
+    sys_def = core.loader.load_system_definition(json_path)
+    
+    # 3. Discretize Outcomes
+    # Map objectives to 3 bins (low, avg, high)
+    labels = {qa.name: ['low', 'avg', 'high'] for qa in sys_def.dataspace.quality_objectives}
+    discrete_df, schemes = core.discretize(outcomes_df, n_bins=3, all_labels=labels)
+    
+    print("\n--- Discretization Schemes ---")
+    for scheme in schemes:
+        print(f"Objective: {scheme.objective_name}")
+        for b in scheme.bins:
+            print(f"  Label: {b.label} -> Range: [{b.min_value:.2f}, {b.max_value:.2f}]")
 
-    # Normalize input with lightweight ETL
-    df = normalize(input_path)
+    # 4. Perform Scenario Discovery for each defined Tradeoff
+    artifacts = {}
+    print("\n--- Scenario Discovery ---")
+    for tradeoff in sys_def.system.tradeoffs:
+        print(f"Analyzing Tradeoff: {tradeoff.name} ({tradeoff.description})")
+        try:
+            # We pass the outcome name for PRIM initialization, 
+            # but the tradeoff object now defines the ROI mask internally in Manager
+            box, limits, alg = core.discover_scenarios(
+                experiments_df,
+                'cost', # Pass as positional
+                method='prim',
+                tradeoff=tradeoff,
+                discrete_outcomes_df=discrete_df
+            )
+            print(f"  Discovered Limits: {limits}")
+            artifacts[f"tradeoff_{tradeoff.name}"] = limits
+        except Exception as e:
+            print(f"  Error analyzing {tradeoff.name}: {e}")
 
-    # Use plugin directly on DataFrame
-    plugin = ToyPlugin()
-    metrics = plugin.compute_metrics(df)
-
-    # Export standard reports
-    csv_path = os.path.join(outdir, "metrics.csv")
-    json_path = os.path.join(outdir, "metrics.json")
-    reporting.save_metrics_csv(metrics, csv_path)
-    reporting.save_metrics_json(metrics, json_path)
-
-    artifacts = {"metrics_csv": csv_path, "metrics_json": json_path}
-
-    # If latency series exists, produce a histogram
-    if "latency" in df.columns:
-        hist_path = os.path.join(outdir, "latency_hist.png")
-        reporting.plot_metric_histogram("latency", df["latency"].tolist(), hist_path)
-        artifacts["latency_hist"] = hist_path
-
-    # Produce a lightweight explanation via LocalTemplateExplainer
-    explainer = LocalTemplateExplainer()
-    explanation = explainer.explain(metrics)
-    explain_path = os.path.join(outdir, "explanation.json")
-    with open(explain_path, "w") as fh:
-        json.dump(explanation, fh, indent=2)
-    artifacts["explanation"] = explain_path
-
-    # Assemble frontend payload and write it
-    payload = assemble_payload(metrics, charts=[{"name": "latency_hist", "path": artifacts.get("latency_hist")}])
-    payload_path = os.path.join(outdir, "frontend_payload.json")
-    with open(payload_path, "w") as fh:
-        json.dump(payload, fh, indent=2)
-    artifacts["frontend_payload"] = payload_path
-
-    # Also call plugin.export_report for backward compatibility artifacts
-    artifacts.update(plugin.export_report(metrics, outdir))
-
-    print("Artifacts:", artifacts)
-
+    # 5. Export results
+    results_path = os.path.join(outdir, "analysis_results.json")
+    with open(results_path, "w") as fh:
+        json.dump({
+            "system": sys_def.system.name,
+            "tradeoffs": artifacts
+        }, fh, indent=2, default=str)
+    
+    print(f"\nResults exported to: {results_path}")
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument("--input", required=True)
+    # Default to the local ToyExample.json
+    parser.add_argument("--config", default="patterns/Toy_Example/ToyExample.json")
     parser.add_argument("--outdir", default="patterns/Toy_Example/out")
     args = parser.parse_args()
-    os.makedirs(args.outdir, exist_ok=True)
-    run(args.input, args.outdir)
-
+    
+    run_analysis(args.config, args.outdir)
 
 if __name__ == "__main__":
     main()
+
