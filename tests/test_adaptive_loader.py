@@ -37,7 +37,13 @@ class TestAdaptiveLoader(unittest.TestCase):
                 "components": {
                     "comp1": {
                         "name": "Patt1",
-                        "parameters": {"lever1": {"type": "integer"}}
+                        "parameters": {
+                            "lever1": {
+                                "data_type": "integer",
+                                "type": "lever",
+                                "level": "system"
+                            }
+                        }
                     }
                 },
                 "adaptive_processes": [

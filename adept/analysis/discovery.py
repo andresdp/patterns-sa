@@ -360,7 +360,7 @@ class ScenarioDiscoveryManager:
                  # Handle cases where it might be a dict
                  tradeoff = Tradeoff.model_validate(tradeoff)
             
-            if tradeoff.paradigm == 'discretization':
+            if tradeoff.scheme == 'discretization':
                 discrete_df = kwargs.get('discrete_outcomes_df')
                 if discrete_df is None:
                     raise ValueError("discrete_outcomes_df is required for discretization tradeoff")

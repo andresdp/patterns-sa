@@ -22,7 +22,7 @@ class TestTradeoffEntity(unittest.TestCase):
             name="EfficientGood",
             description="Good performance with high efficiency",
             elements={"Q1": "good"},
-            paradigm="discretization"
+            scheme="discretization"
         )
         self.assertEqual(t.name, "EfficientGood")
         self.assertEqual(t.elements["Q1"], "good")

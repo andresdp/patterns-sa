@@ -24,7 +24,7 @@
 ## Phase 4: Enhanced Discretization-Based Exploration [checkpoint: 0b754c3]
 - [x] Task: Formalize `QualityBin` and `DiscretizationScheme` entities within the `DataProcessor`.
 - [x] Task: Update `ScenarioDiscoveryManager` to explicitly support the "Discretization" paradigm mode with multi-dimensional targets.
-- [ ] Task: Conductor - User Manual Verification 'Phase 4: Exploration Paradigm' (Protocol in workflow.md)
+- [x] Task: Conductor - User Manual Verification 'Phase 4: Exploration Paradigm' (Protocol in workflow.md)
 
 ## Phase 5: Static Pattern Migration (Microservices)
 - [x] Task: Migrate `Toy_Example` to the full ADEPT model as a proof-of-concept.

@@ -1,4 +1,3 @@
 .DS_Store
-/archspaces/__pycache__
-/archspaces/plugins/__pycache__
-/tools/__pycache__
+__pycache__/
+*.pyc

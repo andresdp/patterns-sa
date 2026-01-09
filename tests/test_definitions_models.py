@@ -7,11 +7,17 @@ from adept.core.models import (
 
 
 def test_architectural_pattern_from_dict_and_dump():
-    data = {"name": "Toy", "description": "desc", "parameters": {"a": 1}}
+    data = {
+        "name": "Toy", 
+        "description": "desc", 
+        "parameters": {
+            "a": {"level": "system", "type": "lever", "value": 1}
+        }
+    }
     p = ArchitecturalPattern.from_dict(data)
     assert isinstance(p, ArchitecturalPattern)
     assert p.name == "Toy"
-    assert p.parameters["a"] == 1
+    assert p.parameters["a"].value == 1
     assert p.dict() == p.model_dump()
 
 
@@ -35,5 +41,5 @@ def test_quality_objective_threshold_coercion():
 
 
 def test_extra_fields_allowed_on_input():
-    p = ArchitecturalPattern.from_dict({"name": "X", "extra_field": 123})
+    p = ArchitecturalPattern.from_dict({"name": "X", "extra_field": 123, "parameters": {}})
     assert getattr(p, "extra_field") == 123

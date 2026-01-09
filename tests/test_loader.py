@@ -27,7 +27,13 @@ class TestGenericDataLoader(unittest.TestCase):
                 "components": {
                     "comp1": {
                         "name": "Patt1",
-                        "parameters": {"N_A": {"type": "integer"}}
+                        "parameters": {
+                            "N_A": {
+                                "data_type": "integer",
+                                "type": "lever",
+                                "level": "system"
+                            }
+                        }
                     }
                 }
             },

@@ -5,6 +5,7 @@ import os
 import glob
 import warnings
 from .models import SystemDefinition, Dataspace, BehavioralTrace
+from ..utils.linter import SystemLinter
 
 class DataLoader(ABC):
     """Abstract base class for data loaders.
@@ -35,7 +36,7 @@ class GenericDataLoader(DataLoader):
     4. Automatically split data into 'experiments' (parameters) and 
        'outcomes' (objectives) based on the architectural model.
     """
-    def load(self, source: Any) -> pd.DataFrame:
+    def load(self, source: Any, validate_integrity: bool = True) -> pd.DataFrame:
         """
         Loads data based on a system definition JSON file.
         
@@ -43,13 +44,28 @@ class GenericDataLoader(DataLoader):
             The raw, combined DataFrame after renames.
         """
         sys_def = self.load_system_definition(source)
-        return self._load_from_definition(sys_def, base_path=os.path.dirname(source))
+        df = self._load_from_definition(sys_def, base_path=os.path.dirname(source))
+        if validate_integrity:
+            self.validate_data_integrity(sys_def, df)
+        return df
 
     def load_system_definition(self, json_path: str) -> SystemDefinition:
         """Parses a system.json file into a SystemDefinition model."""
         return SystemDefinition.from_json(json_path)
 
-    def load_data(self, source: Any) -> Tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
+    def validate_data_integrity(self, sys_def: SystemDefinition, df: pd.DataFrame) -> None:
+        """Runs the SystemLinter to check consistency between JSON and Data."""
+        linter = SystemLinter()
+        issues = linter.lint(sys_def, df)
+        if not issues:
+            print("Data integrity validation passed successfully.")
+        for issue in issues:
+            if issue.level == "ERROR":
+                warnings.warn(str(issue))
+            else:
+                print(str(issue))
+
+    def load_data(self, source: Any, validate_integrity: bool = True) -> Tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
         """
         Loads data and automatically partitions it based on the architectural model.
         
@@ -61,6 +77,8 @@ class GenericDataLoader(DataLoader):
         """
         sys_def = self.load_system_definition(source)
         df = self._load_from_definition(sys_def, base_path=os.path.dirname(source))
+        if validate_integrity:
+            self.validate_data_integrity(sys_def, df)
         
         experiments_cols = []
         outcomes_cols = []

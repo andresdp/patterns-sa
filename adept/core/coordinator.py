@@ -44,17 +44,19 @@ class ArchSpaceCore:
         self.robustness_analyzer = robustness_analyzer or RobustnessAnalyzer()
         self.tradeoff_analyzer = tradeoff_analyzer or TradeoffAnalyzer()
 
-    def load_data(self, source: Any) -> pd.DataFrame:
+    def load_data(self, source: Any, validate_integrity: bool = True) -> pd.DataFrame:
         """Loads raw data from the specified source."""
+        if isinstance(self.loader, GenericDataLoader):
+            return self.loader.load(source, validate_integrity=validate_integrity)
         return self.loader.load(source)
 
-    def load_detailed_data(self, source: Any) -> Tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
+    def load_detailed_data(self, source: Any, validate_integrity: bool = True) -> Tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
         """Loads and automatically partitions data into raw, experiments, and outcomes.
         
         Requires a GenericDataLoader configured with a system.json.
         """
         if isinstance(self.loader, GenericDataLoader):
-            return self.loader.load_data(source)
+            return self.loader.load_data(source, validate_integrity=validate_integrity)
         raise TypeError("Detailed data loading requires GenericDataLoader")
 
     def validate(self, df: pd.DataFrame) -> bool:

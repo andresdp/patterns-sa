@@ -4,7 +4,7 @@ from typing import List, Dict, Any, Optional, Union, Tuple
 from enum import Enum
 import pandas as pd
 
-from pydantic import BaseModel, Field, field_validator
+from pydantic import BaseModel, Field, field_validator, model_validator
 
 
 class ParameterType(str, Enum):
@@ -39,9 +39,10 @@ class Parameter(BaseModel):
     This model encapsulates the metadata and current state of a parameter,
     including its role (type) and scope (level).
     """
-    name: str
+    name: str = "" # Default empty, will be populated by parent
     level: ParameterLevel
     type: ParameterType
+    data_type: str = "float" # e.g., float, integer, string
     description: str = ""
     value: Any = None
     bounds: Optional[Tuple[float, float]] = None
@@ -57,16 +58,17 @@ class ArchitecturalPattern(BaseModel):
     """
     name: str
     description: str = ""
-    parameters: Dict[str, Any] = Field(default_factory=dict)
+    parameters: Dict[str, Parameter] = Field(default_factory=dict)
     decisions: Dict[str, Any] = Field(default_factory=dict)
 
     model_config = {"extra": "allow", "validate_assignment": True}
 
-    @field_validator("parameters", mode="before")
-    def _coerce_parameters(cls, v):
-        if v is None:
-            return {}
-        return dict(v)
+    @model_validator(mode="after")
+    def _sync_parameter_names(self) -> ArchitecturalPattern:
+        for name, param in self.parameters.items():
+            if not param.name:
+                param.name = name
+        return self
 
     @classmethod
     def from_dict(cls, data: Dict[str, Any]):
@@ -214,20 +216,12 @@ class Tradeoff(BaseModel):
     A tradeoff is a first-class element that defines a region of interest 
     in the multi-dimensional outcome space. It serves as a bridge between 
     raw performance data and architectural requirements.
-    
-    It can internally link to:
-    - Discretization (QualityBins)
-    - Epsilon Constraints (Future)
-    - Optimization Goals (Future)
     """
     name: str
     description: str = ""
     # Mapping of objective names to their respective treatment values
-    # (e.g., bin labels for discretization)
     elements: Dict[str, Any] = Field(default_factory=dict)
-    
-    # The analytical paradigm this tradeoff belongs to
-    paradigm: str = "discretization"
+    scheme: str = "discretization"
 
     model_config = {"extra": "allow", "validate_assignment": True}
 
@@ -242,9 +236,17 @@ class System(BaseModel):
     """
     name: str
     description: str = ""
+    parameters: Dict[str, Parameter] = Field(default_factory=dict)
     components: Dict[str, ArchitecturalPattern] = Field(default_factory=dict)
     adaptive_processes: List[AdaptiveProcess] = Field(default_factory=list)
     tradeoffs: List[Tradeoff] = Field(default_factory=list)
+
+    @model_validator(mode="after")
+    def _sync_parameter_names(self) -> System:
+        for name, param in self.parameters.items():
+            if not param.name:
+                param.name = name
+        return self
 
 
 class Policy(BaseModel):

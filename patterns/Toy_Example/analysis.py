@@ -11,7 +11,7 @@ import json
 import pandas as pd
 from adept.core.coordinator import ArchSpaceCore
 
-def run_analysis(json_path: str, outdir: str) -> None:
+def run_analysis(json_path: str, outdir: str, validate_integrity: bool = True) -> None:
     os.makedirs(outdir, exist_ok=True)
     
     # 1. Initialize ADEPT Coordinator
@@ -19,7 +19,14 @@ def run_analysis(json_path: str, outdir: str) -> None:
     
     print(f"Loading system definition from: {json_path}")
     # 2. Load metadata-driven data
-    df, experiments_df, outcomes_df = core.loader.load_data(json_path)
+    df, experiments_df, outcomes_df = core.load_detailed_data(json_path, validate_integrity=validate_integrity)
+    
+    # DEBUG: Sampling to 1% to investigate PRIM hang
+    print("DEBUG: Sampling data to 1%...")
+    df = df.sample(frac=0.01, random_state=42)
+    experiments_df = experiments_df.loc[df.index]
+    outcomes_df = outcomes_df.loc[df.index]
+    
     sys_def = core.loader.load_system_definition(json_path)
     
     # 3. Discretize Outcomes
@@ -46,7 +53,8 @@ def run_analysis(json_path: str, outdir: str) -> None:
                 'cost', # Pass as positional
                 method='prim',
                 tradeoff=tradeoff,
-                discrete_outcomes_df=discrete_df
+                discrete_outcomes_df=discrete_df,
+                outcomes_df=outcomes_df
             )
             print(f"  Discovered Limits: {limits}")
             artifacts[f"tradeoff_{tradeoff.name}"] = limits
@@ -68,9 +76,10 @@ def main():
     # Default to the local ArchExample.json
     parser.add_argument("--config", default="patterns/Toy_Example/ArchExample.json")
     parser.add_argument("--outdir", default="patterns/Toy_Example/out")
+    parser.add_argument("--no-validate", action="store_true", help="Disable data integrity validation")
     args = parser.parse_args()
     
-    run_analysis(args.config, args.outdir)
+    run_analysis(args.config, args.outdir, validate_integrity=not args.no_validate)
 
 if __name__ == "__main__":
     main()

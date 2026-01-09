@@ -7,44 +7,44 @@
         "name": "Arch Example Pattern",
         "description": "A simple component-and-device pattern that defines a design space to explore.",
         "parameters": {
-          "deviceCPUCyles": { "type": "float" },
-          "deviceCost": { "type": "float" },
-          "lbExecTime": { "type": "float" },
-          "lbFailureProb": { "type": "float" },
-          "serviceCost": { "type": "float" },
-          "serviceFailureProb": { "type": "float" },
-          "d1Services": { "type": "integer" },
-          "d2Services": { "type": "integer" },
-          "d3Services": { "type": "integer" }
+          "deviceCPUCyles": { "data_type": "float", "type": "uncertainty", "level": "infrastructure", "description": "Number of CPU cycles required by the device processing unit." },
+          "deviceCost": { "data_type": "float", "type": "constraint", "level": "infrastructure", "description": "Monetary cost associated with operating a device instance." },
+          "lbExecTime": { "data_type": "float", "type": "uncertainty", "level": "pattern", "description": "Execution time overhead introduced by the load balancer." },
+          "lbFailureProb": { "data_type": "float", "type": "uncertainty", "level": "pattern", "description": "Probability of failure for the load balancer component." },
+          "serviceCost": { "data_type": "float", "type": "constraint", "level": "pattern", "description": "Monetary cost for invoking a single service." },
+          "serviceFailureProb": { "data_type": "float", "type": "uncertainty", "level": "pattern", "description": "Probability of failure for a service invocation." },
+          "d1Services": { "data_type": "integer", "type": "lever", "level": "system", "description": "Number of services deployed on Device 1." },
+          "d2Services": { "data_type": "integer", "type": "lever", "level": "system", "description": "Number of services deployed on Device 2." },
+          "d3Services": { "data_type": "integer", "type": "lever", "level": "system", "description": "Number of services deployed on Device 3." }
         },
-      "decisions": {
-        "deployment_strategy": {
-          "description": "The number of devices effectively deployed and the number of services per device.",
-          "policies": {
-            "one_device_low_utilization": { "description": "One device with 2 services." },
-            "two_replicas_low_utilization": { "description": "Two devices with 2 services each." },
-            "three_replicas_low_utilization": { "description": "Three devices with 2 services each." },
-            "one_device_high_utilization": { "description": "One device with 5 services." },
-            "two_replicas_high_utilization": { "description": "Two devices with 5 services each." },
-            "three_replicas_high_utilization": { "description": "Three devices with 5 services each." }
+        "decisions": {
+          "deployment_strategy": {
+            "description": "The number of devices effectively deployed and the number of services per device.",
+            "policies": {
+              "one_device_low_utilization": { "description": "One device with 2 services." },
+              "two_replicas_low_utilization": { "description": "Two devices with 2 services each." },
+              "three_replicas_low_utilization": { "description": "Three devices with 2 services each." },
+              "one_device_high_utilization": { "description": "One device with 5 services." },
+              "two_replicas_high_utilization": { "description": "Two devices with 5 services each." },
+              "three_replicas_high_utilization": { "description": "Three devices with 5 services each." }
+            }
           }
         }
       }
-    }
-  },
+    },
     "adaptive_processes": [],
     "tradeoffs": [
       {
         "name": "Inexpensive-but-reliable",
         "description": "Low cost and average availability",
         "elements": { "cost": "low", "probSuccessfulExecution": "high" },
-        "paradigm": "discretization"
+        "scheme": "discretization"
       },
       {
         "name": "Fast-and-reliable",
         "description": "Fast execution time and high availability",
         "elements": { "executionTime": "low", "probSuccessfulExecution": "high" },
-        "paradigm": "discretization"
+        "scheme": "discretization"
       }
     ]
   },
@@ -52,34 +52,34 @@
     "source_file": "data/merged.csv",
     "policy_identification": {
       "from": "column",
-      "column": "policy",
+      "column": "policy_config",
       "policies": {
-        "1": { 
+        "2_0_0": { 
           "name": "one_device_low_utilization", 
           "description": "One device with 2 services.", 
           "component_policies": { "arch_example_pattern": "one_device_low_utilization" }
         },
-        "2": { 
+        "2_2_0": { 
           "name": "two_replicas_low_utilization", 
           "description": "Two devices with 2 services each.", 
           "component_policies": { "arch_example_pattern": "two_replicas_low_utilization" }
         },
-        "3": { 
+        "2_2_2": { 
           "name": "three_replicas_low_utilization", 
           "description": "Three devices with 2 services each.", 
           "component_policies": { "arch_example_pattern": "three_replicas_low_utilization" }
         },
-        "4": { 
+        "5_0_0": { 
           "name": "one_device_high_utilization", 
           "description": "One device with 5 services.", 
           "component_policies": { "arch_example_pattern": "one_device_high_utilization" }
         },
-        "5": { 
+        "5_5_0": { 
           "name": "two_replicas_high_utilization", 
           "description": "Two devices with 5 services each.",
           "component_policies": { "arch_example_pattern": "two_replicas_high_utilization" }
         },
-        "6": { 
+        "5_5_5": { 
           "name": "three_replicas_high_utilization", 
           "description": "Three devices with 5 services each.", 
           "component_policies": { "arch_example_pattern": "three_replicas_high_utilization" }
@@ -90,22 +90,25 @@
       {
         "name": "cost",
         "metric": "currency",
+        "description": "Total monetary cost of the system configuration.",
         "maximize": false
       },
       {
         "name": "executionTime",
         "metric": "time",
+        "description": "Total time required to complete a request.",
         "maximize": false
       },
       {
         "name": "probSuccessfulExecution",
         "metric": "probability",
+        "description": "Overall probability that a request executes successfully.",
         "maximize": true
       }
     ]
   },
   "metadata": {
     "version": "2.0",
-    "notes": "Updated to match actual Toy_Example data columns."
+    "notes": "Updated with semantic types, levels, and descriptions."
   }
 }
