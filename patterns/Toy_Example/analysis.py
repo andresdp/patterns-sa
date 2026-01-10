@@ -76,12 +76,17 @@ def run_analysis(json_path: str, outdir: str, validate_integrity: bool = True) -
             "tradeoffs": all_results
         }, fh, indent=2, default=str)
     
+    if session.pareto_front is not None:
+        pareto_path = os.path.join(outdir, "pareto_front.csv")
+        session.pareto_front.to_csv(pareto_path, index=False)
+        print(f"Pareto front exported to: {pareto_path}")
+    
     print(f"\nResults exported to: {results_path}")
 
 def main():
     parser = argparse.ArgumentParser()
-    # Default to the local ArchExample.json
-    parser.add_argument("--config", default="patterns/Toy_Example/ArchExample.json")
+    # Default to the local ArchExample_Discretization.json
+    parser.add_argument("--config", default="patterns/Toy_Example/ArchExample_Discretization.json")
     parser.add_argument("--outdir", default="patterns/Toy_Example/out")
     parser.add_argument("--no-validate", action="store_true", help="Disable data integrity validation")
     args = parser.parse_args()
