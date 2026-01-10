@@ -35,8 +35,18 @@ def run_analysis(json_path: str, outdir: str, validate_integrity: bool = True) -
         if scheme_name == 'discretization':
             target_labels = {qa.name: ['low', 'avg', 'high'] for qa in session.sys_def.dataspace.quality_objectives}
             discrete_df, schemes = session.define_tradeoffs(n_bins=3, labels=target_labels, method='discretization')
-        elif scheme_name == 'pareto':
+        elif scheme_name == 'pareto' or scheme_name == 'pareto_nadir':
             discrete_df, schemes = session.define_tradeoffs(method='pareto')
+        elif scheme_name == 'threshold':
+            # Extract params from the first tradeoff of this scheme
+            params = tradeoffs[0].params
+            discrete_df, schemes = session.define_tradeoffs(method='threshold', params=params)
+        elif scheme_name == 'pareto_epsilon':
+            params = tradeoffs[0].params
+            discrete_df, schemes = session.define_tradeoffs(method='pareto_epsilon', params=params)
+        elif scheme_name == 'pareto_knee':
+            params = tradeoffs[0].params
+            discrete_df, schemes = session.define_tradeoffs(method='pareto_knee', params=params)
         else:
             print(f"Skipping unknown scheme: {scheme_name}")
             continue
@@ -46,6 +56,15 @@ def run_analysis(json_path: str, outdir: str, validate_integrity: bool = True) -
             print(f"  Objective: {scheme.objective_name}")
             for b in scheme.bins:
                 print(f"    Label: {b.label} -> Range: [{b.min_value:.2f}, {b.max_value:.2f}]")
+
+        # Generate Distribution Plot
+        try:
+            fig = session.coordinator.plot_distributions(session.outcomes_df, schemes)
+            plot_path = os.path.join(outdir, f"distribution_{scheme_name}.png")
+            fig.savefig(plot_path)
+            print(f"Distribution plot saved to: {plot_path}")
+        except Exception as e:
+            print(f"Error generating plot: {e}")
 
         # 4. Discover
         print(f"Discovering scenarios for {len(tradeoffs)} tradeoffs...")

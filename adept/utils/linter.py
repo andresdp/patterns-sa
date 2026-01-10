@@ -13,6 +13,8 @@ class LintIssue:
 
 class SystemLinter:
     """Validates the semantic integrity of a SystemDefinition and its data."""
+    
+    SUPPORTED_SCHEMES = {'discretization', 'pareto', 'threshold', 'pareto_epsilon', 'pareto_knee'}
 
     def lint(self, sys_def: SystemDefinition, df: pd.DataFrame) -> List[LintIssue]:
         issues = []
@@ -90,6 +92,13 @@ class SystemLinter:
         defined_objectives = {obj.name for obj in sys_def.dataspace.quality_objectives}
         
         for tradeoff in sys_def.system.tradeoffs:
+            if tradeoff.scheme not in self.SUPPORTED_SCHEMES:
+                issues.append(LintIssue(
+                    "ERROR",
+                    f"Tradeoff '{tradeoff.name}' uses unsupported scheme '{tradeoff.scheme}'. Supported: {self.SUPPORTED_SCHEMES}",
+                    "System.Tradeoffs"
+                ))
+
             for element_key in tradeoff.elements.keys():
                 if element_key not in defined_objectives:
                     issues.append(LintIssue(

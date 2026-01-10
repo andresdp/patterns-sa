@@ -360,7 +360,8 @@ class ScenarioDiscoveryManager:
                  # Handle cases where it might be a dict
                  tradeoff = Tradeoff.model_validate(tradeoff)
             
-            if tradeoff.scheme in ['discretization', 'pareto']:
+            supported_schemes = ['discretization', 'pareto', 'threshold', 'pareto_epsilon', 'pareto_knee']
+            if tradeoff.scheme in supported_schemes:
                 discrete_df = kwargs.get('discrete_outcomes_df')
                 if discrete_df is None:
                     raise ValueError(f"discrete_outcomes_df is required for {tradeoff.scheme} tradeoff")

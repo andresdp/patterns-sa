@@ -32,7 +32,7 @@ class PatternAnalysis:
         self.raw_df, self.experiments_df, self.outcomes_df = \
             self.coordinator.load_detailed_data(self.json_path, validate_integrity=validate_integrity)
 
-    def define_tradeoffs(self, n_bins: int = 3, labels: Optional[Dict[str, List[str]]] = None, ranges: Optional[Dict[str, Tuple[float, float]]] = None, method: str = 'discretization') -> Tuple[pd.DataFrame, List[DiscretizationScheme]]:
+    def define_tradeoffs(self, n_bins: int = 3, labels: Optional[Dict[str, List[str]]] = None, ranges: Optional[Dict[str, Tuple[float, float]]] = None, method: str = 'discretization', params: Optional[Dict[str, Any]] = None) -> Tuple[pd.DataFrame, List[DiscretizationScheme]]:
         """Defines tradeoff regions in the outcome space.
         
         Args:
@@ -41,7 +41,8 @@ class PatternAnalysis:
                     If None, labels will be generated automatically.
             ranges: Optional dictionary mapping objective names to (min, max) tuples.
                     If provided, these bounds define the binning range instead of the data min/max.
-            method: 'discretization' or 'pareto'.
+            method: 'discretization', 'pareto', 'threshold', 'pareto_epsilon', 'pareto_knee'.
+            params: Dictionary of parameters for specific methods (e.g. {'epsilon': 0.05} or {'thresholds': ...}).
         """
         if self.outcomes_df is None or self.sys_def is None:
             raise RuntimeError("Data must be loaded before defining tradeoffs.")
@@ -50,8 +51,10 @@ class PatternAnalysis:
         kwargs = {}
         if method == 'discretization':
             kwargs = {'n_bins': n_bins, 'all_labels': labels, 'ranges': ranges}
-        elif method == 'pareto':
+        elif method in ['pareto', 'pareto_epsilon', 'pareto_knee', 'threshold']:
             kwargs = {'objectives': self.sys_def.dataspace.quality_objectives}
+            if params:
+                kwargs['params'] = params
 
         self.discrete_df, self.schemes, self.pareto_front = self.coordinator.define_tradeoffs(
             self.outcomes_df, method=method, **kwargs

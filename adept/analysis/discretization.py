@@ -32,10 +32,220 @@ class DataProcessor:
         if method == 'discretization':
             labeled_df, schemes = DataProcessor._discretize(df, **kwargs)
             return labeled_df, schemes, None
-        elif method == 'pareto':
+        elif method == 'pareto' or method == 'pareto_nadir':
             return DataProcessor._pareto_segmentation(df, **kwargs)
+        elif method == 'threshold':
+            labeled_df, schemes = DataProcessor._static_threshold(df, **kwargs)
+            return labeled_df, schemes, None
+        elif method == 'pareto_knee':
+            return DataProcessor._pareto_knee(df, **kwargs)
+        elif method == 'pareto_epsilon':
+            return DataProcessor._pareto_epsilon(df, **kwargs)
         else:
             raise NotImplementedError(f"Tradeoff definition method '{method}' not implemented.")
+
+    @staticmethod
+    def _static_threshold(df: pd.DataFrame, params: Dict[str, Any], objectives: List[QualityObjective]) -> Tuple[pd.DataFrame, List[DiscretizationScheme]]:
+        """Segments data based on static user-defined thresholds."""
+        thresholds = params.get('thresholds', {})
+        discrete_df = df.copy()
+        schemes = []
+
+        # Map directions
+        directions = {obj.name: ("max" if obj.maximize else "min") for obj in objectives if obj.name in df.columns}
+
+        for col, threshold in thresholds.items():
+            if col not in df.columns:
+                continue
+            
+            direction = directions.get(col, "min") # Default to min if unknown
+            
+            if direction == "max":
+                # Satisfactory if >= Threshold
+                # Bins: [-inf, threshold, inf] -> [Unsatisfactory, Satisfactory]
+                # Note: pd.cut (left open, right closed) vs requirement.
+                # standard: < T, >= T
+                bins = [-float('inf'), threshold, float('inf')]
+                labels = ["Unsatisfactory", "Satisfactory"]
+                # We need >= T for Satisfactory. pd.cut with right=True gives (low, high].
+                # We want [threshold, inf). 
+                # pd.cut(..., right=False) -> [low, high)
+                # [threshold, inf) is bin 1.
+                discrete_df[col] = pd.cut(discrete_df[col], bins=bins, labels=labels, right=False)
+            else:
+                # Minimization: Satisfactory if <= Threshold
+                # Bins: [-inf, threshold, inf] -> [Satisfactory, Unsatisfactory]
+                bins = [-float('inf'), threshold, float('inf')]
+                labels = ["Satisfactory", "Unsatisfactory"]
+                discrete_df[col] = pd.cut(discrete_df[col], bins=bins, labels=labels, right=True)
+
+            q_bins = [
+                QualityBin(label=labels[0], min_value=bins[0], max_value=bins[1]),
+                QualityBin(label=labels[1], min_value=bins[1], max_value=bins[2])
+            ]
+            schemes.append(DiscretizationScheme(objective_name=col, bins=q_bins, method="static_threshold"))
+
+        return discrete_df, schemes
+
+    @staticmethod
+    def _pareto_epsilon(df: pd.DataFrame, objectives: List[QualityObjective], params: Dict[str, Any]) -> Tuple[pd.DataFrame, List[DiscretizationScheme], pd.DataFrame]:
+        """Segments data based on epsilon-dominance distance from Pareto front."""
+        try:
+            import paretoset
+        except ImportError:
+            raise ImportError("paretoset library is required.")
+
+        epsilon = params.get('epsilon', 0.05) # Default 5%
+        
+        # 1. Map objectives
+        directions = {}
+        for obj in objectives:
+            if obj.name in df.columns:
+                directions[obj.name] = "max" if obj.maximize else "min"
+        
+        if not directions:
+            raise ValueError("No matching objectives found.")
+
+        subset_cols = list(directions.keys())
+        sense_list = [directions[col] for col in subset_cols]
+        
+        # 2. Compute Pareto Front
+        mask = paretoset.paretoset(df[subset_cols], sense=sense_list)
+        pareto_df = df[mask][subset_cols].copy()
+        
+        # 3. Normalize Data for distance calculation
+        # Min-Max normalization
+        normalized_df = df[subset_cols].copy()
+        normalized_pareto = pareto_df.copy()
+        
+        for col in subset_cols:
+            min_val = df[col].min()
+            max_val = df[col].max()
+            denom = max_val - min_val if max_val != min_val else 1.0
+            
+            normalized_df[col] = (normalized_df[col] - min_val) / denom
+            normalized_pareto[col] = (normalized_pareto[col] - min_val) / denom
+
+        # 4. Calculate Distance to Front
+        # For each point in df, find min distance to any point in pareto_df
+        from sklearn.neighbors import NearestNeighbors
+        nbrs = NearestNeighbors(n_neighbors=1, algorithm='ball_tree').fit(normalized_pareto)
+        distances, indices = nbrs.kneighbors(normalized_df)
+        
+        # 5. Segment
+        # Points within epsilon distance (normalized) are "Epsilon-Optimal"
+        is_epsilon_optimal = distances.flatten() <= epsilon
+        compliant_df = df[is_epsilon_optimal]
+        
+        discrete_df = df.copy()
+        labels_map = {True: "Epsilon-Optimal", False: "Sub-optimal"}
+        label_series = pd.Series(is_epsilon_optimal).map(labels_map)
+        
+        schemes = []
+        for col in subset_cols:
+            discrete_df[col] = label_series.values
+            
+            # Calculate the projection boundaries for the "Optimal" region
+            # We use the min/max of the points that actually qualified
+            if not compliant_df.empty:
+                opt_min = float(compliant_df[col].min())
+                opt_max = float(compliant_df[col].max())
+                
+                # We define two bins: the optimal range and everything else
+                # This is an approximation for visualization
+                q_bins = [
+                    QualityBin(label="Epsilon-Optimal", min_value=opt_min, max_value=opt_max),
+                    QualityBin(label="Sub-optimal", min_value=float('-inf'), max_value=float('inf'))
+                ]
+            else:
+                q_bins = []
+
+            schemes.append(DiscretizationScheme(
+                objective_name=col, 
+                bins=q_bins, 
+                method="pareto_epsilon"
+            ))
+
+        return discrete_df, schemes, df[mask]
+
+    @staticmethod
+    def _pareto_knee(df: pd.DataFrame, objectives: List[QualityObjective], params: Dict[str, Any]) -> Tuple[pd.DataFrame, List[DiscretizationScheme], pd.DataFrame]:
+        """Segments data to highlight the Knee region of the Pareto front."""
+        try:
+            import paretoset
+        except ImportError:
+            raise ImportError("paretoset library is required.")
+
+        # 1. Compute Pareto Front
+        directions = {}
+        for obj in objectives:
+            if obj.name in df.columns:
+                directions[obj.name] = "max" if obj.maximize else "min"
+        
+        subset_cols = list(directions.keys())
+        sense_list = [directions[col] for col in subset_cols]
+        mask = paretoset.paretoset(df[subset_cols], sense=sense_list)
+        pareto_indices = df[mask].index
+        pareto_df = df.loc[pareto_indices, subset_cols].copy()
+        
+        # 2. Find Knee
+        normalized_pareto = pareto_df.copy()
+        utopia_point = []
+        
+        for col in subset_cols:
+            min_val = df[col].min()
+            max_val = df[col].max()
+            denom = max_val - min_val if max_val != min_val else 1.0
+            normalized_pareto[col] = (normalized_pareto[col] - min_val) / denom
+            target = 1.0 if directions[col] == "max" else 0.0
+            utopia_point.append(target)
+            
+        dists = np.linalg.norm(normalized_pareto - np.array(utopia_point), axis=1)
+        min_dist_idx = np.argmin(dists)
+        knee_index = pareto_df.index[min_dist_idx]
+        
+        # 3. Label
+        discrete_df = df.copy()
+        labels_series = pd.Series(["Off-Knee"] * len(df), index=df.index)
+        labels_series[knee_index] = "Knee"
+        
+        knee_tolerance = params.get('tolerance', 0.0)
+        if knee_tolerance > 0:
+             normalized_df = df[subset_cols].copy()
+             for col in subset_cols:
+                min_val = df[col].min()
+                max_val = df[col].max()
+                denom = max_val - min_val if max_val != min_val else 1.0
+                normalized_df[col] = (normalized_df[col] - min_val) / denom
+             
+             knee_norm = normalized_pareto.loc[knee_index]
+             dists_to_knee = np.linalg.norm(normalized_df - knee_norm, axis=1)
+             close_points = dists_to_knee <= knee_tolerance
+             labels_series[close_points] = "Knee"
+
+        # Identify the compliant subset for boundary calculation
+        compliant_df = df[labels_series == "Knee"]
+
+        schemes = []
+        for col in subset_cols:
+            discrete_df[col] = labels_series.values
+            
+            if not compliant_df.empty:
+                k_min = float(compliant_df[col].min())
+                k_max = float(compliant_df[col].max())
+                q_bins = [
+                    QualityBin(label="Knee", min_value=k_min, max_value=k_max)
+                ]
+            else:
+                q_bins = []
+                
+            schemes.append(DiscretizationScheme(
+                objective_name=col, 
+                bins=q_bins, 
+                method="pareto_knee"
+            ))
+
+        return discrete_df, schemes, df[mask]
 
     @staticmethod
     def _pareto_segmentation(df: pd.DataFrame, objectives: List[QualityObjective]) -> Tuple[pd.DataFrame, List[DiscretizationScheme], pd.DataFrame]:

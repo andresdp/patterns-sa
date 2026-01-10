@@ -68,6 +68,13 @@ class TestSystemLinter(unittest.TestCase):
         issues = self.linter.lint(sys_def, self.base_df)
         self.assertTrue(any("references undefined objective 'BAD_OBJ'" in str(i) for i in issues))
 
+    def test_invalid_tradeoff_scheme(self):
+        bad_def = self.base_sys_def.copy()
+        bad_def["system"]["tradeoffs"] = [{"name": "t3", "scheme": "magic_scheme", "elements": {}}]
+        sys_def = SystemDefinition.model_validate(bad_def)
+        issues = self.linter.lint(sys_def, self.base_df)
+        self.assertTrue(any("unsupported scheme 'magic_scheme'" in str(i) for i in issues))
+
     def test_invalid_component_policy(self):
         bad_def = self.base_sys_def.copy()
         bad_def["dataspace"]["policy_identification"]["policies"]["1"]["component_policies"]["c1"] = "INVALID_POL"

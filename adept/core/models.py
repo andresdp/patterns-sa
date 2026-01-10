@@ -222,6 +222,7 @@ class Tradeoff(BaseModel):
     # Mapping of objective names to their respective treatment values
     elements: Dict[str, Any] = Field(default_factory=dict)
     scheme: str = "discretization"
+    params: Dict[str, Any] = Field(default_factory=dict)
 
     model_config = {"extra": "allow", "validate_assignment": True}
 

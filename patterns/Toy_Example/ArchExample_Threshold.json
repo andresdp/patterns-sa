@@ -1,0 +1,45 @@
+{
+  "system": {
+    "name": "Arch Example System (Threshold)",
+    "description": "ADEPT framework demonstration using Static Thresholds.",
+    "components": {
+      "arch_example_pattern": {
+        "name": "Arch Example Pattern",
+        "description": "A simple component-and-device pattern.",
+        "parameters": {
+          "d1Services": { "data_type": "integer", "type": "lever", "level": "system" },
+          "d2Services": { "data_type": "integer", "type": "lever", "level": "system" },
+          "d3Services": { "data_type": "integer", "type": "lever", "level": "system" }
+        }
+      }
+    },
+    "tradeoffs": [
+      {
+        "name": "SLA_Compliance",
+        "description": "Cost under 100 and Success > 50%",
+        "scheme": "threshold",
+        "params": {
+            "thresholds": { "cost": 100.0, "probSuccessfulExecution": 50.0 }
+        },
+        "elements": { "cost": "Satisfactory", "probSuccessfulExecution": "Satisfactory" }
+      }
+    ]
+  },
+  "dataspace": {
+    "source_file": "data/merged.csv",
+    "policy_identification": {
+      "from": "column",
+      "column": "policy_config",
+      "policies": {}
+    },
+    "quality_objectives": [
+      { "name": "cost", "metric": "currency", "maximize": false },
+      { "name": "executionTime", "metric": "time", "maximize": false },
+      { "name": "probSuccessfulExecution", "metric": "probability", "maximize": true }
+    ]
+  },
+  "metadata": {
+    "version": "2.0",
+    "notes": "Static threshold configuration."
+  }
+}

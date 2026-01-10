@@ -3,13 +3,15 @@ import pandas as pd
 from collections import Counter
 
 from .loader import DataLoader, GenericDataLoader
-from .models import SystemDefinition, DiscretizationScheme
+from .models import SystemDefinition, DiscretizationScheme, Tradeoff
 from ..utils.validation import SchemaValidator, SimpleValidator
 from ..analysis.discretization import DataProcessor
 from ..analysis.robustness import RobustnessAnalyzer
 from ..analysis.tradeoffs import TradeoffAnalyzer
 from ..analysis.discovery import ScenarioDiscoveryManager
 from ..analysis.explainer import ExplanationManager
+from ..analysis.visualization import plot_tradeoff_distribution
+import matplotlib.pyplot as plt
 
 
 class ArchSpaceCore:
@@ -114,6 +116,13 @@ class ArchSpaceCore:
         import json
         with open(path, "w", encoding="utf-8") as fh:
             json.dump(report, fh, indent=2)
+
+    def plot_distributions(self, outcomes_df: pd.DataFrame, schemes: List[DiscretizationScheme], tradeoff: Optional[Tradeoff] = None, **kwargs) -> plt.Figure:
+        """Plots outcome distributions with tradeoff overlays.
+        
+        Delegates to analysis.visualization.
+        """
+        return plot_tradeoff_distribution(outcomes_df, schemes, tradeoff=tradeoff, **kwargs)
 
 
 __all__ = ["ArchSpaceCore"]
