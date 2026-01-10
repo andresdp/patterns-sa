@@ -43,8 +43,12 @@ def plot_tradeoff_distribution(
             
         data = outcomes_df[col_name]
         
+        # Calculate consistent bins for both histograms
+        # We use 'auto' or a fixed number to ensure they line up perfectly
+        bins = np.histogram_bin_edges(data.dropna(), bins='auto')
+
         # Plot Overall Histogram/KDE
-        sns.histplot(data, kde=True, ax=ax, color='skyblue', label='Overall', alpha=0.4)
+        sns.histplot(data, bins=bins, kde=True, ax=ax, color='skyblue', label='Overall', alpha=0.4)
         
         # Plot Highlighted Subset
         if highlight_indices is not None and len(highlight_indices) > 0:
@@ -52,7 +56,7 @@ def plot_tradeoff_distribution(
             valid_indices = highlight_indices[highlight_indices < len(data)]
             subset_data = data.iloc[valid_indices]
             if not subset_data.empty:
-                sns.histplot(subset_data, kde=False, ax=ax, color='orange', label='Target Tradeoff', alpha=0.8)
+                sns.histplot(subset_data, bins=bins, kde=False, ax=ax, color='orange', label='Target Tradeoff', alpha=0.8)
                 ax.legend()
 
         # Overlay Bins
