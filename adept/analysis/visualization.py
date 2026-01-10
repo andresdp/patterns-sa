@@ -135,25 +135,42 @@ def show_quality_objective_space(
         ax=ax, color='gray', alpha=alpha, label='Overall', s=20
     )
     
-    # 2. Draw segmentation lines from schemes
+    # 2. Draw segmentation lines and axis labels
+    line_color = 'red'
+    line_alpha = 0.4
+    
     x_scheme = next((s for s in schemes if s.objective_name == x_metric), None)
     y_scheme = next((s for s in schemes if s.objective_name == y_metric), None)
     
-    x_bounds = []
     if x_scheme:
+        x_bounds = []
         for b in x_scheme.bins:
             if np.isfinite(b.min_value): x_bounds.append(b.min_value)
             if np.isfinite(b.max_value): x_bounds.append(b.max_value)
-        for val in set(x_bounds):
-            ax.axvline(val, color='red', linestyle='--', alpha=0.3)
             
-    y_bounds = []
+            # Place interval label at the top (slightly offset)
+            x_min = b.min_value if np.isfinite(b.min_value) else outcomes_df[x_metric].min()
+            x_max = b.max_value if np.isfinite(b.max_value) else outcomes_df[x_metric].max()
+            ax.text((x_min + x_max) / 2, ax.get_ylim()[1] + (ax.get_ylim()[1] - ax.get_ylim()[0]) * 0.02, 
+                    b.label, color=line_color, fontsize=9, fontweight='bold', ha='center', va='bottom')
+            
+        for val in set(x_bounds):
+            ax.axvline(val, color=line_color, linestyle='--', alpha=line_alpha)
+            
     if y_scheme:
+        y_bounds = []
         for b in y_scheme.bins:
             if np.isfinite(b.min_value): y_bounds.append(b.min_value)
             if np.isfinite(b.max_value): y_bounds.append(b.max_value)
+            
+            # Place interval label at the right (slightly offset)
+            y_min = b.min_value if np.isfinite(b.min_value) else outcomes_df[y_metric].min()
+            y_max = b.max_value if np.isfinite(b.max_value) else outcomes_df[y_metric].max()
+            ax.text(ax.get_xlim()[1] + (ax.get_xlim()[1] - ax.get_xlim()[0]) * 0.02, (y_min + y_max) / 2, 
+                    b.label, color=line_color, fontsize=9, fontweight='bold', ha='left', va='center', rotation=-90)
+            
         for val in set(y_bounds):
-            ax.axhline(val, color='red', linestyle='--', alpha=0.3)
+            ax.axhline(val, color=line_color, linestyle='--', alpha=line_alpha)
 
     # 3. Highlight specific tradeoffs if requested
     if highlight_indices_map:
@@ -164,29 +181,13 @@ def show_quality_objective_space(
             if not subset.empty:
                 sns.scatterplot(
                     data=subset, x=x_metric, y=y_metric, 
-                    ax=ax, color=colors[i], label=label, s=40, edgecolors='black'
+                    ax=ax, color=colors[i], label=label, s=20, alpha=alpha, edgecolors='none'
                 )
 
-    # 4. Add region labels (optional/heuristic)
-    if x_scheme and y_scheme:
-        # We can place text labels in the "centers" of the formed rectangles
-        for xb in x_scheme.bins:
-            for yb in y_scheme.bins:
-                # Calculate center for label placement
-                # Handle inf
-                x_min = xb.min_value if np.isfinite(xb.min_value) else outcomes_df[x_metric].min()
-                x_max = xb.max_value if np.isfinite(xb.max_value) else outcomes_df[x_metric].max()
-                y_min = yb.min_value if np.isfinite(yb.min_value) else outcomes_df[y_metric].min()
-                y_max = yb.max_value if np.isfinite(yb.max_value) else outcomes_df[y_metric].max()
-                
-                cx = (x_min + x_max) / 2
-                cy = (y_min + y_max) / 2
-                
-                ax.text(cx, cy, f"{xb.label}\n{yb.label}", 
-                        alpha=0.4, fontsize=8, ha='center', va='center', 
-                        bbox=dict(facecolor='white', alpha=0.2, edgecolor='none'))
-
     ax.set_title(f"Architectural Tradeoff Space: {x_metric} vs {y_metric}")
-    ax.legend()
+    ax.legend(loc='upper left', bbox_to_anchor=(1.25, 1))
+    
+    # Adjust layout to make room for labels and legend
+    plt.tight_layout(rect=[0, 0, 0.85, 0.95])
     
     return fig

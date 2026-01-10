@@ -89,6 +89,8 @@ def run_analysis(json_path: str, outdir: str, validate_integrity: bool = True) -
                 print(f"Error generating scatter plot for {x_col} vs {y_col}: {e}")
 
         # 4. Discover
+        print(f"Skipping scenario discovery for faster plot testing...")
+        """
         print(f"Discovering scenarios for {len(tradeoffs)} tradeoffs...")
         # Only discover for the current batch of tradeoffs
         # We manually call discover for each because discover_tradeoffs iterates ALL tradeoffs
@@ -108,6 +110,7 @@ def run_analysis(json_path: str, outdir: str, validate_integrity: bool = True) -
             except Exception as e:
                 print(f"    Error analyzing {tradeoff.name}: {e}")
                 all_results[f"tradeoff_{tradeoff.name}_error"] = str(e)
+        """
 
     # 5. Export
     results_path = os.path.join(outdir, "analysis_results.json")
