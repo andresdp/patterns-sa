@@ -57,14 +57,21 @@ def run_analysis(json_path: str, outdir: str, validate_integrity: bool = True) -
             for b in scheme.bins:
                 print(f"    Label: {b.label} -> Range: [{b.min_value:.2f}, {b.max_value:.2f}]")
 
-        # Generate Distribution Plot
-        try:
-            fig = session.coordinator.plot_distributions(session.outcomes_df, schemes)
-            plot_path = os.path.join(outdir, f"distribution_{scheme_name}.png")
-            fig.savefig(plot_path)
-            print(f"Distribution plot saved to: {plot_path}")
-        except Exception as e:
-            print(f"Error generating plot: {e}")
+        # Generate Distribution Plots for each tradeoff in this scheme
+        for tradeoff in tradeoffs:
+            try:
+                indices = session.get_indices_for_tradeoff(tradeoff)
+                fig = session.coordinator.plot_distributions(
+                    session.outcomes_df, 
+                    schemes, 
+                    tradeoff=tradeoff,
+                    highlight_indices=indices
+                )
+                plot_path = os.path.join(outdir, f"distribution_{tradeoff.name}.png")
+                fig.savefig(plot_path)
+                print(f"Distribution plot saved to: {plot_path} (Highlighting {len(indices)} points)")
+            except Exception as e:
+                print(f"Error generating plot for {tradeoff.name}: {e}")
 
         # 4. Discover
         print(f"Discovering scenarios for {len(tradeoffs)} tradeoffs...")

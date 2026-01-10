@@ -3,6 +3,7 @@ matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 import seaborn as sns
 import pandas as pd
+import numpy as np
 from typing import List, Optional
 from ..core.models import DiscretizationScheme, Tradeoff
 
@@ -10,6 +11,7 @@ def plot_tradeoff_distribution(
     outcomes_df: pd.DataFrame, 
     schemes: List[DiscretizationScheme], 
     tradeoff: Optional[Tradeoff] = None,
+    highlight_indices: Optional[np.ndarray] = None,
     figsize: tuple = (10, 6)
 ) -> plt.Figure:
     """
@@ -19,6 +21,7 @@ def plot_tradeoff_distribution(
         outcomes_df: DataFrame containing the continuous outcome data.
         schemes: List of DiscretizationScheme objects defining the bins/thresholds.
         tradeoff: Optional Tradeoff object for context (title, specific focus).
+        highlight_indices: Optional array of indices to highlight in the plots.
         figsize: Size of the figure.
         
     Returns:
@@ -40,9 +43,18 @@ def plot_tradeoff_distribution(
             
         data = outcomes_df[col_name]
         
-        # Plot Histogram/KDE
-        sns.histplot(data, kde=True, ax=ax, color='skyblue', alpha=0.6)
+        # Plot Overall Histogram/KDE
+        sns.histplot(data, kde=True, ax=ax, color='skyblue', label='Overall', alpha=0.4)
         
+        # Plot Highlighted Subset
+        if highlight_indices is not None and len(highlight_indices) > 0:
+            # Ensure we only use indices within bounds
+            valid_indices = highlight_indices[highlight_indices < len(data)]
+            subset_data = data.iloc[valid_indices]
+            if not subset_data.empty:
+                sns.histplot(subset_data, kde=False, ax=ax, color='orange', label='Target Tradeoff', alpha=0.8)
+                ax.legend()
+
         # Overlay Bins
         # We collect boundaries from the bins. 
         # Bins are [min, max]. We only need unique boundaries.

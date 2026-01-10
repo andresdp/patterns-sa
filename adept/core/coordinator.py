@@ -1,5 +1,6 @@
 from typing import Any, Dict, Optional, Tuple, List
 import pandas as pd
+import numpy as np
 from collections import Counter
 
 from .loader import DataLoader, GenericDataLoader
@@ -117,12 +118,12 @@ class ArchSpaceCore:
         with open(path, "w", encoding="utf-8") as fh:
             json.dump(report, fh, indent=2)
 
-    def plot_distributions(self, outcomes_df: pd.DataFrame, schemes: List[DiscretizationScheme], tradeoff: Optional[Tradeoff] = None, **kwargs) -> plt.Figure:
+    def plot_distributions(self, outcomes_df: pd.DataFrame, schemes: List[DiscretizationScheme], tradeoff: Optional[Tradeoff] = None, highlight_indices: Optional[np.ndarray] = None, **kwargs) -> plt.Figure:
         """Plots outcome distributions with tradeoff overlays.
         
         Delegates to analysis.visualization.
         """
-        return plot_tradeoff_distribution(outcomes_df, schemes, tradeoff=tradeoff, **kwargs)
+        return plot_tradeoff_distribution(outcomes_df, schemes, tradeoff=tradeoff, highlight_indices=highlight_indices, **kwargs)
 
 
 __all__ = ["ArchSpaceCore"]

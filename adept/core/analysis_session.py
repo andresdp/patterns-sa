@@ -1,7 +1,8 @@
 from typing import List, Dict, Any, Optional, Tuple
 import pandas as pd
+import numpy as np
 from .coordinator import ArchSpaceCore
-from .models import SystemDefinition, DiscretizationScheme
+from .models import SystemDefinition, DiscretizationScheme, Tradeoff
 
 class PatternAnalysis:
     """Encapsulates the state and workflow for analyzing a single pattern configuration. 
@@ -21,6 +22,7 @@ class PatternAnalysis:
         self.outcomes_df: Optional[pd.DataFrame] = None
         self.discrete_df: Optional[pd.DataFrame] = None
         self.pareto_front: Optional[pd.DataFrame] = None
+        self.tradeoff_indices: Dict[str, np.ndarray] = {}
         self.schemes: List[DiscretizationScheme] = []
 
     def load(self, validate_integrity: bool = True) -> None:
@@ -56,10 +58,47 @@ class PatternAnalysis:
             if params:
                 kwargs['params'] = params
 
-        self.discrete_df, self.schemes, self.pareto_front = self.coordinator.define_tradeoffs(
+        self.discrete_df, self.schemes, self.tradeoff_indices, self.pareto_front = self.coordinator.define_tradeoffs(
             self.outcomes_df, method=method, **kwargs
         )
         return self.discrete_df, self.schemes
+
+    def get_indices_for_tradeoff(self, tradeoff: Tradeoff) -> np.ndarray:
+        """Returns row indices satisfying the given tradeoff definition.
+        
+        Uses the precomputed tradeoff_indices map for performance.
+        """
+        if not self.tradeoff_indices:
+            return np.array([])
+
+        # A tradeoff might match multiple label combinations if it's partially specified.
+        # But our current framework assumes tradeoff defines exact labels for its objectives.
+        
+        # 1. Identify all outcome columns
+        outcome_cols = list(self.discrete_df.columns)
+        
+        # 2. Filter the index map
+        all_matches = []
+        
+        for tradeoff_str, indices in self.tradeoff_indices.items():
+            # tradeoff_str is e.g. "low,high"
+            labels = tradeoff_str.split(',')
+            label_map = dict(zip(outcome_cols, labels))
+            
+            # Check if this combination matches all elements in our target tradeoff
+            match = True
+            for obj_name, target_label in tradeoff.elements.items():
+                if label_map.get(obj_name) != target_label:
+                    match = False
+                    break
+            
+            if match:
+                all_matches.append(indices)
+        
+        if not all_matches:
+            return np.array([])
+            
+        return np.concatenate(all_matches)
 
     def discover_tradeoffs(self, primary_outcome: str = 'cost', method: str = 'prim') -> Dict[str, Any]:
         """Runs scenario discovery for all tradeoffs defined in the system.
