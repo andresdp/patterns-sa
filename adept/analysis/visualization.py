@@ -109,6 +109,7 @@ def show_quality_objective_space(
     y_metric: str,
     schemes: List[DiscretizationScheme],
     highlight_indices_map: Optional[Dict[str, np.ndarray]] = None,
+    show_overall: bool = True,
     alpha: float = 0.5,
     figsize: tuple = (10, 8)
 ) -> plt.Figure:
@@ -121,7 +122,8 @@ def show_quality_objective_space(
         y_metric: Name of the metric for Y axis.
         schemes: List of DiscretizationScheme objects.
         highlight_indices_map: Optional map of {label: indices} to highlight in different colors.
-        alpha: Transparency for the default points.
+        show_overall: Whether to show the gray background of all points.
+        alpha: Transparency for the points.
         figsize: Figure size.
         
     Returns:
@@ -129,11 +131,12 @@ def show_quality_objective_space(
     """
     fig, ax = plt.subplots(figsize=figsize)
     
-    # 1. Plot background (all points)
-    sns.scatterplot(
-        data=outcomes_df, x=x_metric, y=y_metric, 
-        ax=ax, color='gray', alpha=alpha, label='Overall', s=20
-    )
+    # 1. Plot background (all points) if requested
+    if show_overall:
+        sns.scatterplot(
+            data=outcomes_df, x=x_metric, y=y_metric, 
+            ax=ax, color='gray', alpha=alpha, label='Overall', s=20
+        )
     
     # 2. Draw segmentation lines and axis labels
     line_color = 'red'
@@ -184,7 +187,8 @@ def show_quality_objective_space(
                     ax=ax, color=colors[i], label=label, s=20, alpha=alpha, edgecolors='none'
                 )
 
-    ax.set_title(f"Architectural Tradeoff Space: {x_metric} vs {y_metric}")
+    # pad=30 pushes the title up to avoid interval labels
+    ax.set_title(f"Architectural Tradeoff Space: {x_metric} vs {y_metric}", pad=30)
     ax.legend(loc='upper left', bbox_to_anchor=(1.25, 1))
     
     # Adjust layout to make room for labels and legend

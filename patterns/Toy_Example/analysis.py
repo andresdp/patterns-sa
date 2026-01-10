@@ -78,9 +78,11 @@ def run_analysis(json_path: str, outdir: str, validate_integrity: bool = True) -
         outcome_cols = list(session.outcomes_df.columns)
         for x_col, y_col in itertools.combinations(outcome_cols, 2):
             try:
+                # Standard plot (with background)
                 fig = session.show_quality_objective_space(
                     x_col, y_col, 
-                    highlight_tradeoffs=tradeoffs
+                    highlight_tradeoffs=tradeoffs,
+                    show_overall=True
                 )
                 scatter_path = os.path.join(outdir, f"scatter_{x_col}_vs_{y_col}.png")
                 fig.savefig(scatter_path)
@@ -89,8 +91,6 @@ def run_analysis(json_path: str, outdir: str, validate_integrity: bool = True) -
                 print(f"Error generating scatter plot for {x_col} vs {y_col}: {e}")
 
         # 4. Discover
-        print(f"Skipping scenario discovery for faster plot testing...")
-        """
         print(f"Discovering scenarios for {len(tradeoffs)} tradeoffs...")
         # Only discover for the current batch of tradeoffs
         # We manually call discover for each because discover_tradeoffs iterates ALL tradeoffs
@@ -110,7 +110,6 @@ def run_analysis(json_path: str, outdir: str, validate_integrity: bool = True) -
             except Exception as e:
                 print(f"    Error analyzing {tradeoff.name}: {e}")
                 all_results[f"tradeoff_{tradeoff.name}_error"] = str(e)
-        """
 
     # 5. Export
     results_path = os.path.join(outdir, "analysis_results.json")

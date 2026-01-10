@@ -140,7 +140,7 @@ class PatternAnalysis:
             self.outcomes_df, self.schemes, tradeoff=tradeoff, highlight_indices=highlight_indices, **kwargs
         )
 
-    def show_quality_objective_space(self, x_metric: str, y_metric: str, highlight_tradeoffs: Optional[List[Tradeoff]] = None, **kwargs) -> plt.Figure:
+    def show_quality_objective_space(self, x_metric: str, y_metric: str, highlight_tradeoffs: Optional[List[Tradeoff]] = None, show_overall: bool = True, **kwargs) -> plt.Figure:
         """Plots a 2D scatter of outcomes with tradeoff overlays and highlighting."""
         highlight_indices_map = {}
         if highlight_tradeoffs:
@@ -151,5 +151,7 @@ class PatternAnalysis:
                     
         return self.coordinator.show_quality_objective_space(
             self.outcomes_df, x_metric, y_metric, self.schemes, 
-            highlight_indices_map=highlight_indices_map, **kwargs
+            highlight_indices_map=highlight_indices_map, show_overall=show_overall, **kwargs
         )
+
+    

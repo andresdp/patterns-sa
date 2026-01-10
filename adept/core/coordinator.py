@@ -125,12 +125,12 @@ class ArchSpaceCore:
         """
         return plot_tradeoff_distribution(outcomes_df, schemes, tradeoff=tradeoff, highlight_indices=highlight_indices, **kwargs)
 
-    def show_quality_objective_space(self, outcomes_df: pd.DataFrame, x_metric: str, y_metric: str, schemes: List[DiscretizationScheme], highlight_indices_map: Optional[Dict[str, np.ndarray]] = None, **kwargs) -> plt.Figure:
+    def show_quality_objective_space(self, outcomes_df: pd.DataFrame, x_metric: str, y_metric: str, schemes: List[DiscretizationScheme], highlight_indices_map: Optional[Dict[str, np.ndarray]] = None, show_overall: bool = True, **kwargs) -> plt.Figure:
         """Plots a 2D scatter of outcomes with tradeoff overlays and highlighting.
         
         Delegates to analysis.visualization.
         """
-        return show_quality_objective_space(outcomes_df, x_metric, y_metric, schemes, highlight_indices_map=highlight_indices_map, **kwargs)
+        return show_quality_objective_space(outcomes_df, x_metric, y_metric, schemes, highlight_indices_map=highlight_indices_map, show_overall=show_overall, **kwargs)
 
 
 __all__ = ["ArchSpaceCore"]
