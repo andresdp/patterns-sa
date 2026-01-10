@@ -360,10 +360,10 @@ class ScenarioDiscoveryManager:
                  # Handle cases where it might be a dict
                  tradeoff = Tradeoff.model_validate(tradeoff)
             
-            if tradeoff.scheme == 'discretization':
+            if tradeoff.scheme in ['discretization', 'pareto']:
                 discrete_df = kwargs.get('discrete_outcomes_df')
                 if discrete_df is None:
-                    raise ValueError("discrete_outcomes_df is required for discretization tradeoff")
+                    raise ValueError(f"discrete_outcomes_df is required for {tradeoff.scheme} tradeoff")
                 
                 # Create mask y based on all elements in the tradeoff
                 y = pd.Series([True] * len(discrete_df), index=discrete_df.index)

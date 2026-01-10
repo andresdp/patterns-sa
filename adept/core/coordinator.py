@@ -50,6 +50,15 @@ class ArchSpaceCore:
             return self.loader.load(source, validate_integrity=validate_integrity)
         return self.loader.load(source)
 
+    def load_system_definition(self, source: Any) -> SystemDefinition:
+        """Loads the system definition from the specified source.
+        
+        Requires a GenericDataLoader.
+        """
+        if isinstance(self.loader, GenericDataLoader):
+            return self.loader.load_system_definition(source)
+        raise TypeError("System definition loading requires GenericDataLoader")
+
     def load_detailed_data(self, source: Any, validate_integrity: bool = True) -> Tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
         """Loads and automatically partitions data into raw, experiments, and outcomes.
         
@@ -68,8 +77,8 @@ class ArchSpaceCore:
         
         Delegates to the ScenarioDiscoveryManager.
         """
-        experiments_df = kwargs.get('experiments_df', df)
-        outcomes_df = kwargs.get('outcomes_df', df)
+        experiments_df = kwargs.pop('experiments_df', df)
+        outcomes_df = kwargs.pop('outcomes_df', df)
         return self.discovery_manager.discover(experiments_df, outcomes_df, outcome=outcome, method=method, **kwargs)
 
     def explain(self, artifact: Any, method: Optional[str] = None, **kwargs) -> Dict[str, str]:
@@ -79,12 +88,12 @@ class ArchSpaceCore:
         """
         return self.explanation_manager.explain(artifact, method=method, **kwargs)
 
-    def discretize(self, df: pd.DataFrame, **kwargs) -> Tuple[pd.DataFrame, List[DiscretizationScheme]]:
-        """Transforms continuous data into categorical regions.
+    def define_tradeoffs(self, df: pd.DataFrame, method: str = 'discretization', **kwargs) -> Tuple[pd.DataFrame, Any, Optional[pd.DataFrame]]:
+        """Defines tradeoff regions in the outcome space.
         
         Delegates to the DataProcessor.
         """
-        return self.data_processor.discretize(df, **kwargs)
+        return self.data_processor.define_tradeoffs(df, method=method, **kwargs)
 
     def compute_robustness(self, df: pd.DataFrame, **kwargs) -> Tuple[float, str]:
         """Calculates architectural robustness metrics.

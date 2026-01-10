@@ -45,6 +45,15 @@
         "description": "Fast execution time and high availability",
         "elements": { "executionTime": "low", "probSuccessfulExecution": "high" },
         "scheme": "discretization"
+      },
+      {
+        "name": "ParetoEfficient",
+        "description": "Solutions that are within the bounds of the Pareto front.",
+        "elements": { 
+            "cost": "Pareto-Compliant", 
+            "probSuccessfulExecution": "Pareto-Compliant" 
+        },
+        "scheme": "pareto"
       }
     ]
   },
