@@ -103,6 +103,8 @@ def plot_tradeoff_distribution(
     
 
 
+import matplotlib.patches as patches
+
 def show_quality_objective_space(
     outcomes_df: pd.DataFrame,
     x_metric: str,
@@ -110,6 +112,8 @@ def show_quality_objective_space(
     schemes: List[DiscretizationScheme],
     highlight_indices_map: Optional[Dict[str, np.ndarray]] = None,
     show_overall: bool = True,
+    color_points: bool = True,
+    draw_rectangles: bool = False,
     alpha: float = 0.5,
     figsize: tuple = (10, 8)
 ) -> plt.Figure:
@@ -121,9 +125,11 @@ def show_quality_objective_space(
         x_metric: Name of the metric for X axis.
         y_metric: Name of the metric for Y axis.
         schemes: List of DiscretizationScheme objects.
-        highlight_indices_map: Optional map of {label: indices} to highlight in different colors.
+        highlight_indices_map: Optional map of {label: indices} to highlight.
         show_overall: Whether to show the gray background of all points.
-        alpha: Transparency for the points.
+        color_points: Whether to apply color to the highlighted points.
+        draw_rectangles: Whether to draw a bounding rectangle around highlighted points.
+        alpha: Transparency for the points/rectangles.
         figsize: Figure size.
         
     Returns:
@@ -131,12 +137,17 @@ def show_quality_objective_space(
     """
     fig, ax = plt.subplots(figsize=figsize)
     
-    # 1. Plot background (all points) if requested
-    if show_overall:
-        sns.scatterplot(
-            data=outcomes_df, x=x_metric, y=y_metric, 
-            ax=ax, color='gray', alpha=alpha, label='Overall', s=20
-        )
+    # 1. Plot background (all points)
+    # If show_overall is False, we plot them invisible (alpha=0) and without a label
+    # to maintain the full axis scale without cluttering the legend.
+    sns.scatterplot(
+        data=outcomes_df, x=x_metric, y=y_metric, 
+        ax=ax, 
+        color='gray' if show_overall else 'white', 
+        alpha=alpha if show_overall else 0, 
+        label='Overall' if show_overall else None, 
+        s=20
+    )
     
     # 2. Draw segmentation lines and axis labels
     line_color = 'red'
@@ -181,10 +192,28 @@ def show_quality_objective_space(
         colors = sns.color_palette("bright", n_colors=len(highlight_indices_map))
         for i, (label, indices) in enumerate(highlight_indices_map.items()):
             subset = outcomes_df.iloc[indices]
-            if not subset.empty:
+            if subset.empty:
+                continue
+                
+            color = colors[i]
+            
+            # A. Draw Rectangles
+            if draw_rectangles:
+                x_min, x_max = subset[x_metric].min(), subset[x_metric].max()
+                y_min, y_max = subset[y_metric].min(), subset[y_metric].max()
+                
+                rect = patches.Rectangle(
+                    (x_min, y_min), x_max - x_min, y_max - y_min,
+                    linewidth=2, edgecolor=color, facecolor=color, alpha=0.2,
+                    label=f"{label} (Area)" if not color_points else None
+                )
+                ax.add_patch(rect)
+
+            # B. Plot Points
+            if color_points:
                 sns.scatterplot(
                     data=subset, x=x_metric, y=y_metric, 
-                    ax=ax, color=colors[i], label=label, s=20, alpha=alpha, edgecolors='none'
+                    ax=ax, color=color, label=label, s=20, alpha=alpha, edgecolors='none'
                 )
 
     # pad=30 pushes the title up to avoid interval labels

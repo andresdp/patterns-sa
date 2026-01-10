@@ -1,8 +1,7 @@
-"""
-"""
 import argparse
 import os
 import json
+import itertools
 from adept import PatternAnalysis
 
 def run_analysis(json_path: str, outdir: str, validate_integrity: bool = True) -> None:
@@ -15,8 +14,8 @@ def run_analysis(json_path: str, outdir: str, validate_integrity: bool = True) -
     # 2. Load
     session.load(validate_integrity=validate_integrity)
     
-    print("DEBUG: Sampling data to 1%...")
-    sample_df = session.raw_df.sample(frac=0.01, random_state=42)
+    print("DEBUG: Sampling data to 10%...")
+    sample_df = session.raw_df.sample(frac=0.1, random_state=42)
     session.raw_df = sample_df
     session.experiments_df = session.experiments_df.loc[sample_df.index]
     session.outcomes_df = session.outcomes_df.loc[sample_df.index]
@@ -38,7 +37,6 @@ def run_analysis(json_path: str, outdir: str, validate_integrity: bool = True) -
         elif scheme_name == 'pareto' or scheme_name == 'pareto_nadir':
             discrete_df, schemes = session.define_tradeoffs(method='pareto')
         elif scheme_name == 'threshold':
-            # Extract params from the first tradeoff of this scheme
             params = tradeoffs[0].params
             discrete_df, schemes = session.define_tradeoffs(method='threshold', params=params)
         elif scheme_name == 'pareto_epsilon':
@@ -74,11 +72,10 @@ def run_analysis(json_path: str, outdir: str, validate_integrity: bool = True) -
                 print(f"Error generating plot for {tradeoff.name}: {e}")
 
         # Generate 2D Scatter Plots for all pairs of outcomes
-        import itertools
         outcome_cols = list(session.outcomes_df.columns)
         for x_col, y_col in itertools.combinations(outcome_cols, 2):
             try:
-                # Standard plot (with background)
+                # 1. Standard plot (with background)
                 fig = session.show_quality_objective_space(
                     x_col, y_col, 
                     highlight_tradeoffs=tradeoffs,
@@ -87,13 +84,34 @@ def run_analysis(json_path: str, outdir: str, validate_integrity: bool = True) -
                 scatter_path = os.path.join(outdir, f"scatter_{x_col}_vs_{y_col}.png")
                 fig.savefig(scatter_path)
                 print(f"Scatter plot saved to: {scatter_path}")
+
+                # 2. Focused plot (invisible background for scaling)
+                fig_f = session.show_quality_objective_space(
+                    x_col, y_col, 
+                    highlight_tradeoffs=tradeoffs,
+                    show_overall=False
+                )
+                scatter_path_f = os.path.join(outdir, f"scatter_{x_col}_vs_{y_col}_focused.png")
+                fig_f.savefig(scatter_path_f)
+                print(f"Focused scatter plot saved to: {scatter_path_f}")
+
+                # 3. Rectangle plot (no point coloring, just bounding boxes)
+                fig_r = session.show_quality_objective_space(
+                    x_col, y_col, 
+                    highlight_tradeoffs=tradeoffs,
+                    show_overall=True,
+                    color_points=False,
+                    draw_rectangles=True
+                )
+                scatter_path_r = os.path.join(outdir, f"scatter_{x_col}_vs_{y_col}_rect.png")
+                fig_r.savefig(scatter_path_r)
+                print(f"Rectangle scatter plot saved to: {scatter_path_r}")
             except Exception as e:
                 print(f"Error generating scatter plot for {x_col} vs {y_col}: {e}")
 
         # 4. Discover
-        print(f"Discovering scenarios for {len(tradeoffs)} tradeoffs...")
+        print(f"Skipping scenario discovery for faster plot testing...")
         # Only discover for the current batch of tradeoffs
-        # We manually call discover for each because discover_tradeoffs iterates ALL tradeoffs
         for tradeoff in tradeoffs:
             print(f"  Analyzing Tradeoff: {tradeoff.name} ({tradeoff.description})")
             try:
@@ -110,6 +128,7 @@ def run_analysis(json_path: str, outdir: str, validate_integrity: bool = True) -
             except Exception as e:
                 print(f"    Error analyzing {tradeoff.name}: {e}")
                 all_results[f"tradeoff_{tradeoff.name}_error"] = str(e)
+        
 
     # 5. Export
     results_path = os.path.join(outdir, "analysis_results.json")
@@ -128,7 +147,6 @@ def run_analysis(json_path: str, outdir: str, validate_integrity: bool = True) -
 
 def main():
     parser = argparse.ArgumentParser()
-    # Default to the local ArchExample_Discretization.json
     parser.add_argument("--config", default="patterns/Toy_Example/ArchExample_Discretization.json")
     parser.add_argument("--outdir", default="patterns/Toy_Example/out")
     parser.add_argument("--no-validate", action="store_true", help="Disable data integrity validation")
