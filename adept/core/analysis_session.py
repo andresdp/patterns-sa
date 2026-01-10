@@ -1,6 +1,7 @@
 from typing import List, Dict, Any, Optional, Tuple
 import pandas as pd
 import numpy as np
+import matplotlib.pyplot as plt
 from .coordinator import ArchSpaceCore
 from .models import SystemDefinition, DiscretizationScheme, Tradeoff
 
@@ -132,3 +133,23 @@ class PatternAnalysis:
                 results[f"tradeoff_{tradeoff.name}_error"] = str(e)
         
         return results
+
+    def plot_distributions(self, tradeoff: Optional[Tradeoff] = None, highlight_indices: Optional[np.ndarray] = None, **kwargs) -> plt.Figure:
+        """Plots outcome distributions with tradeoff overlays for the current session."""
+        return self.coordinator.plot_distributions(
+            self.outcomes_df, self.schemes, tradeoff=tradeoff, highlight_indices=highlight_indices, **kwargs
+        )
+
+    def show_quality_objective_space(self, x_metric: str, y_metric: str, highlight_tradeoffs: Optional[List[Tradeoff]] = None, **kwargs) -> plt.Figure:
+        """Plots a 2D scatter of outcomes with tradeoff overlays and highlighting."""
+        highlight_indices_map = {}
+        if highlight_tradeoffs:
+            for t in highlight_tradeoffs:
+                indices = self.get_indices_for_tradeoff(t)
+                if len(indices) > 0:
+                    highlight_indices_map[t.name] = indices
+                    
+        return self.coordinator.show_quality_objective_space(
+            self.outcomes_df, x_metric, y_metric, self.schemes, 
+            highlight_indices_map=highlight_indices_map, **kwargs
+        )

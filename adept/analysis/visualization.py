@@ -4,7 +4,7 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 import pandas as pd
 import numpy as np
-from typing import List, Optional
+from typing import List, Optional, Dict
 from ..core.models import DiscretizationScheme, Tradeoff
 
 def plot_tradeoff_distribution(
@@ -98,5 +98,95 @@ def plot_tradeoff_distribution(
     if tradeoff:
         title += f"\n({tradeoff.name}: {tradeoff.description})"
     fig.suptitle(title, fontsize=14)
+    
+    return fig
+    
+
+
+def show_quality_objective_space(
+    outcomes_df: pd.DataFrame,
+    x_metric: str,
+    y_metric: str,
+    schemes: List[DiscretizationScheme],
+    highlight_indices_map: Optional[Dict[str, np.ndarray]] = None,
+    alpha: float = 0.5,
+    figsize: tuple = (10, 8)
+) -> plt.Figure:
+    """
+    Plots a 2D scatter of two outcomes with tradeoff segmentation lines and highlighting.
+    
+    Args:
+        outcomes_df: DataFrame containing the continuous outcome data.
+        x_metric: Name of the metric for X axis.
+        y_metric: Name of the metric for Y axis.
+        schemes: List of DiscretizationScheme objects.
+        highlight_indices_map: Optional map of {label: indices} to highlight in different colors.
+        alpha: Transparency for the default points.
+        figsize: Figure size.
+        
+    Returns:
+        matplotlib Figure object.
+    """
+    fig, ax = plt.subplots(figsize=figsize)
+    
+    # 1. Plot background (all points)
+    sns.scatterplot(
+        data=outcomes_df, x=x_metric, y=y_metric, 
+        ax=ax, color='gray', alpha=alpha, label='Overall', s=20
+    )
+    
+    # 2. Draw segmentation lines from schemes
+    x_scheme = next((s for s in schemes if s.objective_name == x_metric), None)
+    y_scheme = next((s for s in schemes if s.objective_name == y_metric), None)
+    
+    x_bounds = []
+    if x_scheme:
+        for b in x_scheme.bins:
+            if np.isfinite(b.min_value): x_bounds.append(b.min_value)
+            if np.isfinite(b.max_value): x_bounds.append(b.max_value)
+        for val in set(x_bounds):
+            ax.axvline(val, color='red', linestyle='--', alpha=0.3)
+            
+    y_bounds = []
+    if y_scheme:
+        for b in y_scheme.bins:
+            if np.isfinite(b.min_value): y_bounds.append(b.min_value)
+            if np.isfinite(b.max_value): y_bounds.append(b.max_value)
+        for val in set(y_bounds):
+            ax.axhline(val, color='red', linestyle='--', alpha=0.3)
+
+    # 3. Highlight specific tradeoffs if requested
+    if highlight_indices_map:
+        # Use a qualitative palette for highlights
+        colors = sns.color_palette("bright", n_colors=len(highlight_indices_map))
+        for i, (label, indices) in enumerate(highlight_indices_map.items()):
+            subset = outcomes_df.iloc[indices]
+            if not subset.empty:
+                sns.scatterplot(
+                    data=subset, x=x_metric, y=y_metric, 
+                    ax=ax, color=colors[i], label=label, s=40, edgecolors='black'
+                )
+
+    # 4. Add region labels (optional/heuristic)
+    if x_scheme and y_scheme:
+        # We can place text labels in the "centers" of the formed rectangles
+        for xb in x_scheme.bins:
+            for yb in y_scheme.bins:
+                # Calculate center for label placement
+                # Handle inf
+                x_min = xb.min_value if np.isfinite(xb.min_value) else outcomes_df[x_metric].min()
+                x_max = xb.max_value if np.isfinite(xb.max_value) else outcomes_df[x_metric].max()
+                y_min = yb.min_value if np.isfinite(yb.min_value) else outcomes_df[y_metric].min()
+                y_max = yb.max_value if np.isfinite(yb.max_value) else outcomes_df[y_metric].max()
+                
+                cx = (x_min + x_max) / 2
+                cy = (y_min + y_max) / 2
+                
+                ax.text(cx, cy, f"{xb.label}\n{yb.label}", 
+                        alpha=0.4, fontsize=8, ha='center', va='center', 
+                        bbox=dict(facecolor='white', alpha=0.2, edgecolor='none'))
+
+    ax.set_title(f"Architectural Tradeoff Space: {x_metric} vs {y_metric}")
+    ax.legend()
     
     return fig

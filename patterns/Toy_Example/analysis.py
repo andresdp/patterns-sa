@@ -73,6 +73,21 @@ def run_analysis(json_path: str, outdir: str, validate_integrity: bool = True) -
             except Exception as e:
                 print(f"Error generating plot for {tradeoff.name}: {e}")
 
+        # Generate 2D Scatter Plots for all pairs of outcomes
+        import itertools
+        outcome_cols = list(session.outcomes_df.columns)
+        for x_col, y_col in itertools.combinations(outcome_cols, 2):
+            try:
+                fig = session.show_quality_objective_space(
+                    x_col, y_col, 
+                    highlight_tradeoffs=tradeoffs
+                )
+                scatter_path = os.path.join(outdir, f"scatter_{x_col}_vs_{y_col}.png")
+                fig.savefig(scatter_path)
+                print(f"Scatter plot saved to: {scatter_path}")
+            except Exception as e:
+                print(f"Error generating scatter plot for {x_col} vs {y_col}: {e}")
+
         # 4. Discover
         print(f"Discovering scenarios for {len(tradeoffs)} tradeoffs...")
         # Only discover for the current batch of tradeoffs
