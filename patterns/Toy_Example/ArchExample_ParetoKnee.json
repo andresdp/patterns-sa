@@ -7,9 +7,42 @@
         "name": "Arch Example Pattern",
         "description": "A simple component-and-device pattern.",
         "parameters": {
+          "deviceCPUCyles": { "data_type": "float", "type": "uncertainty", "level": "infrastructure" },
+          "deviceCost": { "data_type": "float", "type": "constraint", "level": "infrastructure" },
+          "lbExecTime": { "data_type": "float", "type": "uncertainty", "level": "pattern" },
+          "lbFailureProb": { "data_type": "float", "type": "uncertainty", "level": "pattern" },
+          "serviceCost": { "data_type": "float", "type": "constraint", "level": "pattern" },
+          "serviceFailureProb": { "data_type": "float", "type": "uncertainty", "level": "pattern" },
           "d1Services": { "data_type": "integer", "type": "lever", "level": "system" },
           "d2Services": { "data_type": "integer", "type": "lever", "level": "system" },
           "d3Services": { "data_type": "integer", "type": "lever", "level": "system" }
+        },
+        "decisions": {
+          "deployment_strategy": {
+            "description": "The number of devices effectively deployed and the number of services per device.",
+            "policies": {
+              "one_device_low": { 
+                "description": "0_0_1 configuration.",
+                "parameter_bindings": {
+                  "levers": {
+                    "d1Services": 0,
+                    "d2Services": 0,
+                    "d3Services": 1
+                  }
+                }
+              },
+              "balanced_low": { 
+                "description": "0_1_1 configuration.",
+                "parameter_bindings": {
+                  "levers": {
+                    "d1Services": 0,
+                    "d2Services": 1,
+                    "d3Services": 1
+                  }
+                }
+              }
+            }
+          }
         }
       }
     },
@@ -27,10 +60,33 @@
   },
   "dataspace": {
     "source_file": "data/merged.csv",
-    "policy_identification": {
+    "configuration_identification": {
       "from": "column",
       "column": "policy_config",
-      "policies": {}
+      "configurations": {
+        "0_0_1": { 
+          "name": "one_device_low", 
+          "description": "Minimal configuration.", 
+          "pattern_policy_references": [
+            {
+              "component": "arch_example_pattern",
+              "decision": "deployment_strategy",
+              "policy": "one_device_low"
+            }
+          ]
+        },
+        "0_1_1": { 
+          "name": "balanced_low", 
+          "description": "Balanced low-end configuration.", 
+          "pattern_policy_references": [
+            {
+              "component": "arch_example_pattern",
+              "decision": "deployment_strategy",
+              "policy": "balanced_low"
+            }
+          ]
+        }
+      }
     },
     "quality_objectives": [
       { "name": "cost", "metric": "currency", "maximize": false },
@@ -39,7 +95,7 @@
     ]
   },
   "metadata": {
-    "version": "2.0",
-    "notes": "Pareto Knee configuration."
+    "version": "3.0",
+    "notes": "Pareto Knee configuration. Updated to pattern-centric schema."
   }
 }

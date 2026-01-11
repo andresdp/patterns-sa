@@ -1,0 +1,72 @@
+# ADEPT Analysis Journey: A Guide to Data-Driven Architectural Exploration
+
+The ADEPT analysis journey is a structured pipeline designed to turn raw simulation data into actionable architectural knowledge. This document provides an in-depth look at each stage of the process, the options available, and how to interpret the results.
+
+---
+
+## 1. Tradeoff Definition (The Qualitative Shift)
+Before analysis begins, we must translate raw numeric values (e.g., "124ms") into architectural concepts (e.g., "Fast"). This process, known as **Discretization**, allows us to group data points into "Tradeoff" regions.
+
+*   **Why it matters**: Complex systems often have conflicting goals. By defining tradeoffs, we shift the focus from optimizing a single number to finding regions where multiple quality objectives reach a satisfying balance.
+*   **Available Strategies**:
+    *   **Equal-Width Discretization**: Splits the range of an objective into $N$ equal parts. Good for general exploration.
+    *   **Pareto Frontiers**: Identifies points that represent the best possible compromises. No point on the frontier can be improved in one objective without being degraded in another.
+    *   **Epsilon-Pareto**: A "fuzzy" Pareto approach that ignores small, insignificant differences, resulting in a cleaner frontier.
+    *   **Knee-Point Analysis**: Automatically identifies the "elbow" of a curve—the region where you get the most improvement for the least cost.
+    *   **Thresholding**: Sets hard engineering limits (e.g., "Reliability must be > 99.9%").
+
+---
+
+## 2. Objective Space Exploration (Visual Confirmation)
+Once tradeoffs are defined, we visualize them to confirm they align with our intuition and architectural requirements.
+
+*   **Scatter Plots**: We plot pairs of objectives (e.g., Cost vs. Execution Time).
+    *   **Coloring by Tradeoff**: Highlights where the "Inexpensive-but-reliable" points cluster.
+    *   **Coloring by Policy**: Shows if certain architectural decisions (e.g., "Serverless Deployment") naturally gravitate towards specific performance regions.
+*   **Overlay Modes**:
+    *   **Point Overlay**: Every sample is a dot. Best for seeing density and outliers.
+    *   **Rectangle Overlay**: Draws bounding boxes for tradeoff regions. Best for visualizing the "target zones" without the noise of individual points.
+
+---
+
+## 3. Contingency Analysis (Impact of Decisions)
+This stage answers the critical question: *"If I choose Policy X, what is the probability I will land in Tradeoff Y?"*
+
+*   **The Contingency Matrix**: A cross-tabulation of Architectural Decisions vs. Tradeoff Membership.
+*   **Normalization Modes**:
+    *   **Row Normalization (`row`)**: (Highly Recommended) For a specific decision (e.g., "Load Balancer: Round Robin"), it shows the percentage distribution across all tradeoffs. This allows you to say: *"Policy A leads to 'Fast' outcomes 80% of the time."*
+    *   **Population Normalization (`population`)**: Shows the count relative to the total dataset. Useful for understanding which decisions are most frequent in the simulation.
+*   **Visual Tools**:
+    *   **Heatmaps**: Use color intensity to show "hotspots" where decisions and tradeoffs strongly correlate.
+    *   **Sankey Diagrams**: Visualize the "flow" of probability. Ideal for multi-step architectural decisions where you want to see how choices aggregate into outcomes.
+
+---
+
+## 4. Feature Scoring (Sensitivity & Influence)
+Not all parameters are created equal. Feature scoring uses Machine Learning (Random Forests) to rank which parameters (Levers, Uncertainties, or Constraints) actually "drive" the values of your quality objectives.
+
+*   **The Preprocessing Pipeline**:
+    *   **Z-Score Standardization**: Since "Cost" ($) and "Latency" (ms) have different units, we use `StandardScaler` to put them on a uniform scale.
+    *   **Outlier Removal**: We filter out simulation "noise" by removing points that fall outside $3\sigma$ of the mean.
+*   **Advanced Selection**:
+    *   **Smart Correlated Selection**: In many simulations, parameters are redundant. This step identifies groups of correlated features and keeps only the most predictive one, preventing the "dilution" of importance scores.
+*   **Weighted Ranking**: Because an architecture must satisfy multiple stakeholders, you can assign weights to different objectives. ADEPT then produces a **Single Unified Ranking** of features that most affect the system's overall health.
+
+---
+
+## 5. Scenario Discovery (Finding the Envelope)
+The final stage generates "Operational Rules" or "Envelopes." It finds the specific ranges of parameters that reliably produce a target tradeoff.
+
+*   **The Algorithms**:
+    *   **PRIM (Patient Rule Induction Method)**: A "bottom-up" approach. It starts with the whole space and iteratively "peels" away regions that don't satisfy the target. It results in a highly focused "Box" or rule-set (e.g., *"If CPU > 2.0 and Memory < 4GB, you will hit the Low-Cost tradeoff"*).
+    *   **CART (Decision Trees)**: A "top-down" approach. It splits the entire space into multiple boxes, one for every possible outcome combination. Best for a comprehensive map of the entire design space.
+*   **The "Success" Metrics**:
+    *   **Population Prevalence**: The % of points in the whole dataset that meet the target (the "Baseline").
+    *   **Box Density**: The % of points *inside the box* that meet the target.
+    *   **Lift**: Calculated as `Density / Prevalence`. A Lift of 5.0 means that by following the box's rules, you are **5 times more likely** to achieve your target tradeoff than if you chose parameters randomly.
+*   **De-standardization**: If standardization was applied during scoring, ADEPT automatically converts the rules back to the original units (e.g., converting a Z-score of 1.5 back to "5000 CPU Cycles").
+
+---
+
+## Conclusion
+The Journey starts with **Defining what matters** (Tradeoffs), moves through **Understanding the impact of choices** (Contingency), identifies **What drives the system** (Scoring), and ends with **Actionable rules** (Discovery) for building robust architectures.

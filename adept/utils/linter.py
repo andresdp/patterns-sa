@@ -23,16 +23,18 @@ class SystemLinter:
         issues.extend(self._validate_objectives(sys_def, df))
 
         # 2. Validate Parameters against Data
+        # Note: With parameter injection, parameters might not be in raw data but added later.
+        # However, lint is typically called after load/injection in GenericDataLoader.
         issues.extend(self._validate_parameters(sys_def, df))
 
-        # 3. Validate Policy Identification against Data
-        issues.extend(self._validate_policy_column(sys_def, df))
+        # 3. Validate Configuration Identification against Data
+        issues.extend(self._validate_configuration_column(sys_def, df))
 
         # 4. Validate Tradeoffs against Objectives
         issues.extend(self._validate_tradeoffs(sys_def))
 
-        # 5. Validate System Policies against Components
-        issues.extend(self._validate_component_policies(sys_def))
+        # 5. Validate System Configurations against Patterns
+        issues.extend(self._validate_configuration_references(sys_def))
 
         return issues
 
@@ -61,29 +63,29 @@ class SystemLinter:
                     ))
         return issues
 
-    def _validate_policy_column(self, sys_def: SystemDefinition, df: pd.DataFrame) -> List[LintIssue]:
+    def _validate_configuration_column(self, sys_def: SystemDefinition, df: pd.DataFrame) -> List[LintIssue]:
         issues = []
-        ident = sys_def.dataspace.policy_identification
+        ident = sys_def.dataspace.configuration_identification
         if ident.from_ == "column":
             if ident.column and ident.column not in df.columns:
                 issues.append(LintIssue(
                     "ERROR",
-                    f"Policy identification column '{ident.column}' not found in data.",
-                    "Dataspace.PolicyIdentification"
+                    f"Configuration identification column '{ident.column}' not found in data.",
+                    "Dataspace.ConfigurationIdentification"
                 ))
             
-            # Check if policies defined in JSON match values in Data
-            if ident.column in df.columns and isinstance(ident.policies, dict):
-                json_policies = set(ident.policies.keys())
+            # Check if configurations defined in JSON match values in Data
+            if ident.column in df.columns and isinstance(ident.configurations, dict):
+                json_configs = set(ident.configurations.keys())
                 # Convert data values to string to ensure matching (e.g. "1" vs 1)
-                data_policies = set(df[ident.column].astype(str).unique())
+                data_configs = set(df[ident.column].astype(str).unique())
                 
-                missing_in_data = json_policies - data_policies
+                missing_in_data = json_configs - data_configs
                 if missing_in_data:
                     issues.append(LintIssue(
                         "WARNING",
-                        f"Policies defined in JSON but missing in Data: {missing_in_data}",
-                        "Dataspace.PolicyIdentification"
+                        f"Configurations defined in JSON but missing in Data: {missing_in_data}",
+                        "Dataspace.ConfigurationIdentification"
                     ))
         return issues
 
@@ -108,42 +110,40 @@ class SystemLinter:
                     ))
         return issues
 
-    def _validate_component_policies(self, sys_def: SystemDefinition) -> List[LintIssue]:
+    def _validate_configuration_references(self, sys_def: SystemDefinition) -> List[LintIssue]:
         issues = []
-        defined_components = set(sys_def.system.components.keys())
         
-        # Helper to extract available policies from a component definition
-        # Assumes component.decisions structure: { "decision_name": { "policies": { "policy_name": ... } } }
-        component_valid_policies = {}
-        for c_name, comp in sys_def.system.components.items():
-            valid = set()
-            for dec_name, dec_body in comp.decisions.items():
-                if isinstance(dec_body, dict) and "policies" in dec_body:
-                    valid.update(dec_body["policies"].keys())
-            component_valid_policies[c_name] = valid
+        configs = sys_def.dataspace.configuration_identification.configurations
+        config_iterator = configs.values() if isinstance(configs, dict) else configs
 
-        policies = sys_def.dataspace.policy_identification.policies
-        policy_iterator = policies.values() if isinstance(policies, dict) else policies
-
-        for sys_policy in policy_iterator:
-            for comp_ref, comp_pol_ref in sys_policy.component_policies.items():
+        for config in config_iterator:
+            for ref in config.pattern_policy_references:
                 # Check 1: Component existence
-                if comp_ref not in defined_components:
+                comp = sys_def.system.components.get(ref.component)
+                if not comp:
                     issues.append(LintIssue(
                         "ERROR",
-                        f"System Policy '{sys_policy.name}' references undefined component '{comp_ref}'.",
-                        "Dataspace.Policies"
+                        f"Configuration '{config.name}' references undefined component '{ref.component}'.",
+                        "Dataspace.Configurations"
                     ))
-                    continue # Skip next check if component doesn't exist
+                    continue
 
-                # Check 2: Component Policy existence (if decisions are defined)
-                # If the component has decisions defined, we should validate against them.
-                valid_pols = component_valid_policies.get(comp_ref, set())
-                if valid_pols and comp_pol_ref not in valid_pols:
+                # Check 2: Decision existence
+                decision = comp.decisions.get(ref.decision)
+                if not decision:
+                    issues.append(LintIssue(
+                        "ERROR",
+                        f"Configuration '{config.name}' references undefined decision '{ref.decision}' in component '{ref.component}'.",
+                        "Dataspace.Configurations"
+                    ))
+                    continue
+
+                # Check 3: Policy existence
+                if ref.policy not in decision.policies:
                      issues.append(LintIssue(
-                        "WARNING",
-                        f"System Policy '{sys_policy.name}' assigns policy '{comp_pol_ref}' to component '{comp_ref}', but this policy is not defined in the component decisions.",
-                        "Dataspace.Policies"
+                        "ERROR",
+                        f"Configuration '{config.name}' references undefined policy '{ref.policy}' for decision '{ref.decision}' in component '{ref.component}'.",
+                        "Dataspace.Configurations"
                     ))
 
         return issues

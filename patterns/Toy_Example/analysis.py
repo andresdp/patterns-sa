@@ -22,7 +22,7 @@ def run_analysis(json_path: str, outdir: str, validate_integrity: bool = True) -
 
     # Group tradeoffs by scheme
     tradeoffs_by_scheme = {}
-    for t in session.sys_def.system.tradeoffs:
+    for t in session.get_tradeoffs():
         tradeoffs_by_scheme.setdefault(t.scheme, []).append(t)
 
     all_results = {}
@@ -32,7 +32,7 @@ def run_analysis(json_path: str, outdir: str, validate_integrity: bool = True) -
         
         # 3. Define Tradeoffs
         if scheme_name == 'discretization':
-            target_labels = {qa.name: ['low', 'avg', 'high'] for qa in session.sys_def.dataspace.quality_objectives}
+            target_labels = {qa.name: ['low', 'avg', 'high'] for qa in session.get_outcomes()}
             discrete_df, schemes = session.define_tradeoffs(n_bins=3, labels=target_labels, method='discretization')
         elif scheme_name == 'pareto' or scheme_name == 'pareto_nadir':
             discrete_df, schemes = session.define_tradeoffs(method='pareto')
@@ -109,41 +109,122 @@ def run_analysis(json_path: str, outdir: str, validate_integrity: bool = True) -
             except Exception as e:
                 print(f"Error generating scatter plot for {x_col} vs {y_col}: {e}")
 
-        # 4. Discover
-        print(f"Skipping scenario discovery for faster plot testing...")
-        # Only discover for the current batch of tradeoffs
-        for tradeoff in tradeoffs:
-            print(f"  Analyzing Tradeoff: {tradeoff.name} ({tradeoff.description})")
+        # Generate Contingency Tables & Visualizations for each Decision
+        print("\n--- Generating Contingency Analysis ---")
+        decisions = session.get_decisions()
+        for decision_key in decisions.keys():
+            dec_name_clean = decision_key.replace(":", "_")
+            print(f"Analyzing Decision: {decision_key}")
+            
             try:
-                box, limits, alg = session.coordinator.discover_scenarios(
-                    session.experiments_df, 
-                    'cost',
-                    method='prim',
-                    tradeoff=tradeoff,
-                    discrete_outcomes_df=discrete_df,
-                    outcomes_df=session.outcomes_df
+                # 1. Heatmap
+                fig_h = session.show_policy_contingency(
+                    decision_key, 
+                    type='heatmap', 
+                    normalization_mode='row',
+                    title=f"Contingency: {decision_key} (Row Norm)"
                 )
-                print(f"    Discovered Limits: {limits}")
-                all_results[f"tradeoff_{tradeoff.name}"] = limits
+                path_h = os.path.join(outdir, f"contingency_heatmap_{dec_name_clean}.png")
+                fig_h.savefig(path_h)
+                print(f"  Heatmap saved to: {path_h}")
+                
+                # 2. Sankey
+                fig_s = session.show_policy_contingency(
+                    decision_key, 
+                    type='sankey', 
+                    normalization_mode='population',
+                    title=f"Flow: {decision_key} -> Tradeoffs"
+                )
+                path_s = os.path.join(outdir, f"contingency_sankey_{dec_name_clean}.png")
+                fig_s.savefig(path_s)
+                print(f"  Sankey saved to: {path_s}")
+                
             except Exception as e:
-                print(f"    Error analyzing {tradeoff.name}: {e}")
-                all_results[f"tradeoff_{tradeoff.name}_error"] = str(e)
-        
+                print(f"  Error analyzing contingency for {decision_key}: {e}")
 
-    # 5. Export
-    results_path = os.path.join(outdir, "analysis_results.json")
-    with open(results_path, "w") as fh:
-        json.dump({
-            "system": session.sys_def.system.name,
-            "tradeoffs": all_results
-        }, fh, indent=2, default=str)
-    
-    if session.pareto_front is not None:
-        pareto_path = os.path.join(outdir, "pareto_front.csv")
-        session.pareto_front.to_csv(pareto_path, index=False)
-        print(f"Pareto front exported to: {pareto_path}")
-    
-    print(f"\nResults exported to: {results_path}")
+        # --- Feature Scoring ---
+        print("\n--- Generating Feature Importance Analysis ---")
+        try:
+            # 1. Split Data (Stratified by the LAST scheme processed)
+            session.split_data(test_size=0.2)
+
+            # 2. Compute Scores
+            scores_df = session.compute_feature_scores(
+                include_levers=True,
+                include_uncertainties=True,
+                include_constraints=True,
+                use_smart_correlation=True
+            )
+
+            # 3. Save Heatmap
+            fig_imp = session.show_feature_heatmap(scores_df, title=f"Feature Influence: {scheme_name}")
+            heatmap_path = os.path.join(outdir, f"feature_importance_{scheme_name}.png")
+            fig_imp.savefig(heatmap_path)
+            print(f"  Feature importance heatmap saved to: {heatmap_path}")
+
+            # 4. Generate Weighted Ranking
+            ranking = session.get_weighted_feature_ranking(scores_df)
+            print(f"  Overall Feature Ranking (Equal Weights):")
+            for i, feat in enumerate(ranking[:10]):
+                print(f"    {i+1}. {feat}")
+
+            # 5. Export scores to CSV
+            scores_path = os.path.join(outdir, f"feature_scores_{scheme_name}.csv")
+            scores_df.to_csv(scores_path)
+            print(f"  Scores exported to: {scores_path}")
+
+        except Exception as e:
+            print(f"  Error during feature scoring: {e}")
+
+        # --- Scenario Discovery ---
+        print("\n--- Generating Scenario Discovery (PRIM) ---")
+        for tradeoff in tradeoffs:
+            print(f"  Discovering scenarios for Tradeoff: {tradeoff.name}")
+            try:
+                boxes = session.discover_scenarios(
+                    tradeoff.name, 
+                    method='prim', 
+                    threshold=0.7, 
+                    standardize=True
+                )
+                
+                if boxes:
+                    best_box = boxes[0]
+                    print(f"    Best Box Metrics (Test Set): {best_box.metrics}")
+                    print(f"    Key Rules (Method: {best_box.method}):")
+                    for p, lims in best_box.limits.items():
+                        print(f"      {p}: {lims['min']:.2f} to {lims['max']:.2f}")
+                    
+                    # Optional: Export boxes to JSON
+                    box_path = os.path.join(outdir, f"discovery_{tradeoff.name.replace(' ', '_')}.json")
+                    with open(box_path, 'w') as f:
+                        json.dump(best_box.model_dump(), f, indent=2)
+                else:
+                    print(f"    No significant boxes discovered.")
+                    
+            except Exception as e:
+                print(f"    Error during discovery for {tradeoff.name}: {e}")
+
+    # 4. Global Discovery (CART)
+    print("\n--- Generating Scenario Discovery (CART - All Tradeoffs) ---")
+    try:
+        # CART runs on all unique label combinations at once
+        boxes_cart = session.discover_scenarios(
+            method='cart', 
+            standardize=False
+        )
+        
+        for box in boxes_cart:
+            # Only print boxes that have some decent targets or are known tradeoffs
+            if box.metrics.get('targets_in_box', 0) > 10:
+                print(f"  Box for {box.target_tradeoff} (Method: {box.method}):")
+                print(f"    Metrics (Test Set): {box.metrics}")
+                print(f"    Rules:")
+                for p, lims in box.limits.items():
+                    print(f"      {p}: {lims['min']:.2f} to {lims['max']:.2f}")
+
+    except Exception as e:
+        print(f"  Error during global CART discovery: {e}")
 
 def main():
     parser = argparse.ArgumentParser()

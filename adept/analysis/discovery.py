@@ -15,8 +15,65 @@ except ImportError:
     # Allow running without these if strictly testing structure
     pass
 
+from pydantic import BaseModel, Field
 from sklearn.tree._tree import TREE_LEAF, TREE_UNDEFINED
 from sklearn.tree import _tree
+
+
+class Box(BaseModel):
+    """Represents a discovered region in parameter space."""
+    limits: Dict[str, Dict[str, float]]
+    dataset_bounds: Dict[str, Dict[str, float]] = Field(default_factory=dict)
+    metrics: Dict[str, float] = Field(default_factory=dict)
+    target_tradeoff: Optional[str] = None
+    method: str = "prim"
+    population_prevalence: float = 0.0
+    
+    model_config = {"extra": "allow"}
+
+
+class BoxEvaluator:
+    """Computes performance metrics for discovered boxes on independent datasets."""
+    
+    @staticmethod
+    def evaluate(box_limits: Dict[str, Dict[str, float]], X: pd.DataFrame, y: pd.Series, population_prevalence: float = 0.0) -> Dict[str, float]:
+        """
+        Evaluates a box against a target mask y.
+        
+        Args:
+            box_limits: Dict of {param: {'min': float, 'max': float}}
+            X: Feature matrix
+            y: Binary target mask
+            population_prevalence: The baseline % of target in the original space (e.g. Train set).
+        """
+        if X.empty or y.empty:
+            return {'density': 0.0, 'coverage': 0.0, 'population_prevalence': population_prevalence}
+            
+        # 1. Identify rows in X that satisfy all box_limits
+        mask = pd.Series(True, index=X.index)
+        for param, limits in box_limits.items():
+            if param in X.columns:
+                mask &= (X[param] >= limits['min']) & (X[param] <= limits['max'])
+        
+        # 2. Compute metrics
+        points_in_box = mask.sum()
+        targets_in_box = (mask & y).sum()
+        total_targets = y.sum()
+        
+        density = targets_in_box / points_in_box if points_in_box > 0 else 0.0
+        coverage = targets_in_box / total_targets if total_targets > 0 else 0.0
+        
+        # Lift is how much better we are than the baseline
+        lift = (density / population_prevalence) if population_prevalence > 0 else 0.0
+        
+        return {
+            'density': float(density),
+            'coverage': float(coverage),
+            'population_prevalence': float(population_prevalence),
+            'lift': float(lift),
+            'samples_in_box': int(points_in_box),
+            'targets_in_box': int(targets_in_box)
+        }
 
 
 class ScenarioDiscovery(ABC):
@@ -404,4 +461,4 @@ class ScenarioDiscoveryManager:
         return strategy.discover(experiments_df, outcomes_df, **kwargs)
 
 
-__all__ = ["ScenarioDiscovery", "PRIMDiscovery", "CARTDiscovery", "ScenarioDiscoveryManager"]
+__all__ = ["ScenarioDiscovery", "PRIMDiscovery", "CARTDiscovery", "ScenarioDiscoveryManager", "Box", "BoxEvaluator"]

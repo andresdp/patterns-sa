@@ -21,8 +21,26 @@
           "deployment_strategy": {
             "description": "The number of devices effectively deployed and the number of services per device.",
             "policies": {
-              "one_device_low": { "description": "0_0_1 configuration." },
-              "balanced_low": { "description": "0_1_1 configuration." }
+              "one_device_low": { 
+                "description": "0_0_1 configuration.",
+                "parameter_bindings": {
+                  "levers": {
+                    "d1Services": 0,
+                    "d2Services": 0,
+                    "d3Services": 1
+                  }
+                }
+              },
+              "balanced_low": { 
+                "description": "0_1_1 configuration.",
+                "parameter_bindings": {
+                  "levers": {
+                    "d1Services": 0,
+                    "d2Services": 1,
+                    "d3Services": 1
+                  }
+                }
+              }
             }
           }
         }
@@ -43,19 +61,31 @@
   },
   "dataspace": {
     "source_file": "data/merged.csv",
-    "policy_identification": {
+    "configuration_identification": {
       "from": "column",
       "column": "policy_config",
-      "policies": {
+      "configurations": {
         "0_0_1": { 
           "name": "one_device_low", 
           "description": "Minimal configuration.", 
-          "component_policies": { "arch_example_pattern": "one_device_low" }
+          "pattern_policy_references": [
+            {
+              "component": "arch_example_pattern",
+              "decision": "deployment_strategy",
+              "policy": "one_device_low"
+            }
+          ]
         },
         "0_1_1": { 
           "name": "balanced_low", 
           "description": "Balanced low-end configuration.", 
-          "component_policies": { "arch_example_pattern": "balanced_low" }
+          "pattern_policy_references": [
+            {
+              "component": "arch_example_pattern",
+              "decision": "deployment_strategy",
+              "policy": "balanced_low"
+            }
+          ]
         }
       }
     },
@@ -81,7 +111,7 @@
     ]
   },
   "metadata": {
-    "version": "2.0",
-    "notes": "Pareto paradigm configuration."
+    "version": "3.0",
+    "notes": "Pareto paradigm configuration. Updated to pattern-centric schema."
   }
 }

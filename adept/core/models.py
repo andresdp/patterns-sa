@@ -50,6 +50,34 @@ class Parameter(BaseModel):
     model_config = {"extra": "allow", "validate_assignment": True}
 
 
+class ParameterBindings(BaseModel):
+    """Binds architectural decisions to specific parameter values.
+    
+    Groups values by parameter type (levers, uncertainties, constraints).
+    """
+    levers: Dict[str, Any] = Field(default_factory=dict)
+    uncertainties: Dict[str, Any] = Field(default_factory=dict)
+    constraints: Dict[str, Any] = Field(default_factory=dict)
+
+    model_config = {"extra": "allow", "validate_assignment": True}
+
+
+class PatternPolicy(BaseModel):
+    """A concrete implementation choice for a design decision within a pattern."""
+    description: str = ""
+    parameter_bindings: ParameterBindings = Field(default_factory=ParameterBindings)
+
+    model_config = {"extra": "allow", "validate_assignment": True}
+
+
+class Decision(BaseModel):
+    """A variation point within an architectural pattern."""
+    description: str = ""
+    policies: Dict[str, PatternPolicy] = Field(default_factory=dict)
+
+    model_config = {"extra": "allow", "validate_assignment": True}
+
+
 class ArchitecturalPattern(BaseModel):
     """Template for a reusable design solution.
     
@@ -59,7 +87,7 @@ class ArchitecturalPattern(BaseModel):
     name: str
     description: str = ""
     parameters: Dict[str, Parameter] = Field(default_factory=dict)
-    decisions: Dict[str, Any] = Field(default_factory=dict)
+    decisions: Dict[str, Decision] = Field(default_factory=dict)
 
     model_config = {"extra": "allow", "validate_assignment": True}
 
@@ -250,26 +278,58 @@ class System(BaseModel):
         return self
 
 
-class Policy(BaseModel):
+class PatternPolicyReference(BaseModel):
+    """Points to a specific policy within an architectural pattern."""
+    component: str
+    decision: str
+    policy: str
+
+    model_config = {"extra": "allow", "validate_assignment": True}
+
+
+class SystemConfiguration(BaseModel):
     """A high-level configuration or 'strategy' for the entire system.
     
-    Maps specific component-level choices into a named system configuration.
+    Maps specific pattern-level choices into a named system configuration.
+    Was previously named 'Policy'.
     """
     name: str
     description: str = ""
-    component_policies: Dict[str, str] = Field(default_factory=dict)
+    pattern_policy_references: List[PatternPolicyReference] = Field(default_factory=list)
     source_file: Optional[str] = None
+    # Backward compatibility for 'component_policies' map {component_name: policy_name}
+    # This is handled during ingestion but storing it might be useful if we want to preserve old structure
+    component_policies: Dict[str, str] = Field(default_factory=dict)
 
-
-class PolicyIdentification(BaseModel):
-    """Describes how to identify system policies from simulation data.
+    model_config = {"extra": "allow", "validate_assignment": True}
     
-    Supports distinguishing policies either by a specific column in a single CSV
+    @model_validator(mode="before")
+    def _convert_component_policies(cls, values):
+        # Allow old style 'component_policies' dict and convert to references where possible
+        # However, 'component_policies' is usually {comp: policy}, missing 'decision'. 
+        # Without schema knowledge we can't infer decision easily.
+        # So we keep 'component_policies' as a field for backward compat usage in loader.
+        return values
+
+
+class ConfigurationIdentification(BaseModel):
+    """Describes how to identify system configurations from simulation data.
+    
+    Supports distinguishing configurations either by a specific column in a single CSV
     or by separating them into multiple files.
+    Was previously named 'PolicyIdentification'.
     """
     from_: str = Field(alias="from")
     column: Optional[str] = None
-    policies: Union[Dict[str, Policy], List[Policy]]
+    configurations: Union[Dict[str, SystemConfiguration], List[SystemConfiguration]]
+
+    model_config = {"extra": "allow", "validate_assignment": True}
+    
+    @model_validator(mode="before")
+    def _rename_policies_to_configurations(cls, values):
+        if "policies" in values:
+            values["configurations"] = values.pop("policies")
+        return values
 
 
 class Dataspace(BaseModel):
@@ -277,12 +337,20 @@ class Dataspace(BaseModel):
     
     Links the abstract System model to concrete CSV files or Behavioral Traces.
     """
-    policy_identification: PolicyIdentification
+    configuration_identification: ConfigurationIdentification
     quality_objectives: List[QualityObjective] = Field(default_factory=list)
     source_file: Optional[str] = None
     traces_path: Optional[str] = None
     column_renames: Dict[str, str] = Field(default_factory=dict)
     discovery_options: Dict[str, Any] = Field(default_factory=dict)
+
+    model_config = {"extra": "allow", "validate_assignment": True}
+    
+    @model_validator(mode="before")
+    def _rename_policy_id_to_config_id(cls, values):
+        if "policy_identification" in values:
+            values["configuration_identification"] = values.pop("policy_identification")
+        return values
 
 
 class SystemDefinition(BaseModel):
@@ -305,10 +373,18 @@ class SystemDefinition(BaseModel):
         return cls.model_validate(data)
 
 
+# Backward compatibility aliases
+Policy = SystemConfiguration
+PolicyIdentification = ConfigurationIdentification
+
+
 __all__ = [
     "ParameterType",
     "ParameterLevel",
     "Parameter",
+    "ParameterBindings",
+    "PatternPolicy",
+    "Decision",
     "ArchitecturalPattern",
     "ConfigurationSpace",
     "QualityObjective",
@@ -321,6 +397,9 @@ __all__ = [
     "SystemDefinition",
     "System",
     "Dataspace",
-    "PolicyIdentification",
-    "Policy"
+    "ConfigurationIdentification",
+    "SystemConfiguration",
+    "PatternPolicyReference",
+    "Policy",
+    "PolicyIdentification"
 ]

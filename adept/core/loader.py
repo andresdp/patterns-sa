@@ -35,16 +35,21 @@ class GenericDataLoader(DataLoader):
     3. Rename columns to align with internal framework expectations.
     4. Automatically split data into 'experiments' (parameters) and 
        'outcomes' (objectives) based on the architectural model.
+    5. Inject parameter values from pattern definitions based on configuration IDs.
     """
     def load(self, source: Any, validate_integrity: bool = True) -> pd.DataFrame:
         """
         Loads data based on a system definition JSON file.
         
         Returns:
-            The raw, combined DataFrame after renames.
+            The raw, combined DataFrame after renames and parameter injection.
         """
         sys_def = self.load_system_definition(source)
         df = self._load_from_definition(sys_def, base_path=os.path.dirname(source))
+        
+        # Inject parameter bindings from pattern policies
+        df = self._apply_parameter_bindings(sys_def, df)
+        
         if validate_integrity:
             self.validate_data_integrity(sys_def, df)
         return df
@@ -77,6 +82,10 @@ class GenericDataLoader(DataLoader):
         """
         sys_def = self.load_system_definition(source)
         df = self._load_from_definition(sys_def, base_path=os.path.dirname(source))
+        
+        # Inject parameter bindings from pattern policies
+        df = self._apply_parameter_bindings(sys_def, df)
+        
         if validate_integrity:
             self.validate_data_integrity(sys_def, df)
         
@@ -98,8 +107,8 @@ class GenericDataLoader(DataLoader):
                 outcomes_cols.append(qa.name)
         
         # Also include policy/config columns in experiments if defined
-        if sys_def.dataspace.policy_identification.column:
-             col = sys_def.dataspace.policy_identification.column
+        if sys_def.dataspace.configuration_identification.column:
+             col = sys_def.dataspace.configuration_identification.column
              if col in df.columns:
                  experiments_cols.append(col)
 
@@ -144,6 +153,73 @@ class GenericDataLoader(DataLoader):
             
         return traces
 
+    def _apply_parameter_bindings(self, sys_def: SystemDefinition, df: pd.DataFrame) -> pd.DataFrame:
+        """Injects parameter values from Pattern Policies into the DataFrame based on configuration ID."""
+        ident = sys_def.dataspace.configuration_identification
+        if not ident.column or ident.column not in df.columns:
+            return df 
+
+        config_param_map = {}
+        
+        # Helper to process a single configuration
+        def process_config(config_obj):
+            bindings = {}
+            for ref in config_obj.pattern_policy_references:
+                # Find the component
+                comp = sys_def.system.components.get(ref.component)
+                if not comp: continue
+                
+                # Find the decision
+                decision = comp.decisions.get(ref.decision)
+                if not decision: continue
+                
+                # Find the policy
+                policy = decision.policies.get(ref.policy)
+                if not policy: continue
+                
+                # Extract bindings for all types
+                for p_type in ["levers", "uncertainties", "constraints"]:
+                    p_dict = getattr(policy.parameter_bindings, p_type, {})
+                    for p_name, p_val in p_dict.items():
+                        bindings[p_name] = p_val
+            return bindings
+
+        if isinstance(ident.configurations, dict):
+            for cfg_id, cfg_obj in ident.configurations.items():
+                config_param_map[cfg_id] = process_config(cfg_obj)
+        elif isinstance(ident.configurations, list):
+             # For file-based loading, we might need a different approach or mapping
+             # Assuming 'name' matches identification column value or similar logic
+             # This part might need adaptation if 'from: file' uses names differently
+             for cfg_obj in ident.configurations:
+                 # Assuming the config object name is the key if we are mapping
+                 # But usually file loading is separate. 
+                 # If from='column' but configs are a list, we might assume 'name' is the key
+                 config_param_map[cfg_obj.name] = process_config(cfg_obj)
+
+        
+        # 1. Identify all unique parameters implicated
+        all_params = set()
+        for p_map in config_param_map.values():
+            all_params.update(p_map.keys())
+            
+        # 2. For each parameter, create/update column
+        for param in all_params:
+            val_map = {cid: props.get(param) for cid, props in config_param_map.items() if param in props}
+            
+            if not val_map: continue
+            
+            # Map values based on the identification column
+            mapped_values = df[ident.column].astype(str).map(val_map)
+            
+            if param not in df.columns:
+                df[param] = mapped_values
+            else:
+                # Overwrite existing values where mapping exists (JSON is source of truth)
+                df[param] = df[param].mask(mapped_values.notna(), mapped_values)
+                
+        return df
+
     def _load_from_definition(self, sys_def: SystemDefinition, base_path: str) -> pd.DataFrame:
         """Internal helper to resolve file paths and perform renames."""
         if sys_def.dataspace.source_file:
@@ -158,18 +234,19 @@ class GenericDataLoader(DataLoader):
             
             return df
         
-        if sys_def.dataspace.policy_identification.from_ == "file":
+        if sys_def.dataspace.configuration_identification.from_ == "file":
             dfs = []
-            policies = sys_def.dataspace.policy_identification.policies
-            policy_list = policies if isinstance(policies, list) else list(policies.values())
+            configs = sys_def.dataspace.configuration_identification.configurations
+            config_list = configs if isinstance(configs, list) else list(configs.values())
             
-            for policy in policy_list:
-                if policy.source_file:
-                    path = policy.source_file
+            for config in config_list:
+                if config.source_file:
+                    path = config.source_file
                     if not os.path.isabs(path):
                         path = os.path.join(base_path, path)
                     temp_df = pd.read_csv(path)
-                    temp_df['policy'] = policy.name
+                    # Inject configuration name so mapping can work
+                    temp_df[sys_def.dataspace.configuration_identification.column or 'policy'] = config.name
                     dfs.append(temp_df)
             
             if dfs:

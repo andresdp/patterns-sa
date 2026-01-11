@@ -25,6 +25,11 @@ class PatternAnalysis:
         self.pareto_front: Optional[pd.DataFrame] = None
         self.tradeoff_indices: Dict[str, np.ndarray] = {}
         self.schemes: List[DiscretizationScheme] = []
+        
+        # Data Split State
+        self.train_indices: Optional[np.ndarray] = None
+        self.test_indices: Optional[np.ndarray] = None
+        self.feature_stats: Optional[Dict[str, Any]] = None
 
     def load(self, validate_integrity: bool = True) -> None:
         """Loads the system definition and then the experimental data."""
@@ -140,8 +145,20 @@ class PatternAnalysis:
             self.outcomes_df, self.schemes, tradeoff=tradeoff, highlight_indices=highlight_indices, **kwargs
         )
 
-    def show_quality_objective_space(self, x_metric: str, y_metric: str, highlight_tradeoffs: Optional[List[Tradeoff]] = None, show_overall: bool = True, **kwargs) -> plt.Figure:
-        """Plots a 2D scatter of outcomes with tradeoff overlays and highlighting."""
+    def show_quality_objective_space(self, x_metric: str, y_metric: str, highlight_tradeoffs: Optional[List[Tradeoff]] = None, highlight_policies: Optional[List[str]] = None, show_overall: bool = True, color_points: bool = True, draw_rectangles: bool = False, **kwargs) -> plt.Figure:
+        """Plots a 2D scatter of outcomes with tradeoff overlays and highlighting.
+        
+        Args:
+            x_metric: Metric for X-axis.
+            y_metric: Metric for Y-axis.
+            highlight_tradeoffs: List of Tradeoffs to highlight (as rectangles or points).
+            highlight_policies: List of policy names to highlight/color. 
+                                If None, no policy coloring. 
+                                If empty list, colors all policies.
+            show_overall: Whether to show background points.
+            color_points: Whether to color tradeoff points (overridden if policies highlighted).
+            draw_rectangles: Whether to draw rectangles for tradeoffs.
+        """
         highlight_indices_map = {}
         if highlight_tradeoffs:
             for t in highlight_tradeoffs:
@@ -149,9 +166,435 @@ class PatternAnalysis:
                 if len(indices) > 0:
                     highlight_indices_map[t.name] = indices
                     
+        policy_series = None
+        if highlight_policies is not None:
+             # Identify policy column
+             if self.sys_def and self.sys_def.dataspace.configuration_identification.column:
+                 col_name = self.sys_def.dataspace.configuration_identification.column
+                 if self.experiments_df is not None and col_name in self.experiments_df.columns:
+                     series = self.experiments_df[col_name].copy()
+                     # If specific policies requested, filter (keep only those, others become NaN)
+                     if len(highlight_policies) > 0:
+                         series = series.where(series.isin(highlight_policies))
+                     policy_series = series
+                    
         return self.coordinator.show_quality_objective_space(
             self.outcomes_df, x_metric, y_metric, self.schemes, 
-            highlight_indices_map=highlight_indices_map, show_overall=show_overall, **kwargs
+            highlight_indices_map=highlight_indices_map, 
+            policy_series=policy_series,
+            show_overall=show_overall, 
+            color_points=color_points, draw_rectangles=draw_rectangles, **kwargs
         )
+
+    def get_policy_contingency_matrix(self, decision_key: str, normalization_mode: str = 'population') -> pd.DataFrame:
+        """
+        Computes the contingency matrix of Policies vs Tradeoffs (Rows=Policies, Cols=Tradeoffs).
+        
+        Args:
+            decision_key: The specific decision (e.g. "component:decision") to analyze.
+            normalization_mode: 'population' (default), 'row', 'none'.
+        """
+        from ..analysis.contingency import ContingencyAnalyzer
+        
+        if self.experiments_df is None:
+            raise RuntimeError("Data must be loaded.")
+
+        analyzer = ContingencyAnalyzer(self.sys_def)
+        
+        # 1. Get Policy Map
+        config_col = self.sys_def.dataspace.configuration_identification.column
+        if not config_col:
+             raise RuntimeError("Configuration column not defined in System Definition.")
+        
+        policy_df = analyzer.get_decision_policy_map(self.experiments_df, config_col)
+        
+        if decision_key not in policy_df.columns:
+            available = list(policy_df.columns)
+            raise ValueError(f"Decision '{decision_key}' not found. Available: {available}")
+
+        # 2. Get Tradeoff Mask
+        tradeoff_mask = pd.DataFrame(index=self.experiments_df.index)
+        for t in self.sys_def.system.tradeoffs:
+            indices = self.get_indices_for_tradeoff(t)
+            # Create a boolean series initialized to False
+            series = pd.Series(False, index=self.experiments_df.index)
+            
+            # indices are integer positions relative to the dataframe
+            if len(indices) > 0:
+                # We use iloc to set by integer position
+                series.iloc[indices] = True
+            
+            tradeoff_mask[t.name] = series
+
+        # 3. Compute
+        return analyzer.compute_contingency(policy_df, tradeoff_mask, decision_key=decision_key, normalization_mode=normalization_mode)
+
+    def show_policy_contingency(self, decision_key: str, type: str = 'heatmap', **kwargs) -> plt.Figure:
+        """
+        Visualizes the contingency table for a specific decision.
+        
+        Args:
+            decision_key: The decision to visualize (e.g. "arch_example_pattern:deployment_strategy").
+            type: 'heatmap' or 'sankey'.
+        """
+        from ..analysis.visualization import show_contingency_heatmap, show_policy_tradeoff_sankey
+        
+        # Extract normalization_mode, defaulting to 'population' if not present
+        norm_mode = kwargs.pop('normalization_mode', 'population')
+        
+        df = self.get_policy_contingency_matrix(decision_key=decision_key, normalization_mode=norm_mode)
+        
+        title = kwargs.pop('title', f"Impact of {decision_key} on Tradeoffs")
+        
+        if type == 'heatmap':
+            return show_contingency_heatmap(df, title=title, **kwargs)
+        elif type == 'sankey':
+            return show_policy_tradeoff_sankey(df, title=title, **kwargs)
+        else:
+            raise ValueError(f"Unknown visualization type: {type}")
+
+    # --- Accessor Helpers ---
+
+    def get_patterns(self) -> Dict[str, Any]:
+        """Returns all architectural patterns in the system."""
+        if not self.sys_def: return {}
+        return self.sys_def.system.components
+
+    def get_decisions(self) -> Dict[str, Any]:
+        """
+        Returns a flat dictionary of all decisions across all patterns.
+        Key format: "component_name:decision_name"
+        """
+        if not self.sys_def: return {}
+        decisions = {}
+        for comp_name, comp in self.sys_def.system.components.items():
+            for dec_name, decision in comp.decisions.items():
+                decisions[f"{comp_name}:{dec_name}"] = decision
+        return decisions
+    
+    def get_policies(self) -> Dict[str, Any]:
+        """
+        Returns all system-level configurations (policies) identified in the dataspace.
+        """
+        if not self.sys_def: return {}
+        configs = self.sys_def.dataspace.configuration_identification.configurations
+        if isinstance(configs, list):
+            return {c.name: c for c in configs}
+        return configs
+
+    def get_outcomes(self) -> List[Any]:
+        """Returns the list of quality objectives (outcomes)."""
+        if not self.sys_def: return []
+        return self.sys_def.dataspace.quality_objectives
+
+    def get_tradeoffs(self) -> List[Tradeoff]:
+        """Returns the list of defined tradeoffs."""
+        if not self.sys_def: return []
+        return self.sys_def.system.tradeoffs
+
+    def get_adaptive_processes(self) -> List[Any]:
+        """Returns the list of adaptive processes."""
+        if not self.sys_def: return []
+        return self.sys_def.system.adaptive_processes
+
+    # --- Feature Scoring ---
+
+    def split_data(self, test_size: float = 0.2, random_state: int = 42) -> None:
+        """
+        Splits data into train/test sets, stratifying by tradeoff membership.
+        Indices are stored in self.train_indices and self.test_indices.
+        """
+        from ..analysis.feature_importance import FeatureImportanceAnalyzer
+        
+        if self.experiments_df is None or not self.tradeoff_indices:
+            raise RuntimeError("Data must be loaded and tradeoffs defined before splitting.")
+
+        analyzer = FeatureImportanceAnalyzer(self.sys_def)
+        self.train_indices, self.test_indices = analyzer.create_stratified_split(
+            self.experiments_df,
+            self.tradeoff_indices,
+            test_size=test_size,
+            random_state=random_state
+        )
+        print(f"Data split: {len(self.train_indices)} train, {len(self.test_indices)} test.")
+
+    def compute_feature_scores(
+        self, 
+        include_levers: bool = True, 
+        include_uncertainties: bool = True,
+        include_constraints: bool = False,
+        use_smart_correlation: bool = False,
+        standardize: bool = False,
+        remove_outliers: bool = False,
+        z_threshold: float = 3.0
+    ) -> pd.DataFrame:
+        """
+        Computes feature importance for all quality objectives.
+        
+        Args:
+            include_levers: Whether to include design levers.
+            include_uncertainties: Whether to include uncertainties.
+            include_constraints: Whether to include constraints/fixed parameters.
+            use_smart_correlation: Whether to use SmartCorrelatedSelection to prune features.
+            standardize: Whether to standardize features (Z-score) before scoring.
+            remove_outliers: Whether to remove outliers (Z-score > threshold) before scoring.
+            z_threshold: Threshold for outlier detection.
+            
+        Returns:
+            pd.DataFrame: Rows=Features, Columns=Outcomes, Values=Importance Score.
+        """
+        from ..analysis.feature_importance import FeatureImportanceAnalyzer
+
+        if self.train_indices is None:
+            # Auto-split if not done
+            print("Data not split yet. Performing automatic split (20% test)...")
+            self.split_data()
+
+        analyzer = FeatureImportanceAnalyzer(self.sys_def)
+        
+        # 1. Prepare Data (Train set)
+        X_full = self.experiments_df.iloc[self.train_indices]
+        y_full = self.outcomes_df.iloc[self.train_indices]
+        
+        # 2. Identify Features
+        feature_cols = analyzer.get_parameter_columns(
+            X_full, 
+            include_levers=include_levers, 
+            include_uncertainties=include_uncertainties,
+            include_constraints=include_constraints
+        )
+        if not feature_cols:
+            raise ValueError("No matching parameter columns found for scoring.")
+            
+        X = X_full[feature_cols]
+        
+        # 3. Preprocess (Standardize / Outliers)
+        if standardize or remove_outliers:
+            X, mask, stats = analyzer.preprocess_features(
+                X, 
+                standardize=standardize, 
+                remove_outliers=remove_outliers, 
+                z_threshold=z_threshold
+            )
+            self.feature_stats = stats
+            # Align y with X (if rows removed)
+            y_full = y_full[mask]
+            
+            if remove_outliers:
+                print(f"Outlier removal dropped {len(mask) - mask.sum()} rows. Remaining: {len(X)}")
+        
+        # 4. Score per Outcome
+        results = {}
+        for outcome_col in y_full.columns:
+            print(f"Scoring features for outcome: {outcome_col}")
+            scores = analyzer.compute_importance(
+                X, 
+                y_full[outcome_col], 
+                use_smart_correlation=use_smart_correlation
+            )
+            results[outcome_col] = scores
+            
+        return pd.DataFrame(results)
+
+    def show_feature_heatmap(self, scores_df: pd.DataFrame, **kwargs) -> plt.Figure:
+        """Visualizes feature importance scores as a heatmap."""
+        from ..analysis.visualization import show_importance_heatmap
+        return show_importance_heatmap(scores_df, **kwargs)
+
+    def discover_scenarios(
+        self, 
+        tradeoff_name: Optional[str] = None, 
+        method: str = 'prim', 
+        parameters: Optional[List[str]] = None,
+        standardize: bool = False,
+        **kwargs
+    ) -> List[Any]:
+        """
+        Runs scenario discovery to find parameter regions for a specific tradeoff (PRIM) 
+        or all tradeoffs (CART).
+        
+        Args:
+            tradeoff_name: Name of the tradeoff to target (required for PRIM).
+                           If None and method is 'cart', discovery is performed for all tradeoffs.
+            method: 'prim' or 'cart'.
+            parameters: List of parameters to include. If None, uses all parameters.
+            standardize: Whether to standardize parameters before discovery.
+            
+        Returns:
+            List[Box]: Structured box objects with limits and performance metrics.
+        """
+        from ..analysis.discovery import Box, BoxEvaluator
+        from ..analysis.feature_importance import FeatureImportanceAnalyzer
+        
+        if method == 'prim' and tradeoff_name is None:
+             raise ValueError("tradeoff_name is required for PRIM discovery.")
+
+        # 1. Preparation
+        if self.train_indices is None:
+            self.split_data()
+            
+        analyzer = FeatureImportanceAnalyzer(self.sys_def)
+        
+        # Determine features to use
+        if parameters is None:
+            X_all_params = self.experiments_df
+            parameters = analyzer.get_parameter_columns(X_all_params)
+            
+        X_train = self.experiments_df.iloc[self.train_indices][parameters]
+        X_test = self.experiments_df.iloc[self.test_indices][parameters]
+        
+        # Calculate global dataset bounds for these parameters
+        # We use the whole dataset (raw) to get true min/max
+        global_min = self.experiments_df[parameters].min()
+        global_max = self.experiments_df[parameters].max()
+        dataset_bounds = {
+            p: {'min': float(global_min[p]), 'max': float(global_max[p])} 
+            for p in parameters
+        }
+
+        # Target preparation
+        prevalence_map = {}
+        if tradeoff_name:
+            # Single-target mask (y)
+            tradeoff = next((t for t in self.get_tradeoffs() if t.name == tradeoff_name), None)
+            if not tradeoff:
+                raise ValueError(f"Tradeoff '{tradeoff_name}' not found.")
+                
+            y_all = pd.Series(True, index=self.experiments_df.index)
+            for obj_name, target_label in tradeoff.elements.items():
+                if obj_name in self.discrete_df.columns:
+                    y_all &= (self.discrete_df[obj_name] == target_label)
+            
+            y_train = y_all.iloc[self.train_indices]
+            prevalence_map[tradeoff_name] = y_train.sum() / len(y_train) if len(y_train) > 0 else 0.0
+            y_test_map = {tradeoff_name: y_all.iloc[self.test_indices]}
+        else:
+            # Multi-target labels for CART
+            y_train = self.discrete_df.iloc[self.train_indices].astype(str).agg(','.join, axis=1)
+            
+            # Compute prevalence for each unique class in the train set
+            counts = y_train.value_counts(normalize=True).to_dict()
+            prevalence_map = counts
+            
+            # Create a map for evaluation
+            y_test_map = {}
+            for row_str in y_train.unique():
+                # mask for this label in test set
+                y_test_map[row_str] = (self.discrete_df.iloc[self.test_indices].astype(str).agg(','.join, axis=1) == row_str)
+
+        # 2. Preprocessing (Optional)
+        current_stats = None
+        if standardize:
+             X_train, _, stats = analyzer.preprocess_features(X_train, standardize=True)
+             current_stats = stats
+             # Standardize X_test using SAME scaler
+             scaler = stats['scaler']
+             numeric_cols = stats['numeric_cols']
+             X_test_arr = scaler.transform(X_test[numeric_cols])
+             X_test = pd.DataFrame(X_test_arr, index=X_test.index, columns=numeric_cols)
+
+        # 3. Discovery (Run on Train Set)
+        target_info = tradeoff_name if tradeoff_name else "All Tradeoffs"
+        print(f"Running {method.upper()} discovery for: {target_info} ...")
+        
+        discovery_kwargs = kwargs.copy()
+        if method == 'cart':
+            discovery_kwargs['discrete_outcomes'] = y_train
+        else:
+            discovery_kwargs['y_mask'] = y_train
+            
+        result = self.coordinator.discover_scenarios(
+            X_train, 
+            outcome=tradeoff_name or "all", 
+            method=method, 
+            experiments_df=X_train,
+            **discovery_kwargs
+        )
+        
+        if result is None:
+            return []
+            
+        # Extract boxes from result
+        boxes = []
+        if method == 'prim':
+            _, limits_dict, _ = result
+            boxes.append(Box(limits=limits_dict, target_tradeoff=tradeoff_name, method='prim'))
+        elif method == 'cart':
+            _, cart_boxes, _ = result
+            # cart_boxes is {label: limits_dict}
+            for label, limits in cart_boxes.items():
+                boxes.append(Box(limits=limits, target_tradeoff=str(label), method='cart'))
+
+        # 4. Post-processing: Evaluate and De-standardize
+        for box in boxes:
+            box.dataset_bounds = dataset_bounds
+            
+            # Identify which test mask to use
+            y_test = y_test_map.get(box.target_tradeoff)
+            prevalence = prevalence_map.get(box.target_tradeoff, 0.0)
+            
+            if y_test is not None:
+                box.metrics = BoxEvaluator.evaluate(box.limits, X_test, y_test, population_prevalence=prevalence)
+                box.population_prevalence = prevalence
+            
+            # De-standardize
+            if standardize and current_stats:
+                scaler = current_stats['scaler']
+                numeric_cols = current_stats['numeric_cols']
+                
+                # scaler.mean_ and scaler.scale_ (std) correspond to numeric_cols
+                means_map = dict(zip(numeric_cols, scaler.mean_))
+                stds_map = dict(zip(numeric_cols, scaler.scale_))
+                
+                new_limits = {}
+                for param, lims in box.limits.items():
+                    m = means_map.get(param, 0.0)
+                    s = stds_map.get(param, 1.0)
+                    new_limits[param] = {
+                        'min': float(lims['min'] * s + m),
+                        'max': float(lims['max'] * s + m)
+                    }
+                box.limits = new_limits
+                
+        return boxes
+
+    def get_weighted_feature_ranking(self, scores_df: pd.DataFrame, weights: Optional[Dict[str, float]] = None) -> List[str]:
+        """
+        Aggregates multi-outcome importance scores into a single ranked list of features.
+        
+        Args:
+            scores_df: The matrix of scores (Rows=Features, Cols=Outcomes).
+            weights: Optional dictionary mapping outcome names to weights. 
+                     If None, all outcomes are weighted equally.
+                     
+        Returns:
+            List[str]: Feature names sorted by weighted importance (descending).
+        """
+        if scores_df.empty:
+            return []
+            
+        # 1. Prepare Weights
+        outcomes = scores_df.columns
+        if weights is None:
+            # Equal weights
+            w_series = pd.Series(1.0 / len(outcomes), index=outcomes)
+        else:
+            # Normalize user weights to sum to 1.0
+            w_series = pd.Series(weights).reindex(outcomes).fillna(0.0)
+            total = w_series.sum()
+            if total > 0:
+                w_series = w_series / total
+            else:
+                w_series = pd.Series(1.0 / len(outcomes), index=outcomes)
+
+        # 2. Compute Weighted Sum
+        # multiply matrix by weight vector
+        aggregated_scores = scores_df.dot(w_series)
+        
+        # 3. Sort and Return
+        return aggregated_scores.sort_values(ascending=False).index.tolist()
+
+
+
 
     
