@@ -439,20 +439,24 @@ class PatternAnalysis:
 
     def get_robustness_report(
         self, 
-        decision_key: str, 
-        tradeoff_names: List[str], 
+        decision_key: Optional[str] = None, 
+        tradeoff_names: Optional[List[str]] = None, 
         metric: str = 'starr', 
         subset: str = 'all', 
+        policy_names: Optional[List[str]] = None,
         **kwargs
     ) -> pd.DataFrame:
         """
-        Generates a consolidated robustness report for all policies in a decision.
+        Generates a consolidated robustness report for a set of policies.
         
         Args:
-            decision_key: The decision (e.g., 'Comp:Dec') to analyze.
-            tradeoff_names: List of tradeoffs to use as columns.
+            decision_key: The decision (e.g., 'Comp:Dec') to analyze. 
+                          If None and policy_names is None, includes all policies.
+            tradeoff_names: List of tradeoffs to use as columns. 
+                            If None, targets all defined tradeoffs.
             metric: 'starr' or 'regret'.
             subset: 'all', 'train', or 'test'.
+            policy_names: Explicit list of policy names to include.
             
         Returns:
             pd.DataFrame: Index=Policies, Columns=Tradeoffs, Values=Metric.
@@ -462,20 +466,81 @@ class PatternAnalysis:
         analyzer_cont = ContingencyAnalyzer(self.sys_def)
         policy_map = analyzer_cont.get_decision_policy_map(self.experiments_df, config_col)
         
-        if decision_key not in policy_map.columns:
-            raise ValueError(f"Decision '{decision_key}' not found.")
+        # 1. Determine Policies
+        if policy_names is not None:
+            policies = policy_names
+        elif decision_key is not None:
+            if decision_key not in policy_map.columns:
+                raise ValueError(f"Decision '{decision_key}' not found.")
+            policies = [p for p in policy_map[decision_key].unique() if pd.notna(p)]
+        else:
+            # All policies in the system
+            all_p = []
+            for col in policy_map.columns:
+                all_p.extend(policy_map[col].unique())
+            policies = sorted(list(set([p for p in all_p if pd.notna(p)])))
             
-        policies = [p for p in policy_map[decision_key].unique() if pd.notna(p)]
-        
+        # 2. Determine Tradeoffs
+        if tradeoff_names is None:
+            tradeoff_names = [t.name for t in self.get_tradeoffs()]
+
+        # 3. Build Report
         report_data = []
         for policy in policies:
             row = {'Policy': policy}
             for t_name in tradeoff_names:
-                res = self.compute_robustness(policy, t_name, metric=metric, subset=subset, **kwargs)
-                row[t_name] = res.get('value', 0.0)
+                try:
+                    res = self.compute_robustness(policy, t_name, metric=metric, subset=subset, **kwargs)
+                    row[t_name] = res.get('value', 0.0)
+                except Exception:
+                    # Policy might not exist in this context or tradeoff issues
+                    row[t_name] = np.nan
             report_data.append(row)
             
         return pd.DataFrame(report_data).set_index('Policy')
+
+    def get_policy_robustness_ranking(
+        self, 
+        tradeoff_name: str, 
+        metric: str = 'starr', 
+        subset: str = 'all',
+        decision_key: Optional[str] = None
+    ) -> List[Tuple[str, float]]:
+        """
+        Returns a ranking of policies from most robust to least robust for a given tradeoff.
+        
+        Args:
+            tradeoff_name: The target tradeoff to analyze.
+            metric: 'starr' (higher is better) or 'regret' (lower is better).
+            subset: 'all', 'train', or 'test'.
+            decision_key: Optional. If provided, limits ranking to policies within this decision.
+            
+        Returns:
+            List[Tuple[str, float]]: List of (policy_name, score) pairs, sorted by robustness.
+        """
+        # 1. Get the report for the single tradeoff
+        report_df = self.get_robustness_report(
+            decision_key=decision_key,
+            tradeoff_names=[tradeoff_name],
+            metric=metric,
+            subset=subset
+        )
+        
+        if report_df.empty or tradeoff_name not in report_df.columns:
+            return []
+            
+        # 2. Extract series and drop NaNs
+        scores = report_df[tradeoff_name].dropna()
+        
+        # 3. Sort based on metric directionality
+        # STARR: Higher is better (Descending)
+        # Regret: Lower is better (Ascending)
+        ascending = (metric == 'regret')
+        
+        sorted_scores = scores.sort_values(ascending=ascending)
+        
+        # 4. Convert to list of tuples
+        return list(zip(sorted_scores.index, sorted_scores.values))
 
     # --- Data Subset Helpers ---
 
