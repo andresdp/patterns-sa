@@ -7,7 +7,9 @@ The ADEPT analysis journey is a structured pipeline designed to turn raw simulat
 ## 0. Session Management (Lifecycle)
 The `PatternAnalysis` session manages the state of your data and analysis. 
 
-*   **Session Reset**: Use the `reset()` method to clear all temporal variables (loaded data, tradeoffs, splits, and statistics). This allows you to start fresh or reload a modified configuration without re-instantiating the session.
+*   **Session Reset**: Use the `reset()` method to clear state.
+    *   `reset(full=True)` (default): Clears everything (data, tradeoffs, splits, stats).
+    *   `reset(full=False)`: **Partial Reset**. Keeps the loaded data and defined tradeoffs, but clears the data splits and feature statistics. Useful if you want to re-run scoring or discovery on a different random split without reloading the dataset.
 *   **Early Data Splitting**: While splitting can happen anytime, it is ideally performed right after Tradeoffs are defined. Once `split_data()` is called, all subsequent analysis functions can target specific subsets of the data.
 
 ---
