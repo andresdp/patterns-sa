@@ -14,11 +14,11 @@ def run_analysis(json_path: str, outdir: str, validate_integrity: bool = True) -
     # 2. Load
     session.load(validate_integrity=validate_integrity)
     
-    print("DEBUG: Sampling data to 10%...")
-    sample_df = session.raw_df.sample(frac=0.1, random_state=42)
-    session.raw_df = sample_df
-    session.experiments_df = session.experiments_df.loc[sample_df.index]
-    session.outcomes_df = session.outcomes_df.loc[sample_df.index]
+    # print("DEBUG: Sampling data to 10%...")
+    # sample_df = session.raw_df.sample(frac=0.1, random_state=42)
+    # session.raw_df = sample_df
+    # session.experiments_df = session.experiments_df.loc[sample_df.index]
+    # session.outcomes_df = session.outcomes_df.loc[sample_df.index]
 
     # Group tradeoffs by scheme
     tradeoffs_by_scheme = {}
@@ -55,6 +55,11 @@ def run_analysis(json_path: str, outdir: str, validate_integrity: bool = True) -
             for b in scheme.bins:
                 print(f"    Label: {b.label} -> Range: [{b.min_value:.2f}, {b.max_value:.2f}]")
 
+        # --- Data Split ---
+        # Splitting early allows downstream functions to use 'train' or 'test' subsets
+        print("\n--- Splitting Data ---")
+        session.split_data(test_size=0.2)
+
         # Generate Distribution Plots for each tradeoff in this scheme
         for tradeoff in tradeoffs:
             try:
@@ -75,37 +80,28 @@ def run_analysis(json_path: str, outdir: str, validate_integrity: bool = True) -
         outcome_cols = list(session.outcomes_df.columns)
         for x_col, y_col in itertools.combinations(outcome_cols, 2):
             try:
-                # 1. Standard plot (with background)
+                # 1. Standard plot (Whole dataset)
                 fig = session.show_quality_objective_space(
                     x_col, y_col, 
                     highlight_tradeoffs=tradeoffs,
-                    show_overall=True
+                    show_overall=True,
+                    subset='all'
                 )
-                scatter_path = os.path.join(outdir, f"scatter_{x_col}_vs_{y_col}.png")
+                scatter_path = os.path.join(outdir, f"scatter_{x_col}_vs_{y_col}_all.png")
                 fig.savefig(scatter_path)
-                print(f"Scatter plot saved to: {scatter_path}")
+                print(f"Scatter plot (all) saved to: {scatter_path}")
 
-                # 2. Focused plot (invisible background for scaling)
+                # 2. Focused plot (Test set only)
                 fig_f = session.show_quality_objective_space(
                     x_col, y_col, 
                     highlight_tradeoffs=tradeoffs,
-                    show_overall=False
+                    show_overall=False,
+                    subset='test'
                 )
-                scatter_path_f = os.path.join(outdir, f"scatter_{x_col}_vs_{y_col}_focused.png")
+                scatter_path_f = os.path.join(outdir, f"scatter_{x_col}_vs_{y_col}_test.png")
                 fig_f.savefig(scatter_path_f)
-                print(f"Focused scatter plot saved to: {scatter_path_f}")
+                print(f"Focused scatter plot (test) saved to: {scatter_path_f}")
 
-                # 3. Rectangle plot (no point coloring, just bounding boxes)
-                fig_r = session.show_quality_objective_space(
-                    x_col, y_col, 
-                    highlight_tradeoffs=tradeoffs,
-                    show_overall=True,
-                    color_points=False,
-                    draw_rectangles=True
-                )
-                scatter_path_r = os.path.join(outdir, f"scatter_{x_col}_vs_{y_col}_rect.png")
-                fig_r.savefig(scatter_path_r)
-                print(f"Rectangle scatter plot saved to: {scatter_path_r}")
             except Exception as e:
                 print(f"Error generating scatter plot for {x_col} vs {y_col}: {e}")
 
@@ -117,27 +113,29 @@ def run_analysis(json_path: str, outdir: str, validate_integrity: bool = True) -
             print(f"Analyzing Decision: {decision_key}")
             
             try:
-                # 1. Heatmap
+                # 1. Heatmap (on Train set)
                 fig_h = session.show_policy_contingency(
                     decision_key, 
                     type='heatmap', 
                     normalization_mode='row',
-                    title=f"Contingency: {decision_key} (Row Norm)"
+                    subset='train',
+                    title=f"Contingency: {decision_key} (Train)"
                 )
                 path_h = os.path.join(outdir, f"contingency_heatmap_{dec_name_clean}.png")
                 fig_h.savefig(path_h)
-                print(f"  Heatmap saved to: {path_h}")
+                print(f"  Heatmap (train) saved to: {path_h}")
                 
-                # 2. Sankey
+                # 2. Sankey (Whole set)
                 fig_s = session.show_policy_contingency(
                     decision_key, 
                     type='sankey', 
                     normalization_mode='population',
-                    title=f"Flow: {decision_key} -> Tradeoffs"
+                    subset='all',
+                    title=f"Flow: {decision_key} (All)"
                 )
                 path_s = os.path.join(outdir, f"contingency_sankey_{dec_name_clean}.png")
                 fig_s.savefig(path_s)
-                print(f"  Sankey saved to: {path_s}")
+                print(f"  Sankey (all) saved to: {path_s}")
                 
             except Exception as e:
                 print(f"  Error analyzing contingency for {decision_key}: {e}")
@@ -145,19 +143,17 @@ def run_analysis(json_path: str, outdir: str, validate_integrity: bool = True) -
         # --- Feature Scoring ---
         print("\n--- Generating Feature Importance Analysis ---")
         try:
-            # 1. Split Data (Stratified by the LAST scheme processed)
-            session.split_data(test_size=0.2)
-
-            # 2. Compute Scores
+            # Compute Scores (Default subset is 'train')
             scores_df = session.compute_feature_scores(
                 include_levers=True,
                 include_uncertainties=True,
                 include_constraints=True,
-                use_smart_correlation=True
+                use_smart_correlation=True,
+                subset='train'
             )
 
             # 3. Save Heatmap
-            fig_imp = session.show_feature_heatmap(scores_df, title=f"Feature Influence: {scheme_name}")
+            fig_imp = session.show_feature_heatmap(scores_df, title=f"Feature Influence: {scheme_name} (Train)")
             heatmap_path = os.path.join(outdir, f"feature_importance_{scheme_name}.png")
             fig_imp.savefig(heatmap_path)
             print(f"  Feature importance heatmap saved to: {heatmap_path}")
@@ -181,6 +177,7 @@ def run_analysis(json_path: str, outdir: str, validate_integrity: bool = True) -
         for tradeoff in tradeoffs:
             print(f"  Discovering scenarios for Tradeoff: {tradeoff.name}")
             try:
+                # 1. Discover using PRIM (Internal splitting logic uses train/test)
                 boxes = session.discover_scenarios(
                     tradeoff.name, 
                     method='prim', 

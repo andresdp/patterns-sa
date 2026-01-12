@@ -145,7 +145,7 @@ class PatternAnalysis:
             self.outcomes_df, self.schemes, tradeoff=tradeoff, highlight_indices=highlight_indices, **kwargs
         )
 
-    def show_quality_objective_space(self, x_metric: str, y_metric: str, highlight_tradeoffs: Optional[List[Tradeoff]] = None, highlight_policies: Optional[List[str]] = None, show_overall: bool = True, color_points: bool = True, draw_rectangles: bool = False, **kwargs) -> plt.Figure:
+    def show_quality_objective_space(self, x_metric: str, y_metric: str, highlight_tradeoffs: Optional[List[Tradeoff]] = None, highlight_policies: Optional[List[str]] = None, show_overall: bool = True, color_points: bool = True, draw_rectangles: bool = False, subset: str = 'all', **kwargs) -> plt.Figure:
         """Plots a 2D scatter of outcomes with tradeoff overlays and highlighting.
         
         Args:
@@ -153,98 +153,95 @@ class PatternAnalysis:
             y_metric: Metric for Y-axis.
             highlight_tradeoffs: List of Tradeoffs to highlight (as rectangles or points).
             highlight_policies: List of policy names to highlight/color. 
-                                If None, no policy coloring. 
-                                If empty list, colors all policies.
             show_overall: Whether to show background points.
-            color_points: Whether to color tradeoff points (overridden if policies highlighted).
+            color_points: Whether to color tradeoff points.
             draw_rectangles: Whether to draw rectangles for tradeoffs.
+            subset: 'all' (default), 'train', or 'test'.
         """
+        X, Y, _ = self._get_subset_data(subset)
+        
         highlight_indices_map = {}
         if highlight_tradeoffs:
             for t in highlight_tradeoffs:
                 indices = self.get_indices_for_tradeoff(t)
-                if len(indices) > 0:
-                    highlight_indices_map[t.name] = indices
+                filtered = self._filter_indices_for_subset(indices, subset)
+                if len(filtered) > 0:
+                    highlight_indices_map[t.name] = filtered
                     
         policy_series = None
         if highlight_policies is not None:
-             # Identify policy column
              if self.sys_def and self.sys_def.dataspace.configuration_identification.column:
                  col_name = self.sys_def.dataspace.configuration_identification.column
-                 if self.experiments_df is not None and col_name in self.experiments_df.columns:
-                     series = self.experiments_df[col_name].copy()
-                     # If specific policies requested, filter (keep only those, others become NaN)
+                 if col_name in X.columns:
+                     series = X[col_name].copy()
                      if len(highlight_policies) > 0:
                          series = series.where(series.isin(highlight_policies))
                      policy_series = series
                     
         return self.coordinator.show_quality_objective_space(
-            self.outcomes_df, x_metric, y_metric, self.schemes, 
+            Y, x_metric, y_metric, self.schemes, 
             highlight_indices_map=highlight_indices_map, 
             policy_series=policy_series,
             show_overall=show_overall, 
             color_points=color_points, draw_rectangles=draw_rectangles, **kwargs
         )
 
-    def get_policy_contingency_matrix(self, decision_key: str, normalization_mode: str = 'population') -> pd.DataFrame:
+    def get_policy_contingency_matrix(self, decision_key: str, normalization_mode: str = 'population', subset: str = 'all') -> pd.DataFrame:
         """
-        Computes the contingency matrix of Policies vs Tradeoffs (Rows=Policies, Cols=Tradeoffs).
+        Computes the contingency matrix of Policies vs Tradeoffs.
         
         Args:
-            decision_key: The specific decision (e.g. "component:decision") to analyze.
-            normalization_mode: 'population' (default), 'row', 'none'.
+            decision_key: The specific decision to analyze.
+            normalization_mode: 'population', 'row', 'none'.
+            subset: 'all' (default), 'train', or 'test'.
         """
         from ..analysis.contingency import ContingencyAnalyzer
         
-        if self.experiments_df is None:
-            raise RuntimeError("Data must be loaded.")
-
+        X, _, _ = self._get_subset_data(subset)
         analyzer = ContingencyAnalyzer(self.sys_def)
         
         # 1. Get Policy Map
         config_col = self.sys_def.dataspace.configuration_identification.column
         if not config_col:
-             raise RuntimeError("Configuration column not defined in System Definition.")
+             raise RuntimeError("Configuration column not defined.")
         
-        policy_df = analyzer.get_decision_policy_map(self.experiments_df, config_col)
+        policy_df = analyzer.get_decision_policy_map(X, config_col)
         
         if decision_key not in policy_df.columns:
             available = list(policy_df.columns)
             raise ValueError(f"Decision '{decision_key}' not found. Available: {available}")
 
         # 2. Get Tradeoff Mask
-        tradeoff_mask = pd.DataFrame(index=self.experiments_df.index)
+        tradeoff_mask = pd.DataFrame(index=X.index)
         for t in self.sys_def.system.tradeoffs:
             indices = self.get_indices_for_tradeoff(t)
-            # Create a boolean series initialized to False
-            series = pd.Series(False, index=self.experiments_df.index)
+            filtered_indices = self._filter_indices_for_subset(indices, subset)
             
-            # indices are integer positions relative to the dataframe
-            if len(indices) > 0:
-                # We use iloc to set by integer position
-                series.iloc[indices] = True
+            series = pd.Series(False, index=X.index)
+            if len(filtered_indices) > 0:
+                # We use iloc since filtered_indices are relative integer positions in the subset
+                series.iloc[filtered_indices] = True
             
             tradeoff_mask[t.name] = series
 
         # 3. Compute
         return analyzer.compute_contingency(policy_df, tradeoff_mask, decision_key=decision_key, normalization_mode=normalization_mode)
 
-    def show_policy_contingency(self, decision_key: str, type: str = 'heatmap', **kwargs) -> plt.Figure:
+    def show_policy_contingency(self, decision_key: str, type: str = 'heatmap', subset: str = 'all', **kwargs) -> plt.Figure:
         """
         Visualizes the contingency table for a specific decision.
         
         Args:
-            decision_key: The decision to visualize (e.g. "arch_example_pattern:deployment_strategy").
+            decision_key: The decision to visualize.
             type: 'heatmap' or 'sankey'.
+            subset: 'all' (default), 'train', or 'test'.
         """
         from ..analysis.visualization import show_contingency_heatmap, show_policy_tradeoff_sankey
         
-        # Extract normalization_mode, defaulting to 'population' if not present
         norm_mode = kwargs.pop('normalization_mode', 'population')
+        df = self.get_policy_contingency_matrix(decision_key=decision_key, normalization_mode=norm_mode, subset=subset)
         
-        df = self.get_policy_contingency_matrix(decision_key=decision_key, normalization_mode=norm_mode)
-        
-        title = kwargs.pop('title', f"Impact of {decision_key} on Tradeoffs")
+        title = kwargs.pop('title', f"Impact of {decision_key} on Tradeoffs ({subset})")
         
         if type == 'heatmap':
             return show_contingency_heatmap(df, title=title, **kwargs)
@@ -252,6 +249,47 @@ class PatternAnalysis:
             return show_policy_tradeoff_sankey(df, title=title, **kwargs)
         else:
             raise ValueError(f"Unknown visualization type: {type}")
+
+    # --- Data Subset Helpers ---
+
+    def _get_subset_data(self, subset: str = 'all') -> Tuple[pd.DataFrame, pd.DataFrame, Optional[pd.DataFrame]]:
+        """Returns (experiments, outcomes, discrete) for the chosen subset."""
+        if subset == 'all':
+            return self.experiments_df, self.outcomes_df, self.discrete_df
+        
+        if self.train_indices is None:
+            raise RuntimeError(f"Cannot access subset '{subset}'. Call split_data() first.")
+            
+        indices = self.train_indices if subset == 'train' else self.test_indices
+        return self.experiments_df.iloc[indices], self.outcomes_df.iloc[indices], self.discrete_df.iloc[indices]
+
+    def _filter_indices_for_subset(self, global_indices: np.ndarray, subset: str) -> np.ndarray:
+        """
+        Filters global dataset indices to only those in the chosen subset, 
+        and returns their NEW integer positions relative to the subset.
+        """
+        if subset == 'all':
+            return global_indices
+            
+        if self.train_indices is None:
+            return np.array([])
+            
+        subset_indices = self.train_indices if subset == 'train' else self.test_indices
+        
+        # 1. Intersection: which global_indices are in the subset?
+        # We use a set for O(1) lookups
+        subset_set = set(subset_indices)
+        matching_globals = [idx for idx in global_indices if idx in subset_set]
+        
+        if not matching_globals:
+            return np.array([])
+            
+        # 2. Map back to integer positions [0...len(subset)-1]
+        # We need to know where each matching global index is in the subset_indices array
+        lookup = {idx: i for i, idx in enumerate(subset_indices)}
+        local_positions = [lookup[idx] for idx in matching_globals]
+        
+        return np.array(local_positions)
 
     # --- Accessor Helpers ---
 
@@ -326,7 +364,8 @@ class PatternAnalysis:
         use_smart_correlation: bool = False,
         standardize: bool = False,
         remove_outliers: bool = False,
-        z_threshold: float = 3.0
+        z_threshold: float = 3.0,
+        subset: str = 'train'
     ) -> pd.DataFrame:
         """
         Computes feature importance for all quality objectives.
@@ -339,22 +378,22 @@ class PatternAnalysis:
             standardize: Whether to standardize features (Z-score) before scoring.
             remove_outliers: Whether to remove outliers (Z-score > threshold) before scoring.
             z_threshold: Threshold for outlier detection.
+            subset: 'train' (default for scoring), 'test', or 'all'.
             
         Returns:
             pd.DataFrame: Rows=Features, Columns=Outcomes, Values=Importance Score.
         """
         from ..analysis.feature_importance import FeatureImportanceAnalyzer
 
-        if self.train_indices is None:
-            # Auto-split if not done
-            print("Data not split yet. Performing automatic split (20% test)...")
+        if subset != 'all' and self.train_indices is None:
+            # Auto-split if not done and subset requested
+            print(f"Subset '{subset}' requested but data not split. Performing automatic split (20% test)...")
             self.split_data()
 
         analyzer = FeatureImportanceAnalyzer(self.sys_def)
         
-        # 1. Prepare Data (Train set)
-        X_full = self.experiments_df.iloc[self.train_indices]
-        y_full = self.outcomes_df.iloc[self.train_indices]
+        # 1. Prepare Data (Chosen subset)
+        X_full, y_full, _ = self._get_subset_data(subset)
         
         # 2. Identify Features
         feature_cols = analyzer.get_parameter_columns(
@@ -386,7 +425,7 @@ class PatternAnalysis:
         # 4. Score per Outcome
         results = {}
         for outcome_col in y_full.columns:
-            print(f"Scoring features for outcome: {outcome_col}")
+            print(f"Scoring features for outcome: {outcome_col} (on subset: {subset})")
             scores = analyzer.compute_importance(
                 X, 
                 y_full[outcome_col], 

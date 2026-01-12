@@ -100,48 +100,24 @@ def plot_tradeoff_distribution(
 
 
 def show_quality_objective_space(
-    outcomes_df: pd.DataFrame,
-    x_metric: str,
-    y_metric: str,
-    schemes: List[DiscretizationScheme],
+    outcomes_df: pd.DataFrame, 
+    x_metric: str, 
+    y_metric: str, 
+    schemes: List[DiscretizationScheme], 
     highlight_indices_map: Optional[Dict[str, np.ndarray]] = None,
     policy_series: Optional[pd.Series] = None,
     show_overall: bool = True,
     color_points: bool = True,
     draw_rectangles: bool = False,
-    alpha: float = 0.5,
-    figsize: Tuple[int, int] = (10, 8)
+    **kwargs
 ) -> plt.Figure:
     """
-    Plots a 2D scatter of two outcomes with segmentation lines and tradeoff highlighting.
-    
-    This function visualizes the relationship between two objectives, showing how 
-    the design space is partitioned into categorical regions (tradeoffs).
-
-    Args:
-        outcomes_df (pd.DataFrame): [Mandatory] Continuous outcome data.
-        x_metric (str): [Mandatory] Name of the metric for the X-axis.
-        y_metric (str): [Mandatory] Name of the metric for the Y-axis.
-        schemes (List[DiscretizationScheme]): [Mandatory] Segmentation rules for 
-            calculating boundaries.
-        highlight_indices_map (Optional[Dict[str, np.ndarray]]): [Optional] A map 
-            of {tradeoff_name: indices} to emphasize in the plot.
-        policy_series (Optional[pd.Series]): [Optional] A Series containing policy 
-            labels for the data points. If provided, points will be colored by policy.
-        show_overall (bool): [Optional] If True, shows overall population in gray. 
-            If False, background points are invisible (preserving axis scale). 
-            Defaults to True.
-        color_points (bool): [Optional] If True, applies distinct colors to points 
-            in highlighted tradeoffs. Defaults to True.
-        draw_rectangles (bool): [Optional] If True, draws semi-transparent bounding 
-            rectangles around highlighted tradeoffs. Defaults to False.
-        alpha (float): [Optional] Transparency for points/rectangles. Defaults to 0.5.
-        figsize (Tuple[int, int]): [Optional] Figure size. Defaults to (10, 8).
-        
-    Returns:
-        matplotlib.figure.Figure: The generated figure object.
+    Plots a 2D scatter of outcomes with tradeoff overlays.
     """
-    fig, ax = plt.subplots(figsize=figsize)
+    title = kwargs.pop('title', f"{x_metric} vs {y_metric}")
+    
+    fig, ax = plt.subplots(figsize=kwargs.get('figsize', (10, 8)))
+    alpha = kwargs.get('alpha', 0.3)
     
     # Determine mode
     coloring_by_policy = policy_series is not None

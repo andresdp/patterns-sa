@@ -21,6 +21,7 @@ Before analysis begins, we must translate raw numeric values (e.g., "124ms") int
 Once tradeoffs are defined, we visualize them to confirm they align with our intuition and architectural requirements.
 
 *   **Scatter Plots**: We plot pairs of objectives (e.g., Cost vs. Execution Time).
+    *   **Data Subsets**: Most visualization and analysis functions accept a `subset` parameter (`'all'`, `'train'`, or `'test'`). This allows you to verify if the patterns seen in the training data still hold true in the held-out test data.
     *   **Coloring by Tradeoff**: Highlights where the "Inexpensive-but-reliable" points cluster.
     *   **Coloring by Policy**: Shows if certain architectural decisions (e.g., "Serverless Deployment") naturally gravitate towards specific performance regions.
 *   **Overlay Modes**:
@@ -33,6 +34,7 @@ Once tradeoffs are defined, we visualize them to confirm they align with our int
 This stage answers the critical question: *"If I choose Policy X, what is the probability I will land in Tradeoff Y?"*
 
 *   **The Contingency Matrix**: A cross-tabulation of Architectural Decisions vs. Tradeoff Membership.
+*   **Subset Analysis**: By running contingency on the `'train'` set and then on the `'test'` set, you can ensure that your architectural insights are consistent across different samples.
 *   **Normalization Modes**:
     *   **Row Normalization (`row`)**: (Highly Recommended) For a specific decision (e.g., "Load Balancer: Round Robin"), it shows the percentage distribution across all tradeoffs. This allows you to say: *"Policy A leads to 'Fast' outcomes 80% of the time."*
     *   **Population Normalization (`population`)**: Shows the count relative to the total dataset. Useful for understanding which decisions are most frequent in the simulation.
@@ -45,6 +47,7 @@ This stage answers the critical question: *"If I choose Policy X, what is the pr
 ## 4. Feature Scoring (Sensitivity & Influence)
 Not all parameters are created equal. Feature scoring uses Machine Learning (Random Forests) to rank which parameters (Levers, Uncertainties, or Constraints) actually "drive" the values of your quality objectives.
 
+*   **Subset Recommendation**: Scoring should typically be performed on the `'train'` subset. You can then use the `'test'` subset to validate how well these features explain the outcomes in unseen scenarios.
 *   **The Preprocessing Pipeline**:
     *   **Z-Score Standardization**: Since "Cost" ($) and "Latency" (ms) have different units, we use `StandardScaler` to put them on a uniform scale.
     *   **Outlier Removal**: We filter out simulation "noise" by removing points that fall outside $3\sigma$ of the mean.
