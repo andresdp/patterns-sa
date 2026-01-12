@@ -84,5 +84,18 @@ The final stage generates "Operational Rules" or "Envelopes." It finds the speci
 
 ---
 
+## 6. Robustness Analysis (Quantifying Stability)
+While Contingency Analysis tells you "how often" a policy hits a target, Robustness Analysis quantifies the stability of that performance under uncertainty.
+
+*   **Metrics**:
+    *   **STARR (Success Rate)**: Simply the probability of satisfying the tradeoff. (Range: 0.0 to 1.0, Higher is Better).
+    *   **Regret (Distance to Satisfaction)**: If a system fails to meet the tradeoff, *how badly* did it miss? Regret measures the distance from the acceptable boundary. (Range: 0 to $\infty$, Lower is Better).
+*   **Tools**:
+    *   **Single Check**: `compute_robustness()` calculates the metric for one policy against one tradeoff.
+    *   **Full Report**: `get_robustness_report()` generates a table (DataFrame) comparing all policies across all tradeoffs.
+    *   **Ranking**: `get_policy_robustness_ranking()` returns a sorted list of policies, ordered from most to least robust for a specific target. It automatically handles the sorting direction (descending for STARR, ascending for Regret).
+
+---
+
 ## Conclusion
 The Journey starts with **Defining what matters** (Tradeoffs), moves through **Understanding the impact of choices** (Contingency), identifies **What drives the system** (Scoring), and ends with **Actionable rules** (Discovery) for building robust architectures.
