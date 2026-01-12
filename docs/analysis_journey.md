@@ -1,6 +1,6 @@
 # ADEPT Analysis Journey: A Guide to Data-Driven Architectural Exploration
 
-The ADEPT analysis journey is a structured pipeline designed to turn raw simulation data into actionable architectural knowledge. This document provides an in-depth look at each stage of the process, the options available, and how to interpret the results.
+The ADEPT analysis journey is a structured pipeline designed to turn raw simulation data into actionable architectural knowledge. This document provides an in-depth look at each stage of the process, the typical questions it answers, and how to interpret the results.
 
 ---
 
@@ -17,7 +17,11 @@ The `PatternAnalysis` session manages the state of your data and analysis.
 ## 1. Tradeoff Definition (The Qualitative Shift)
 Before analysis begins, we must translate raw numeric values (e.g., "124ms") into architectural concepts (e.g., "Fast"). This process, known as **Discretization**, allows us to group data points into "Tradeoff" regions.
 
-*   **Why it matters**: Complex systems often have conflicting goals. By defining tradeoffs, we shift the focus from optimizing a single number to finding regions where multiple quality objectives reach a satisfying balance.
+### Typical Questions
+*   **Initial Inquiry**: "How do we define 'Success' for this system? Is it a hard threshold (Latency < 200ms) or relative to the best possible performance (Pareto Optimal)?"
+*   **Follow-up**: "If we define 'Low Cost' too strictly, do we eliminate too many viable architectural candidates?"
+
+### Tools & Methods
 *   **Available Strategies**:
     *   **Equal-Width Discretization**: Splits the range of an objective into $N$ equal parts. Good for general exploration.
     *   **Pareto Frontiers**: Identifies points that represent the best possible compromises. No point on the frontier can be improved in one objective without being degraded in another.
@@ -30,6 +34,11 @@ Before analysis begins, we must translate raw numeric values (e.g., "124ms") int
 ## 2. Objective Space Exploration (Visual Confirmation)
 Once tradeoffs are defined, we visualize them to confirm they align with our intuition and architectural requirements.
 
+### Typical Questions
+*   **Initial Inquiry**: "What is the shape of the design space? Are Cost and Performance conflicting (inverse correlation) or aligned?"
+*   **Follow-up**: "Why are there gaps in the solution space? Are those regions physically impossible, or simply unexplored by the simulation?"
+
+### Tools & Methods
 *   **Scatter Plots**: We plot pairs of objectives (e.g., Cost vs. Execution Time).
     *   **Data Subsets**: Most visualization and analysis functions accept a `subset` parameter (`'all'`, `'train'`, or `'test'`). This allows you to verify if the patterns seen in the training data still hold true in the held-out test data.
     *   **Coloring by Tradeoff**: Highlights where the "Inexpensive-but-reliable" points cluster.
@@ -43,6 +52,11 @@ Once tradeoffs are defined, we visualize them to confirm they align with our int
 ## 3. Relationship Analysis (Impact of Decisions)
 This stage answers the critical question: *"If I choose Policy X, what is the probability I will land in Tradeoff Y?"*
 
+### Typical Questions
+*   **Initial Inquiry**: "Which architectural decision (Policy) gives me the highest chance of achieving 'High Availability'?"
+*   **Follow-up**: "Is this outcome unique to this policy? Or can I achieve the same result with a cheaper alternative?" (leads to `get_exclusive_tradeoffs`).
+
+### Tools & Methods
 *   **The Contingency Matrix**: A cross-tabulation of Architectural Decisions vs. Tradeoff Membership. 
     *   **DataFrames**: You can retrieve the raw contingency table as a pandas DataFrame using `get_policy_contingency_matrix()`.
 *   **Normalization Modes**:
@@ -61,6 +75,11 @@ This stage answers the critical question: *"If I choose Policy X, what is the pr
 ## 4. Robustness Analysis (Quantifying Stability)
 While Contingency Analysis tells you "how often" a policy hits a target, Robustness Analysis quantifies the stability of that performance under uncertainty.
 
+### Typical Questions
+*   **Initial Inquiry**: "Policy A hits the target 90% of the time, but when it fails, does it fail slightly or catastrophically?" (leads to Regret metric).
+*   **Follow-up**: "How does the stability of Policy A compare to Policy B when subjected to the same uncertain workloads?"
+
+### Tools & Methods
 *   **Metrics**:
     *   **STARR (Success Rate)**: Simply the probability of satisfying the tradeoff. (Range: 0.0 to 1.0, Higher is Better).
     *   **Regret (Distance to Satisfaction)**: If a system fails to meet the tradeoff, *how badly* did it miss? Regret measures the distance from the acceptable boundary. (Range: 0 to $\infty$, Lower is Better).
@@ -75,6 +94,11 @@ While Contingency Analysis tells you "how often" a policy hits a target, Robustn
 ## 5. Feature Scoring (Sensitivity & Influence)
 Not all parameters are created equal. Feature scoring uses Machine Learning (Random Forests) to rank which parameters (Levers, Uncertainties, or Constraints) actually "drive" the values of your quality objectives.
 
+### Typical Questions
+*   **Initial Inquiry**: "Which inputs (Levers or Uncertainties) have the biggest impact on Cost? Is it the number of servers or the database type?"
+*   **Follow-up**: "We are spending resources optimizing 'Cache Size', but does the data support that this parameter actually matters?"
+
+### Tools & Methods
 *   **Subset Recommendation**: Scoring should typically be performed on the `'train'` subset. You can then use the `'test'` subset to validate how well these features explain the outcomes in unseen scenarios.
 *   **The Preprocessing Pipeline**:
     *   **Z-Score Standardization**: Since "Cost" ($) and "Latency" (ms) have different units, we use `StandardScaler` to put them on a uniform scale.
@@ -88,6 +112,11 @@ Not all parameters are created equal. Feature scoring uses Machine Learning (Ran
 ## 6. Scenario Discovery (Finding the Envelope)
 The final stage generates "Operational Rules" or "Envelopes." It finds the specific ranges of parameters that reliably produce target tradeoffs.
 
+### Typical Questions
+*   **Initial Inquiry**: "What are the exact operating conditions (e.g., 'CPU < 80%') required to guarantee the 'High Reliability' tradeoff?"
+*   **Follow-up**: "The discovered rules are very strict (low density). Can we find a broader, more flexible region that still meets most of our requirements?"
+
+### Tools & Methods
 *   **Multi-Tradeoff Targeting**: You can pass a single name, a list of names, or `None` (targets all tradeoffs) to the discovery method.
 *   **The Algorithms**:
     *   **PRIM (Patient Rule Induction Method)**: A "bottom-up" approach. If multiple tradeoffs are requested, PRIM runs iteratively for each one, finding the most concentrated box for every target.
@@ -101,4 +130,4 @@ The final stage generates "Operational Rules" or "Envelopes." It finds the speci
 ---
 
 ## Conclusion
-The Journey starts with **Defining what matters** (Tradeoffs), moves through **Understanding the impact of choices** (Contingency), identifies **What drives the system** (Scoring), and ends with **Actionable rules** (Discovery) for building robust architectures.
+The Journey starts with **Defining what matters** (Tradeoffs), moves through **Understanding the impact of choices** (Contingency) and **Quantifying Stability** (Robustness), identifies **What drives the system** (Scoring), and ends with **Actionable rules** (Discovery) for building robust architectures.
