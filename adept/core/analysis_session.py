@@ -15,18 +15,26 @@ class PatternAnalysis:
     def __init__(self, json_path: str, coordinator: Optional[ArchSpaceCore] = None):
         self.json_path = json_path
         self.coordinator = coordinator or ArchSpaceCore()
-        
-        # State
+        self.reset()
+
+    def reset(self) -> None:
+        """
+        Clears all temporal analysis state, including loaded dataframes, 
+        tradeoff definitions, split indices, and feature statistics.
+        """
+        # Data State
         self.sys_def: Optional[SystemDefinition] = None
         self.raw_df: Optional[pd.DataFrame] = None
         self.experiments_df: Optional[pd.DataFrame] = None
         self.outcomes_df: Optional[pd.DataFrame] = None
+        
+        # Tradeoff State
         self.discrete_df: Optional[pd.DataFrame] = None
         self.pareto_front: Optional[pd.DataFrame] = None
         self.tradeoff_indices: Dict[str, np.ndarray] = {}
         self.schemes: List[DiscretizationScheme] = []
         
-        # Data Split State
+        # Data Split & Processing State
         self.train_indices: Optional[np.ndarray] = None
         self.test_indices: Optional[np.ndarray] = None
         self.feature_stats: Optional[Dict[str, Any]] = None
