@@ -17,24 +17,29 @@ class PatternAnalysis:
         self.coordinator = coordinator or ArchSpaceCore()
         self.reset()
 
-    def reset(self) -> None:
+    def reset(self, full: bool = True) -> None:
         """
-        Clears all temporal analysis state, including loaded dataframes, 
-        tradeoff definitions, split indices, and feature statistics.
+        Clears analysis state.
+        
+        Args:
+            full: If True (default), clears EVERYTHING (data, tradeoffs, splits).
+                  If False, keeps loaded data and tradeoff definitions, 
+                  but clears splits, feature stats, and any downstream analysis.
         """
-        # Data State
-        self.sys_def: Optional[SystemDefinition] = None
-        self.raw_df: Optional[pd.DataFrame] = None
-        self.experiments_df: Optional[pd.DataFrame] = None
-        self.outcomes_df: Optional[pd.DataFrame] = None
+        if full:
+            # Data State
+            self.sys_def: Optional[SystemDefinition] = None
+            self.raw_df: Optional[pd.DataFrame] = None
+            self.experiments_df: Optional[pd.DataFrame] = None
+            self.outcomes_df: Optional[pd.DataFrame] = None
+            
+            # Tradeoff State
+            self.discrete_df: Optional[pd.DataFrame] = None
+            self.pareto_front: Optional[pd.DataFrame] = None
+            self.tradeoff_indices: Dict[str, np.ndarray] = {}
+            self.schemes: List[DiscretizationScheme] = []
         
-        # Tradeoff State
-        self.discrete_df: Optional[pd.DataFrame] = None
-        self.pareto_front: Optional[pd.DataFrame] = None
-        self.tradeoff_indices: Dict[str, np.ndarray] = {}
-        self.schemes: List[DiscretizationScheme] = []
-        
-        # Data Split & Processing State
+        # Data Split & Processing State (Always cleared on reset)
         self.train_indices: Optional[np.ndarray] = None
         self.test_indices: Optional[np.ndarray] = None
         self.feature_stats: Optional[Dict[str, Any]] = None
