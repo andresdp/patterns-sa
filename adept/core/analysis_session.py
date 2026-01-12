@@ -43,6 +43,7 @@ class PatternAnalysis:
         self.train_indices: Optional[np.ndarray] = None
         self.test_indices: Optional[np.ndarray] = None
         self.feature_stats: Optional[Dict[str, Any]] = None
+        self.outcome_stats: Optional[Dict[str, Any]] = None
 
     def load(self, validate_integrity: bool = True) -> None:
         """Loads the system definition and then the experimental data."""
@@ -52,6 +53,34 @@ class PatternAnalysis:
         # 2. Load Data (using the definition to parse it)
         self.raw_df, self.experiments_df, self.outcomes_df = \
             self.coordinator.load_detailed_data(self.json_path, validate_integrity=validate_integrity)
+
+    def _ensure_outcome_stats(self) -> None:
+        """Computes statistics (mean/std) for outcomes to support standardized metrics."""
+        if self.outcome_stats is not None:
+            return
+
+        from sklearn.preprocessing import StandardScaler
+        
+        # Use train set if available, else full
+        if self.train_indices is not None:
+             target_df = self.outcomes_df.iloc[self.train_indices]
+        else:
+             target_df = self.outcomes_df
+             
+        # Select numeric columns
+        numeric_cols = target_df.select_dtypes(include=[np.number]).columns.tolist()
+        
+        if not numeric_cols:
+            self.outcome_stats = {'scaler': None, 'numeric_cols': []}
+            return
+
+        scaler = StandardScaler()
+        scaler.fit(target_df[numeric_cols])
+        
+        self.outcome_stats = {
+            'scaler': scaler,
+            'numeric_cols': numeric_cols
+        }
 
     def define_tradeoffs(self, n_bins: int = 3, labels: Optional[Dict[str, List[str]]] = None, ranges: Optional[Dict[str, Tuple[float, float]]] = None, method: str = 'discretization', params: Optional[Dict[str, Any]] = None) -> Tuple[pd.DataFrame, List[DiscretizationScheme]]:
         """Defines tradeoff regions in the outcome space.
@@ -426,6 +455,9 @@ class PatternAnalysis:
         if metric == 'starr':
             return RobustnessAnalyzer.compute_starr(target_subset)
         elif metric == 'regret':
+            # Ensure stats are available for standardized distance
+            self._ensure_outcome_stats()
+            
             # Extract boundaries
             boundaries = {}
             for obj, label in tradeoff.elements.items():
@@ -437,7 +469,7 @@ class PatternAnalysis:
                         boundaries[obj] = {'min': q_bin.min_value, 'max': q_bin.max_value}
             
             return RobustnessAnalyzer.compute_regret(
-                outcomes_subset, target_subset, boundaries, stats=self.feature_stats
+                outcomes_subset, target_subset, boundaries, stats=self.outcome_stats
             )
         else:
             raise ValueError(f"Unknown robustness metric: {metric}")
