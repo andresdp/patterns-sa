@@ -93,6 +93,7 @@ While Contingency Analysis tells you "how often" a policy hits a target, Robustn
 *   **Tools**:
     *   **Single Check**: `compute_robustness()` calculates the metric for one policy against one tradeoff.
     *   **Full Report**: `get_robustness_report()` generates a table (DataFrame) comparing all policies across all tradeoffs.
+    *   **Visual Report**: `show_robustness_heatmap()` visualizes the report as a color-coded matrix, automatically using green scales for success rates (STARR) and red scales for error magnitudes (Regret).
     *   **Ranking**: `get_policy_robustness_ranking()` returns a sorted list of policies, ordered from most to least robust for a specific target. It automatically handles the sorting direction (descending for STARR, ascending for Regret).
 
 ---
