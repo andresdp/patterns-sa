@@ -250,6 +250,44 @@ class PatternAnalysis:
         else:
             raise ValueError(f"Unknown visualization type: {type}")
 
+    def get_policy_tradeoff_distribution(self, decision_key: str, policy_name: str, subset: str = 'all') -> Dict[str, float]:
+        """
+        Returns the distribution of tradeoffs for a specific policy.
+        
+        Args:
+            decision_key: The decision containing the policy.
+            policy_name: The name of the policy to inspect.
+            subset: 'all', 'train', or 'test'.
+            
+        Returns:
+            Dict[str, float]: {tradeoff_name: percentage (0.0 to 1.0)}
+        """
+        df = self.get_policy_contingency_matrix(decision_key, normalization_mode='row', subset=subset)
+        
+        if policy_name not in df.index:
+            raise ValueError(f"Policy '{policy_name}' not found in decision '{decision_key}'.")
+            
+        return df.loc[policy_name].to_dict()
+
+    def get_variable_policies(self, decision_key: str, subset: str = 'all', threshold: float = 0.0) -> List[str]:
+        """
+        Returns policies that result in more than one tradeoff.
+        
+        Args:
+            decision_key: The decision to analyze.
+            subset: 'all', 'train', or 'test'.
+            threshold: Minimum percentage (0.0 to 1.0) to consider a tradeoff as "present".
+            
+        Returns:
+            List[str]: Names of policies with variability in outcomes.
+        """
+        df = self.get_policy_contingency_matrix(decision_key, normalization_mode='row', subset=subset)
+        
+        # Count tradeoffs where percentage > threshold
+        variability_mask = (df > threshold).sum(axis=1) > 1
+        
+        return df.index[variability_mask].tolist()
+
     # --- Data Subset Helpers ---
 
     def _get_subset_data(self, subset: str = 'all') -> Tuple[pd.DataFrame, pd.DataFrame, Optional[pd.DataFrame]]:
