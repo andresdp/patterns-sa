@@ -1,4 +1,4 @@
-from typing import List, Dict, Any, Optional, Tuple
+from typing import List, Dict, Any, Optional, Tuple, Union
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
@@ -488,19 +488,18 @@ class PatternAnalysis:
 
     def discover_scenarios(
         self, 
-        tradeoff_name: Optional[str] = None, 
+        tradeoff_names: Optional[Union[str, List[str]]] = None, 
         method: str = 'prim', 
         parameters: Optional[List[str]] = None,
         standardize: bool = False,
         **kwargs
     ) -> List[Any]:
         """
-        Runs scenario discovery to find parameter regions for a specific tradeoff (PRIM) 
-        or all tradeoffs (CART).
+        Runs scenario discovery to find parameter regions for specific tradeoffs.
         
         Args:
-            tradeoff_name: Name of the tradeoff to target (required for PRIM).
-                           If None and method is 'cart', discovery is performed for all tradeoffs.
+            tradeoff_names: Name or list of names of tradeoffs to target.
+                            If None, targets all tradeoffs defined in the system.
             method: 'prim' or 'cart'.
             parameters: List of parameters to include. If None, uses all parameters.
             standardize: Whether to standardize parameters before discovery.
@@ -511,137 +510,185 @@ class PatternAnalysis:
         from ..analysis.discovery import Box, BoxEvaluator
         from ..analysis.feature_importance import FeatureImportanceAnalyzer
         
-        if method == 'prim' and tradeoff_name is None:
-             raise ValueError("tradeoff_name is required for PRIM discovery.")
+        # 1. Normalize input names
+        if tradeoff_names is None:
+            tradeoff_names = [t.name for t in self.get_tradeoffs()]
+        elif isinstance(tradeoff_names, str):
+            tradeoff_names = [tradeoff_names]
 
-        # 1. Preparation
+        # 2. Handle PRIM (Iterative)
+        if method == 'prim':
+            all_boxes = []
+            for name in tradeoff_names:
+                # We call ourselves recursively or just use the logic for one
+                # To avoid complex recursion, we extract the core logic
+                boxes = self._discover_single_prim(
+                    name, parameters=parameters, standardize=standardize, **kwargs
+                )
+                all_boxes.extend(boxes)
+            return all_boxes
+
+        # 3. Handle CART (Global + Filter)
+        # For CART, we run global discovery on all unique label combinations
+        # and then filter the resulting boxes to only those matching target tradeoffs.
+        
         if self.train_indices is None:
             self.split_data()
             
         analyzer = FeatureImportanceAnalyzer(self.sys_def)
-        
-        # Determine features to use
         if parameters is None:
-            X_all_params = self.experiments_df
-            parameters = analyzer.get_parameter_columns(X_all_params)
+            parameters = analyzer.get_parameter_columns(self.experiments_df)
             
         X_train = self.experiments_df.iloc[self.train_indices][parameters]
         X_test = self.experiments_df.iloc[self.test_indices][parameters]
         
-        # Calculate global dataset bounds for these parameters
-        # We use the whole dataset (raw) to get true min/max
-        global_min = self.experiments_df[parameters].min()
-        global_max = self.experiments_df[parameters].max()
-        dataset_bounds = {
-            p: {'min': float(global_min[p]), 'max': float(global_max[p])} 
-            for p in parameters
-        }
+        # CART multi-class targets
+        y_train = self.discrete_df.iloc[self.train_indices].astype(str).agg(','.join, axis=1)
+        unique_classes = y_train.unique()
+        
+        # Precompute prevalence and test masks for evaluation
+        prevalence_map = y_train.value_counts(normalize=True).to_dict()
+        y_test_map = {}
+        for row_str in unique_classes:
+            y_test_map[row_str] = (self.discrete_df.iloc[self.test_indices].astype(str).agg(','.join, axis=1) == row_str)
 
-        # Target preparation
-        prevalence_map = {}
-        if tradeoff_name:
-            # Single-target mask (y)
-            tradeoff = next((t for t in self.get_tradeoffs() if t.name == tradeoff_name), None)
-            if not tradeoff:
-                raise ValueError(f"Tradeoff '{tradeoff_name}' not found.")
-                
-            y_all = pd.Series(True, index=self.experiments_df.index)
-            for obj_name, target_label in tradeoff.elements.items():
-                if obj_name in self.discrete_df.columns:
-                    y_all &= (self.discrete_df[obj_name] == target_label)
-            
-            y_train = y_all.iloc[self.train_indices]
-            prevalence_map[tradeoff_name] = y_train.sum() / len(y_train) if len(y_train) > 0 else 0.0
-            y_test_map = {tradeoff_name: y_all.iloc[self.test_indices]}
-        else:
-            # Multi-target labels for CART
-            y_train = self.discrete_df.iloc[self.train_indices].astype(str).agg(','.join, axis=1)
-            
-            # Compute prevalence for each unique class in the train set
-            counts = y_train.value_counts(normalize=True).to_dict()
-            prevalence_map = counts
-            
-            # Create a map for evaluation
-            y_test_map = {}
-            for row_str in y_train.unique():
-                # mask for this label in test set
-                y_test_map[row_str] = (self.discrete_df.iloc[self.test_indices].astype(str).agg(','.join, axis=1) == row_str)
-
-        # 2. Preprocessing (Optional)
+        # Preprocessing
         current_stats = None
         if standardize:
              X_train, _, stats = analyzer.preprocess_features(X_train, standardize=True)
              current_stats = stats
-             # Standardize X_test using SAME scaler
-             scaler = stats['scaler']
-             numeric_cols = stats['numeric_cols']
-             X_test_arr = scaler.transform(X_test[numeric_cols])
-             X_test = pd.DataFrame(X_test_arr, index=X_test.index, columns=numeric_cols)
+             X_test_arr = stats['scaler'].transform(X_test[stats['numeric_cols']])
+             X_test = pd.DataFrame(X_test_arr, index=X_test.index, columns=stats['numeric_cols'])
 
-        # 3. Discovery (Run on Train Set)
-        target_info = tradeoff_name if tradeoff_name else "All Tradeoffs"
-        print(f"Running {method.upper()} discovery for: {target_info} ...")
-        
+        print(f"Running CART global discovery for all tradeoff combinations ...")
         discovery_kwargs = kwargs.copy()
-        if method == 'cart':
-            discovery_kwargs['discrete_outcomes'] = y_train
-        else:
-            discovery_kwargs['y_mask'] = y_train
-            
+        discovery_kwargs['discrete_outcomes'] = y_train
+        
         result = self.coordinator.discover_scenarios(
-            X_train, 
-            outcome=tradeoff_name or "all", 
-            method=method, 
-            experiments_df=X_train,
-            **discovery_kwargs
+            X_train, outcome="all", method='cart', experiments_df=X_train, **discovery_kwargs
         )
         
-        if result is None:
-            return []
-            
-        # Extract boxes from result
+        if not result: return []
+        
+        _, cart_boxes, _ = result
         boxes = []
-        if method == 'prim':
-            _, limits_dict, _ = result
-            boxes.append(Box(limits=limits_dict, target_tradeoff=tradeoff_name, method='prim'))
-        elif method == 'cart':
-            _, cart_boxes, _ = result
-            # cart_boxes is {label: limits_dict}
-            for label, limits in cart_boxes.items():
-                boxes.append(Box(limits=limits, target_tradeoff=str(label), method='cart'))
-
-        # 4. Post-processing: Evaluate and De-standardize
-        for box in boxes:
-            box.dataset_bounds = dataset_bounds
+        for label, limits in cart_boxes.items():
+            class_str = str(label)
+            # Check if this class matches ANY of the requested tradeoffs
+            matched_tradeoff = None
+            for t_name in tradeoff_names:
+                if self._matches_tradeoff(class_str, t_name):
+                    matched_tradeoff = t_name
+                    break
             
-            # Identify which test mask to use
-            y_test = y_test_map.get(box.target_tradeoff)
-            prevalence = prevalence_map.get(box.target_tradeoff, 0.0)
-            
-            if y_test is not None:
-                box.metrics = BoxEvaluator.evaluate(box.limits, X_test, y_test, population_prevalence=prevalence)
-                box.population_prevalence = prevalence
-            
-            # De-standardize
-            if standardize and current_stats:
-                scaler = current_stats['scaler']
-                numeric_cols = current_stats['numeric_cols']
+            # If no specific names were requested, we return all (matched_tradeoff is just informational)
+            # But here the user specifically wants to filter.
+            if matched_tradeoff:
+                box = Box(limits=limits, target_tradeoff=class_str, method='cart')
+                # Include the named tradeoff as metadata
+                box.target_tradeoff_name = matched_tradeoff 
                 
-                # scaler.mean_ and scaler.scale_ (std) correspond to numeric_cols
-                means_map = dict(zip(numeric_cols, scaler.mean_))
-                stds_map = dict(zip(numeric_cols, scaler.scale_))
+                # Evaluate and Post-process
+                y_test = y_test_map.get(class_str)
+                prevalence = prevalence_map.get(class_str, 0.0)
+                if y_test is not None:
+                    box.metrics = BoxEvaluator.evaluate(box.limits, X_test, y_test, population_prevalence=prevalence)
+                    box.population_prevalence = prevalence
                 
-                new_limits = {}
-                for param, lims in box.limits.items():
-                    m = means_map.get(param, 0.0)
-                    s = stds_map.get(param, 1.0)
-                    new_limits[param] = {
-                        'min': float(lims['min'] * s + m),
-                        'max': float(lims['max'] * s + m)
-                    }
-                box.limits = new_limits
+                # De-standardize
+                if standardize and current_stats:
+                    self._destandardize_box(box, current_stats)
+                
+                boxes.append(box)
                 
         return boxes
+
+    def _discover_single_prim(self, tradeoff_name: str, parameters=None, standardize=False, **kwargs) -> List[Any]:
+        """Internal helper for single PRIM discovery."""
+        from ..analysis.discovery import Box, BoxEvaluator
+        from ..analysis.feature_importance import FeatureImportanceAnalyzer
+        
+        if self.train_indices is None:
+            self.split_data()
+            
+        analyzer = FeatureImportanceAnalyzer(self.sys_def)
+        if parameters is None:
+            parameters = analyzer.get_parameter_columns(self.experiments_df)
+            
+        X_train = self.experiments_df.iloc[self.train_indices][parameters]
+        X_test = self.experiments_df.iloc[self.test_indices][parameters]
+        
+        # Target prep
+        tradeoff = next((t for t in self.get_tradeoffs() if t.name == tradeoff_name), None)
+        if not tradeoff: return []
+                
+        y_all = pd.Series(True, index=self.experiments_df.index)
+        for obj_name, target_label in tradeoff.elements.items():
+            if obj_name in self.discrete_df.columns:
+                y_all &= (self.discrete_df[obj_name] == target_label)
+        
+        y_train = y_all.iloc[self.train_indices]
+        y_test = y_all.iloc[self.test_indices]
+        prevalence = y_train.sum() / len(y_train) if len(y_train) > 0 else 0.0
+
+        # Preprocessing
+        current_stats = None
+        if standardize:
+             X_train, _, stats = analyzer.preprocess_features(X_train, standardize=True)
+             current_stats = stats
+             X_test_arr = stats['scaler'].transform(X_test[stats['numeric_cols']])
+             X_test = pd.DataFrame(X_test_arr, index=X_test.index, columns=stats['numeric_cols'])
+
+        print(f"Running PRIM discovery for: {tradeoff_name} ...")
+        discovery_kwargs = kwargs.copy()
+        discovery_kwargs['y_mask'] = y_train
+            
+        result = self.coordinator.discover_scenarios(
+            X_train, outcome=tradeoff_name, method='prim', experiments_df=X_train, **discovery_kwargs
+        )
+        
+        if not result: return []
+        _, limits_dict, _ = result
+        
+        box = Box(limits=limits_dict, target_tradeoff=tradeoff_name, method='prim')
+        box.metrics = BoxEvaluator.evaluate(box.limits, X_test, y_test, population_prevalence=prevalence)
+        box.population_prevalence = prevalence
+        
+        if standardize and current_stats:
+            self._destandardize_box(box, current_stats)
+            
+        return [box]
+
+    def _destandardize_box(self, box, stats):
+        """Helper to convert box limits back to original scales."""
+        scaler = stats['scaler']
+        numeric_cols = stats['numeric_cols']
+        means_map = dict(zip(numeric_cols, scaler.mean_))
+        stds_map = dict(zip(numeric_cols, scaler.scale_))
+        
+        new_limits = {}
+        for param, lims in box.limits.items():
+            m = means_map.get(param, 0.0)
+            s = stds_map.get(param, 1.0)
+            new_limits[param] = {
+                'min': float(lims['min'] * s + m),
+                'max': float(lims['max'] * s + m)
+            }
+        box.limits = new_limits
+
+    def _matches_tradeoff(self, class_str: str, tradeoff_name: str) -> bool:
+        """Checks if a CART class string matches a named tradeoff definition."""
+        outcome_cols = list(self.discrete_df.columns)
+        labels = class_str.split(',')
+        label_map = dict(zip(outcome_cols, labels))
+        
+        tradeoff = next((t for t in self.get_tradeoffs() if t.name == tradeoff_name), None)
+        if not tradeoff: return False
+        
+        for obj, target in tradeoff.elements.items():
+            if label_map.get(obj) != target:
+                return False
+        return True
 
     def get_weighted_feature_ranking(self, scores_df: pd.DataFrame, weights: Optional[Dict[str, float]] = None) -> List[str]:
         """
