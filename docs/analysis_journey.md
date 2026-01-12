@@ -1,6 +1,6 @@
 # ADEPT Analysis Journey: A Guide to Data-Driven Architectural Exploration
 
-The ADEPT analysis journey is a structured pipeline designed to turn raw simulation data into actionable architectural knowledge. This document provides an in-depth look at each stage of the process, the typical questions it answers, and how to interpret the results.
+The ADEPT analysis journey is a structured pipeline designed to turn raw simulation data into actionable architectural knowledge. This document provides an in-depth look at each stage of the process, the typical questions it answers, and the specific functions to use.
 
 ---
 
@@ -17,115 +17,121 @@ The `PatternAnalysis` session manages the state of your data and analysis.
 ## 1. Tradeoff Definition (The Qualitative Shift)
 Before analysis begins, we must translate raw numeric values (e.g., "124ms") into architectural concepts (e.g., "Fast"). This process, known as **Discretization**, allows us to group data points into "Tradeoff" regions.
 
-### Typical Questions
-*   **Initial Inquiry**: "How do we define 'Success' for this system? Is it a hard threshold (Latency < 200ms) or relative to the best possible performance (Pareto Optimal)?"
-*   **Follow-up**: "If we define 'Low Cost' too strictly, do we eliminate too many viable architectural candidates?"
+### Typical Questions & Functions
+1.  **"How should we categorize our performance metrics?"**
+    *   *Answer with*: `define_tradeoffs(method='discretization', n_bins=3)`
+    *   *Insight*: Splits metrics into Low/Avg/High, giving a quick overview of the data spread.
+2.  **"Where are the optimal design points that balance conflicting goals?"**
+    *   *Answer with*: `define_tradeoffs(method='pareto')` or `define_tradeoffs(method='pareto_epsilon')`
+    *   *Insight*: Identifies the Pareto Front, filtering out sub-optimal designs.
+3.  **"Does the system meet our strict Service Level Agreements (SLAs)?"**
+    *   *Answer with*: `define_tradeoffs(method='threshold', params={'thresholds': {...}})`
+    *   *Insight*: Applies hard limits (e.g., Latency < 200ms) to strictly classify success vs. failure.
 
 ### Tools & Methods
-*   **Available Strategies**:
-    *   **Equal-Width Discretization**: Splits the range of an objective into $N$ equal parts. Good for general exploration.
-    *   **Pareto Frontiers**: Identifies points that represent the best possible compromises. No point on the frontier can be improved in one objective without being degraded in another.
-    *   **Epsilon-Pareto**: A "fuzzy" Pareto approach that ignores small, insignificant differences, resulting in a cleaner frontier.
-    *   **Knee-Point Analysis**: Automatically identifies the "elbow" of a curve—the region where you get the most improvement for the least cost.
-    *   **Thresholding**: Sets hard engineering limits (e.g., "Reliability must be > 99.9%").
+*   **Strategies**: Equal-Width Discretization, Pareto Frontiers, Epsilon-Pareto, Knee-Point Analysis, Thresholding.
 
 ---
 
 ## 2. Objective Space Exploration (Visual Confirmation)
 Once tradeoffs are defined, we visualize them to confirm they align with our intuition and architectural requirements.
 
-### Typical Questions
-*   **Initial Inquiry**: "What is the shape of the design space? Are Cost and Performance conflicting (inverse correlation) or aligned?"
-*   **Follow-up**: "Why are there gaps in the solution space? Are those regions physically impossible, or simply unexplored by the simulation?"
+### Typical Questions & Functions
+1.  **"What does the overall design space look like?"**
+    *   *Answer with*: `show_quality_objective_space(x_metric='cost', y_metric='latency')`
+    *   *Insight*: Shows the raw distribution of all simulation runs.
+2.  **"Where do our 'High Reliability' solutions clump together?"**
+    *   *Answer with*: `show_quality_objective_space(..., highlight_tradeoffs=[tradeoff_obj])`
+    *   *Insight*: Overlays specific tradeoff regions on the scatter plot, revealing their shape and density.
+3.  **"Are certain architectural policies restricting us to specific performance areas?"**
+    *   *Answer with*: `show_quality_objective_space(..., highlight_policies=['policy_A', 'policy_B'])`
+    *   *Insight*: Colors points by policy, showing if a decision (e.g., "Low Redundancy") forces the system into a specific corner of the objective space.
 
 ### Tools & Methods
-*   **Scatter Plots**: We plot pairs of objectives (e.g., Cost vs. Execution Time).
-    *   **Data Subsets**: Most visualization and analysis functions accept a `subset` parameter (`'all'`, `'train'`, or `'test'`). This allows you to verify if the patterns seen in the training data still hold true in the held-out test data.
-    *   **Coloring by Tradeoff**: Highlights where the "Inexpensive-but-reliable" points cluster.
-    *   **Coloring by Policy**: Shows if certain architectural decisions (e.g., "Serverless Deployment") naturally gravitate towards specific performance regions.
-*   **Overlay Modes**:
-    *   **Point Overlay**: Every sample is a dot. Best for seeing density and outliers.
-    *   **Rectangle Overlay**: Draws bounding boxes for tradeoff regions. Best for visualizing the "target zones" without the noise of individual points.
+*   **Plots**: Scatter Plots with subsets, tradeoff coloring, and policy highlighting.
+*   **Overlays**: Point Overlay (density) and Rectangle Overlay (regions).
 
 ---
 
 ## 3. Relationship Analysis (Impact of Decisions)
 This stage answers the critical question: *"If I choose Policy X, what is the probability I will land in Tradeoff Y?"*
 
-### Typical Questions
-*   **Initial Inquiry**: "Which architectural decision (Policy) gives me the highest chance of achieving 'High Availability'?"
-*   **Follow-up**: "Is this outcome unique to this policy? Or can I achieve the same result with a cheaper alternative?" (leads to `get_exclusive_tradeoffs`).
+### Typical Questions & Functions
+1.  **"Which policy gives me the best chance of achieving my target tradeoff?"**
+    *   *Answer with*: `get_policy_contingency_matrix(decision_key='...', normalization_mode='row')` or `show_policy_contingency(..., type='heatmap')`
+    *   *Insight*: Shows the probability distribution. E.g., "Policy A -> 85% Success, Policy B -> 40% Success."
+2.  **"Are there any policies that *guarantee* a specific outcome?"**
+    *   *Answer with*: `get_deterministic_policies(decision_key='...', threshold=0.99)`
+    *   *Insight*: Identifies choices with high predictability (low variance).
+3.  **"Is this high-performance outcome *unique* to this expensive policy?"**
+    *   *Answer with*: `get_exclusive_tradeoffs(decision_key='...')`
+    *   *Insight*: Reveals if a desirable outcome is only reachable via one specific path, justifying its cost.
 
 ### Tools & Methods
-*   **The Contingency Matrix**: A cross-tabulation of Architectural Decisions vs. Tradeoff Membership. 
-    *   **DataFrames**: You can retrieve the raw contingency table as a pandas DataFrame using `get_policy_contingency_matrix()`.
-*   **Normalization Modes**:
-    *   **Row Normalization (`row`)**: (Highly Recommended) For a specific decision (e.g., "Load Balancer: Round Robin"), it shows the percentage distribution across all tradeoffs. This allows you to say: *"Policy A leads to 'Fast' outcomes 80% of the time."*
-    *   **Population Normalization (`population`)**: Shows the count relative to the total dataset. Useful for understanding which decisions are most frequent in the simulation.
-*   **Analytical Helpers**:
-    *   **Deterministic Policies**: `get_deterministic_policies()` identifies choices that *always* result in a specific tradeoff (High Predictability).
-    *   **Exclusive Tradeoffs**: `get_exclusive_tradeoffs()` identifies quality outcomes that can *only* be achieved by one specific policy (Uniqueness).
-    *   **Variable Policies**: `get_variable_policies()` flags decisions that lead to multiple possible tradeoffs (High Uncertainty).
-*   **Visual Tools**:
-    *   **Heatmaps**: Use color intensity to show "hotspots" where decisions and tradeoffs strongly correlate.
-    *   **Sankey Diagrams**: Visualize the "flow" of probability. Ideal for multi-step architectural decisions where you want to see how choices aggregate into outcomes.
+*   **Contingency Matrix**: Cross-tabulation of Decisions vs. Outcomes.
+*   **Visuals**: Heatmaps (Correlation), Sankey Diagrams (Flow).
+*   **Helpers**: Deterministic Policies, Exclusive Tradeoffs, Variable Policies.
 
 ---
 
 ## 4. Robustness Analysis (Quantifying Stability)
 While Contingency Analysis tells you "how often" a policy hits a target, Robustness Analysis quantifies the stability of that performance under uncertainty.
 
-### Typical Questions
-*   **Initial Inquiry**: "Policy A hits the target 90% of the time, but when it fails, does it fail slightly or catastrophically?" (leads to Regret metric).
-*   **Follow-up**: "How does the stability of Policy A compare to Policy B when subjected to the same uncertain workloads?"
+### Typical Questions & Functions
+1.  **"How robust is Policy A against uncertainties?"**
+    *   *Answer with*: `compute_robustness(policy='A', tradeoff='Target', metric='starr')`
+    *   *Insight*: Returns the success rate (STARR). High score = High reliability.
+2.  **"When Policy A fails, is it a minor glitch or a catastrophic breach?"**
+    *   *Answer with*: `compute_robustness(policy='A', tradeoff='Target', metric='regret')`
+    *   *Insight*: Returns the standardized distance from success (Regret). Low score = Safe failure; High score = Dangerous outlier.
+3.  **"Which policies should I shortlist for further testing?"**
+    *   *Answer with*: `get_policy_robustness_ranking(tradeoff='Target', metric='starr')` or `show_robustness_heatmap()`
+    *   *Insight*: Provides a sorted list or visual comparison of all policies, allowing you to quickly filter out the unstable candidates.
 
 ### Tools & Methods
-*   **Metrics**:
-    *   **STARR (Success Rate)**: Simply the probability of satisfying the tradeoff. (Range: 0.0 to 1.0, Higher is Better).
-    *   **Regret (Distance to Satisfaction)**: If a system fails to meet the tradeoff, *how badly* did it miss? Regret measures the distance from the acceptable boundary. (Range: 0 to $\infty$, Lower is Better).
-*   **Tools**:
-    *   **Single Check**: `compute_robustness()` calculates the metric for one policy against one tradeoff.
-    *   **Full Report**: `get_robustness_report()` generates a table (DataFrame) comparing all policies across all tradeoffs.
-    *   **Visual Report**: `show_robustness_heatmap()` visualizes the report as a color-coded matrix, automatically using green scales for success rates (STARR) and red scales for error magnitudes (Regret).
-    *   **Ranking**: `get_policy_robustness_ranking()` returns a sorted list of policies, ordered from most to least robust for a specific target. It automatically handles the sorting direction (descending for STARR, ascending for Regret).
+*   **Metrics**: STARR (Success Rate), Regret (Distance to Satisfaction).
+*   **Reports**: Single Check, Full DataFrame Report, Ranking List, Heatmap Visualization.
 
 ---
 
 ## 5. Feature Scoring (Sensitivity & Influence)
 Not all parameters are created equal. Feature scoring uses Machine Learning (Random Forests) to rank which parameters (Levers, Uncertainties, or Constraints) actually "drive" the values of your quality objectives.
 
-### Typical Questions
-*   **Initial Inquiry**: "Which inputs (Levers or Uncertainties) have the biggest impact on Cost? Is it the number of servers or the database type?"
-*   **Follow-up**: "We are spending resources optimizing 'Cache Size', but does the data support that this parameter actually matters?"
+### Typical Questions & Functions
+1.  **"Which system parameters matter most for 'Cost'?"**
+    *   *Answer with*: `compute_feature_scores(subset='train')`
+    *   *Insight*: Returns a ranked list of feature importance scores for each objective.
+2.  **"Are we over-complicating the model with irrelevant parameters?"**
+    *   *Answer with*: `compute_feature_scores(use_smart_correlation=True)`
+    *   *Insight*: Identifies and prunes redundant (highly correlated) features, simplifying the analysis.
+3.  **"What is the single most critical parameter for the *overall* system health?"**
+    *   *Answer with*: `get_weighted_feature_ranking(scores_df, weights={'cost': 0.5, 'latency': 0.5})`
+    *   *Insight*: Aggregates scores across multiple objectives to find the global drivers.
 
 ### Tools & Methods
-*   **Subset Recommendation**: Scoring should typically be performed on the `'train'` subset. You can then use the `'test'` subset to validate how well these features explain the outcomes in unseen scenarios.
-*   **The Preprocessing Pipeline**:
-    *   **Z-Score Standardization**: Since "Cost" ($) and "Latency" (ms) have different units, we use `StandardScaler` to put them on a uniform scale.
-    *   **Outlier Removal**: We filter out simulation "noise" by removing points that fall outside $3\sigma$ of the mean.
-*   **Advanced Selection**:
-    *   **Smart Correlated Selection**: In many simulations, parameters are redundant. This step identifies groups of correlated features and keeps only the most predictive one, preventing the "dilution" of importance scores.
-*   **Weighted Ranking**: Because an architecture must satisfy multiple stakeholders, you can assign weights to different objectives. ADEPT then produces a **Single Unified Ranking** of features that most affect the system's overall health.
+*   **Pipeline**: Z-Score Standardization, Outlier Removal (3$\sigma$).
+*   **Algorithms**: Random Forest Regression, Smart Correlated Selection.
 
 ---
 
 ## 6. Scenario Discovery (Finding the Envelope)
 The final stage generates "Operational Rules" or "Envelopes." It finds the specific ranges of parameters that reliably produce target tradeoffs.
 
-### Typical Questions
-*   **Initial Inquiry**: "What are the exact operating conditions (e.g., 'CPU < 80%') required to guarantee the 'High Reliability' tradeoff?"
-*   **Follow-up**: "The discovered rules are very strict (low density). Can we find a broader, more flexible region that still meets most of our requirements?"
+### Typical Questions & Functions
+1.  **"What are the specific operating rules (e.g., CPU < X) to ensure success?"**
+    *   *Answer with*: `discover_scenarios(tradeoff_names=['MyTarget'], method='prim')`
+    *   *Insight*: Returns a "Box" (rule set) that maximizes the density of successful cases.
+2.  **"Can we find a broader, more flexible operational region?"**
+    *   *Answer with*: `discover_scenarios(..., threshold=0.6)` (Lowering threshold)
+    *   *Insight*: Relaxes the strictness of PRIM to find larger boxes, trading off some purity for coverage (Recall).
+3.  **"How does the system behave across the *entire* design space?"**
+    *   *Answer with*: `discover_scenarios(method='cart')`
+    *   *Insight*: Uses Decision Trees to partition the whole space into regions, mapping every combination of inputs to its most likely outcome.
 
 ### Tools & Methods
-*   **Multi-Tradeoff Targeting**: You can pass a single name, a list of names, or `None` (targets all tradeoffs) to the discovery method.
-*   **The Algorithms**:
-    *   **PRIM (Patient Rule Induction Method)**: A "bottom-up" approach. If multiple tradeoffs are requested, PRIM runs iteratively for each one, finding the most concentrated box for every target.
-    *   **CART (Decision Trees)**: A "top-down" approach. It partitions the entire space at once. If specific tradeoffs are requested, CART runs globally and then filters the results to only show the "leaves" that match your criteria.
-*   **The "Success" Metrics**:
-    *   **Population Prevalence**: The % of points in the whole dataset that meet the target (the "Baseline").
-    *   **Box Density**: The % of points *inside the box* that meet the target.
-    *   **Lift**: Calculated as `Density / Prevalence`. A Lift of 5.0 means that by following the box's rules, you are **5 times more likely** to achieve your target tradeoff than if you chose parameters randomly.
-*   **De-standardization**: If standardization was applied during scoring, ADEPT automatically converts the rules back to the original units (e.g., converting a Z-score of 1.5 back to "5000 CPU Cycles").
+*   **Algorithms**: PRIM (Patient Rule Induction Method), CART (Decision Trees).
+*   **Metrics**: Population Prevalence (Baseline), Box Density (Purity), Lift (Improvement Factor).
+*   **De-standardization**: Automatic conversion of Z-score rules back to original units.
 
 ---
 
