@@ -322,6 +322,33 @@ class PatternAnalysis:
                 
         return deterministic_pairs
 
+    def get_exclusive_tradeoffs(self, decision_key: str, subset: str = 'all', threshold: float = 0.0) -> List[Tuple[str, str]]:
+        """
+        Returns tradeoffs that are exclusively achieved by a single policy.
+        
+        Args:
+            decision_key: The decision to analyze.
+            subset: 'all', 'train', or 'test'.
+            threshold: Minimum count to consider a policy-tradeoff relationship.
+            
+        Returns:
+            List[Tuple[str, str]]: List of (policy_name, tradeoff_name) pairs.
+        """
+        # Use raw counts to check column exclusivity
+        df = self.get_policy_contingency_matrix(decision_key, normalization_mode='none', subset=subset)
+        
+        exclusive_pairs = []
+        
+        for tradeoff_name in df.columns:
+            col = df[tradeoff_name]
+            # Find rows (policies) where count > threshold
+            active_policies = col[col > threshold].index.tolist()
+            
+            if len(active_policies) == 1:
+                exclusive_pairs.append((str(active_policies[0]), str(tradeoff_name)))
+                
+        return exclusive_pairs
+
     # --- Data Subset Helpers ---
 
     def _get_subset_data(self, subset: str = 'all') -> Tuple[pd.DataFrame, pd.DataFrame, Optional[pd.DataFrame]]:
