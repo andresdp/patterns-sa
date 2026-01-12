@@ -542,6 +542,62 @@ class PatternAnalysis:
         # 4. Convert to list of tuples
         return list(zip(sorted_scores.index, sorted_scores.values))
 
+    def show_robustness_heatmap(
+        self, 
+        metric: str = 'starr', 
+        subset: str = 'all', 
+        decision_key: Optional[str] = None, 
+        tradeoff_names: Optional[List[str]] = None,
+        **kwargs
+    ) -> plt.Figure:
+        """
+        Visualizes the robustness report as a heatmap.
+        
+        Args:
+            metric: 'starr' or 'regret'.
+            subset: 'all', 'train', or 'test'.
+            decision_key: Optional decision to filter policies.
+            tradeoff_names: Optional list of tradeoffs to include.
+            **kwargs: Arguments passed to seaborn.heatmap (e.g., cmap, annot).
+            
+        Returns:
+            plt.Figure: The matplotlib figure object.
+        """
+        import seaborn as sns
+        
+        # 1. Get Data
+        df = self.get_robustness_report(
+            decision_key=decision_key, 
+            tradeoff_names=tradeoff_names, 
+            metric=metric, 
+            subset=subset
+        )
+        
+        if df.empty:
+            raise ValueError("Robustness report is empty. Cannot generate heatmap.")
+            
+        # 2. Setup Plot
+        fig, ax = plt.subplots(figsize=kwargs.pop('figsize', (10, len(df)*0.5 + 2)))
+        
+        # 3. Determine Color Map based on Metric
+        # STARR: 0..1 (Higher is better) -> Blues or Greens
+        # Regret: 0..inf (Lower is better) -> Reds or reversed sequential
+        cmap = kwargs.pop('cmap', None)
+        if cmap is None:
+            if metric == 'starr':
+                cmap = 'Greens'
+            else:
+                cmap = 'Reds' # Higher regret = Red
+        
+        # 4. Draw Heatmap
+        sns.heatmap(df, annot=kwargs.pop('annot', True), fmt=kwargs.pop('fmt', '.2f'), 
+                    cmap=cmap, ax=ax, **kwargs)
+        
+        ax.set_title(f"Robustness Heatmap ({metric.upper()}) - Subset: {subset}")
+        plt.tight_layout()
+        
+        return fig
+
     # --- Data Subset Helpers ---
 
     def _get_subset_data(self, subset: str = 'all') -> Tuple[pd.DataFrame, pd.DataFrame, Optional[pd.DataFrame]]:
