@@ -296,6 +296,32 @@ class PatternAnalysis:
         
         return df.index[variability_mask].tolist()
 
+    def get_deterministic_policies(self, decision_key: str, subset: str = 'all', threshold: float = 0.99) -> List[Tuple[str, str]]:
+        """
+        Returns policies that consistently result in a single specific tradeoff.
+        
+        Args:
+            decision_key: The decision to analyze.
+            subset: 'all', 'train', or 'test'.
+            threshold: Minimum percentage (0.0 to 1.0) to consider a policy "deterministic" 
+                       for a tradeoff. Default is 0.99 (99%).
+            
+        Returns:
+            List[Tuple[str, str]]: List of (policy_name, tradeoff_name) pairs.
+        """
+        df = self.get_policy_contingency_matrix(decision_key, normalization_mode='row', subset=subset)
+        
+        deterministic_pairs = []
+        
+        for policy_name, row in df.iterrows():
+            # Find tradeoffs where percentage >= threshold
+            matching_tradeoffs = row[row >= threshold].index.tolist()
+            
+            if len(matching_tradeoffs) == 1:
+                deterministic_pairs.append((str(policy_name), str(matching_tradeoffs[0])))
+                
+        return deterministic_pairs
+
     # --- Data Subset Helpers ---
 
     def _get_subset_data(self, subset: str = 'all') -> Tuple[pd.DataFrame, pd.DataFrame, Optional[pd.DataFrame]]:
