@@ -4,6 +4,14 @@ The ADEPT analysis journey is a structured pipeline designed to turn raw simulat
 
 ---
 
+## 0. Session Management (Lifecycle)
+The `PatternAnalysis` session manages the state of your data and analysis. 
+
+*   **Session Reset**: Use the `reset()` method to clear all temporal variables (loaded data, tradeoffs, splits, and statistics). This allows you to start fresh or reload a modified configuration without re-instantiating the session.
+*   **Early Data Splitting**: While splitting can happen anytime, it is ideally performed right after Tradeoffs are defined. Once `split_data()` is called, all subsequent analysis functions can target specific subsets of the data.
+
+---
+
 ## 1. Tradeoff Definition (The Qualitative Shift)
 Before analysis begins, we must translate raw numeric values (e.g., "124ms") into architectural concepts (e.g., "Fast"). This process, known as **Discretization**, allows us to group data points into "Tradeoff" regions.
 
@@ -30,14 +38,18 @@ Once tradeoffs are defined, we visualize them to confirm they align with our int
 
 ---
 
-## 3. Contingency Analysis (Impact of Decisions)
+## 3. Relationship Analysis (Impact of Decisions)
 This stage answers the critical question: *"If I choose Policy X, what is the probability I will land in Tradeoff Y?"*
 
-*   **The Contingency Matrix**: A cross-tabulation of Architectural Decisions vs. Tradeoff Membership.
-*   **Subset Analysis**: By running contingency on the `'train'` set and then on the `'test'` set, you can ensure that your architectural insights are consistent across different samples.
+*   **The Contingency Matrix**: A cross-tabulation of Architectural Decisions vs. Tradeoff Membership. 
+    *   **DataFrames**: You can retrieve the raw contingency table as a pandas DataFrame using `get_policy_contingency_matrix()`.
 *   **Normalization Modes**:
     *   **Row Normalization (`row`)**: (Highly Recommended) For a specific decision (e.g., "Load Balancer: Round Robin"), it shows the percentage distribution across all tradeoffs. This allows you to say: *"Policy A leads to 'Fast' outcomes 80% of the time."*
     *   **Population Normalization (`population`)**: Shows the count relative to the total dataset. Useful for understanding which decisions are most frequent in the simulation.
+*   **Analytical Helpers**:
+    *   **Deterministic Policies**: `get_deterministic_policies()` identifies choices that *always* result in a specific tradeoff (High Predictability).
+    *   **Exclusive Tradeoffs**: `get_exclusive_tradeoffs()` identifies quality outcomes that can *only* be achieved by one specific policy (Uniqueness).
+    *   **Variable Policies**: `get_variable_policies()` flags decisions that lead to multiple possible tradeoffs (High Uncertainty).
 *   **Visual Tools**:
     *   **Heatmaps**: Use color intensity to show "hotspots" where decisions and tradeoffs strongly correlate.
     *   **Sankey Diagrams**: Visualize the "flow" of probability. Ideal for multi-step architectural decisions where you want to see how choices aggregate into outcomes.
@@ -58,11 +70,12 @@ Not all parameters are created equal. Feature scoring uses Machine Learning (Ran
 ---
 
 ## 5. Scenario Discovery (Finding the Envelope)
-The final stage generates "Operational Rules" or "Envelopes." It finds the specific ranges of parameters that reliably produce a target tradeoff.
+The final stage generates "Operational Rules" or "Envelopes." It finds the specific ranges of parameters that reliably produce target tradeoffs.
 
+*   **Multi-Tradeoff Targeting**: You can pass a single name, a list of names, or `None` (targets all tradeoffs) to the discovery method.
 *   **The Algorithms**:
-    *   **PRIM (Patient Rule Induction Method)**: A "bottom-up" approach. It starts with the whole space and iteratively "peels" away regions that don't satisfy the target. It results in a highly focused "Box" or rule-set (e.g., *"If CPU > 2.0 and Memory < 4GB, you will hit the Low-Cost tradeoff"*).
-    *   **CART (Decision Trees)**: A "top-down" approach. It splits the entire space into multiple boxes, one for every possible outcome combination. Best for a comprehensive map of the entire design space.
+    *   **PRIM (Patient Rule Induction Method)**: A "bottom-up" approach. If multiple tradeoffs are requested, PRIM runs iteratively for each one, finding the most concentrated box for every target.
+    *   **CART (Decision Trees)**: A "top-down" approach. It partitions the entire space at once. If specific tradeoffs are requested, CART runs globally and then filters the results to only show the "leaves" that match your criteria.
 *   **The "Success" Metrics**:
     *   **Population Prevalence**: The % of points in the whole dataset that meet the target (the "Baseline").
     *   **Box Density**: The % of points *inside the box* that meet the target.
