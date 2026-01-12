@@ -6,12 +6,16 @@ from collections import Counter
 from .loader import DataLoader, GenericDataLoader
 from .models import SystemDefinition, DiscretizationScheme, Tradeoff
 from ..utils.validation import SchemaValidator, SimpleValidator
+from ..utils.exceptions import (
+    ADEPTError, DataLoadingError, ValidationError, DiscoveryError,
+    ConfigurationError, AnalysisError, TradeoffDefinitionError, VisualizationError
+)
 from ..analysis.discretization import DataProcessor
 from ..analysis.robustness import RobustnessAnalyzer
 from ..analysis.tradeoffs import TradeoffAnalyzer
 from ..analysis.discovery import ScenarioDiscoveryManager
 from ..analysis.explainer import ExplanationManager
-from ..analysis.visualization import plot_tradeoff_distribution, show_quality_objective_space
+from ..analysis.visualization_manager import VisualizationManager
 import matplotlib.pyplot as plt
 
 
@@ -34,6 +38,7 @@ class ArchSpaceCore:
                  validator: Optional[SchemaValidator] = None,
                  discovery_manager: Optional[ScenarioDiscoveryManager] = None,
                  explanation_manager: Optional[ExplanationManager] = None,
+                 visualization_manager: Optional[VisualizationManager] = None,
                  data_processor: Optional[DataProcessor] = None,
                  robustness_analyzer: Optional[RobustnessAnalyzer] = None,
                  tradeoff_analyzer: Optional[TradeoffAnalyzer] = None):
@@ -42,16 +47,35 @@ class ArchSpaceCore:
         self.validator = validator or SimpleValidator()
         self.discovery_manager = discovery_manager or ScenarioDiscoveryManager()
         self.explanation_manager = explanation_manager or ExplanationManager()
+        self.visualization_manager = visualization_manager or VisualizationManager()
         
         self.data_processor = data_processor or DataProcessor()
         self.robustness_analyzer = robustness_analyzer or RobustnessAnalyzer()
         self.tradeoff_analyzer = tradeoff_analyzer or TradeoffAnalyzer()
 
     def load_data(self, source: Any, validate_integrity: bool = True) -> pd.DataFrame:
-        """Loads raw data from the specified source."""
-        if isinstance(self.loader, GenericDataLoader):
-            return self.loader.load(source, validate_integrity=validate_integrity)
-        return self.loader.load(source)
+        """Loads raw data from the specified source.
+        
+        Args:
+            source: Path to data source or data object
+            validate_integrity: Whether to validate data integrity
+            
+        Returns:
+            DataFrame containing loaded data
+            
+        Raises:
+            DataLoadingError: If data loading fails
+            ValueError: If source is invalid
+        """
+        if source is None:
+            raise ValueError("Data source cannot be None")
+        
+        try:
+            if isinstance(self.loader, GenericDataLoader):
+                return self.loader.load(source, validate_integrity=validate_integrity)
+            return self.loader.load(source)
+        except Exception as e:
+            raise DataLoadingError(f"Failed to load data from {source}", {"original_error": str(e)})
 
     def load_system_definition(self, source: Any) -> SystemDefinition:
         """Loads the system definition from the specified source.
@@ -72,8 +96,31 @@ class ArchSpaceCore:
         raise TypeError("Detailed data loading requires GenericDataLoader")
 
     def validate(self, df: pd.DataFrame) -> bool:
-        """Validates the data against internal schema requirements."""
-        return self.validator.validate(df)
+        """Validates the data against internal schema requirements.
+        
+        Args:
+            df: DataFrame to validate
+            
+        Returns:
+            True if validation passes, False otherwise
+            
+        Raises:
+            ValidationError: If validation fails with specific issues
+            ValueError: If input is invalid
+        """
+        if df is None:
+            raise ValueError("DataFrame cannot be None")
+        
+        if not isinstance(df, pd.DataFrame):
+            raise ValueError("Input must be a pandas DataFrame")
+        
+        if df.empty:
+            raise ValidationError("DataFrame is empty")
+        
+        try:
+            return self.validator.validate(df)
+        except Exception as e:
+            raise ValidationError(f"Data validation failed", {"original_error": str(e)})
 
     def discover_scenarios(self, df: pd.DataFrame, outcome: str, method: Optional[str] = None, **kwargs):
         """Identifies key parameter regions driving specific outcomes.
@@ -121,16 +168,55 @@ class ArchSpaceCore:
     def plot_distributions(self, outcomes_df: pd.DataFrame, schemes: List[DiscretizationScheme], tradeoff: Optional[Tradeoff] = None, highlight_indices: Optional[np.ndarray] = None, **kwargs) -> plt.Figure:
         """Plots outcome distributions with tradeoff overlays.
         
-        Delegates to analysis.visualization.
+        Delegates to the VisualizationManager.
+        
+        Args:
+            outcomes_df: DataFrame containing outcome data
+            schemes: List of discretization schemes
+            tradeoff: Optional tradeoff to highlight
+            highlight_indices: Optional indices to highlight
+            **kwargs: Additional plotting parameters
+            
+        Returns:
+            Matplotlib figure with the visualization
+            
+        Raises:
+            VisualizationError: If plotting fails
         """
-        return plot_tradeoff_distribution(outcomes_df, schemes, tradeoff=tradeoff, highlight_indices=highlight_indices, **kwargs)
-
+        return self.visualization_manager.plot_tradeoff_distribution(outcomes_df, schemes, tradeoff=tradeoff, highlight_indices=highlight_indices, **kwargs)
+    
     def show_quality_objective_space(self, outcomes_df: pd.DataFrame, x_metric: str, y_metric: str, schemes: List[DiscretizationScheme], highlight_indices_map: Optional[Dict[str, np.ndarray]] = None, policy_series: Optional[pd.Series] = None, show_overall: bool = True, color_points: bool = True, draw_rectangles: bool = False, **kwargs) -> plt.Figure:
         """Plots a 2D scatter of outcomes with tradeoff overlays and highlighting.
         
-        Delegates to analysis.visualization.
+        Delegates to the VisualizationManager.
+        
+        Args:
+            outcomes_df: DataFrame containing outcome data
+            x_metric: Name of metric for x-axis
+            y_metric: Name of metric for y-axis
+            schemes: List of discretization schemes
+            highlight_indices_map: Optional mapping of tradeoff labels to indices
+            policy_series: Optional series indicating policy assignments
+            show_overall: Whether to show overall distribution
+            color_points: Whether to color points by tradeoff
+            draw_rectangles: Whether to draw tradeoff rectangles
+            **kwargs: Additional plotting parameters
+            
+        Returns:
+            Matplotlib figure with the visualization
+            
+        Raises:
+            VisualizationError: If plotting fails
         """
-        return show_quality_objective_space(outcomes_df, x_metric, y_metric, schemes, highlight_indices_map=highlight_indices_map, policy_series=policy_series, show_overall=show_overall, color_points=color_points, draw_rectangles=draw_rectangles, **kwargs)
+        return self.visualization_manager.show_quality_objective_space(
+            outcomes_df, x_metric, y_metric, schemes,
+            highlight_indices_map=highlight_indices_map,
+            policy_series=policy_series,
+            show_overall=show_overall,
+            color_points=color_points,
+            draw_rectangles=draw_rectangles,
+            **kwargs
+        )
 
 
-__all__ = ["ArchSpaceCore"]
+__all__ = ["ArchSpaceCore", "VisualizationManager"]

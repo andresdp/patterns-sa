@@ -146,4 +146,30 @@ class SystemLinter:
                         "Dataspace.Configurations"
                     ))
 
+            # Legacy Support: Check component_policies dict
+            if hasattr(config, 'component_policies') and config.component_policies:
+                for comp_name, pol_name in config.component_policies.items():
+                    comp = sys_def.system.components.get(comp_name)
+                    if not comp:
+                        issues.append(LintIssue(
+                            "ERROR", 
+                            f"Configuration '{config.name}' references undefined component '{comp_name}'.", 
+                            "Dataspace.Configurations"
+                        ))
+                        continue
+                    
+                    # Check if policy exists in ANY decision of the component
+                    found = False
+                    for decision in comp.decisions.values():
+                        if pol_name in decision.policies:
+                            found = True
+                            break
+                    
+                    if not found:
+                        issues.append(LintIssue(
+                            "ERROR", 
+                            f"Configuration '{config.name}' references undefined policy '{pol_name}' in component '{comp_name}'.", 
+                            "Dataspace.Configurations"
+                        ))
+
         return issues

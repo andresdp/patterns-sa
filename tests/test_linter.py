@@ -80,13 +80,14 @@ class TestSystemLinter(unittest.TestCase):
         bad_def["dataspace"]["policy_identification"]["policies"]["1"]["component_policies"]["c1"] = "INVALID_POL"
         sys_def = SystemDefinition.model_validate(bad_def)
         issues = self.linter.lint(sys_def, self.base_df)
-        self.assertTrue(any("not defined in the component decisions" in str(i) for i in issues))
+        print(f"DEBUG ISSUES: {[str(i) for i in issues]}")
+        self.assertTrue(any("references undefined policy 'INVALID_POL'" in str(i) for i in issues))
 
     def test_missing_policy_column(self):
         df = self.base_df.drop(columns=["policy_col"])
         sys_def = SystemDefinition.model_validate(self.base_sys_def)
         issues = self.linter.lint(sys_def, df)
-        self.assertTrue(any("Policy identification column 'policy_col' not found" in str(i) for i in issues))
+        self.assertTrue(any("Configuration identification column 'policy_col' not found" in str(i) for i in issues))
 
 if __name__ == '__main__':
     unittest.main()

@@ -1,45 +1,43 @@
-
 import unittest
 import pandas as pd
 from adept.analysis.robustness import RobustnessAnalyzer
-from adept.analysis.discretization import DataProcessor
 
 class TestRobustnessAnalyzer(unittest.TestCase):
     def setUp(self):
         self.analyzer = RobustnessAnalyzer()
-        self.processor = DataProcessor()
 
-    def test_compute_robustness_single_config(self):
-        # Mocking ArchSpace.get_experiment/s behavior with pre-discretized data
-        # In a real scenario, this would likely take the ArchSpace instance or DataFrames directly.
-        
-        # Let's assume we pass the discretized dataframe directly for now
+    def test_compute_starr(self):
+        # Data setup
         discrete_df = pd.DataFrame({
             'A': ['low', 'low', 'high', 'low'],
             'B': ['high', 'low', 'high', 'high']
         })
         
-        # Tradeoffs: 
-        # low,high: 2
-        # low,low: 1
-        # high,high: 1
-        # Total: 4
+        # Target: A=low, B=high
+        # Indices: 0 (True), 1 (False), 2 (False), 3 (True) -> 2 successes
+        target_mask = (discrete_df['A'] == 'low') & (discrete_df['B'] == 'high')
         
-        # Most common is low,high
+        result = self.analyzer.compute_starr(target_mask)
         
-        robustness, tradeoff = self.analyzer.compute_robustness(discrete_df)
-        self.assertEqual(tradeoff, 'low,high')
-        self.assertEqual(robustness, 0.5) # 2/4
+        self.assertEqual(result['metric'], 'starr')
+        self.assertEqual(result['value'], 0.5) # 2/4
+        self.assertEqual(result['details']['success_count'], 2)
+        self.assertEqual(result['details']['total_count'], 4)
 
-    def test_compute_robustness_specific_tradeoff(self):
+    def test_compute_starr_specific_tradeoff(self):
         discrete_df = pd.DataFrame({
             'A': ['low', 'low', 'high', 'low'],
             'B': ['high', 'low', 'high', 'high']
         })
         
-        robustness, tradeoff = self.analyzer.compute_robustness(discrete_df, qa_tradeoff='low,low')
-        self.assertEqual(tradeoff, 'low,low')
-        self.assertEqual(robustness, 0.25) # 1/4
+        # Target: A=low, B=low
+        # Indices: 1 (True) -> 1 success
+        target_mask = (discrete_df['A'] == 'low') & (discrete_df['B'] == 'low')
+        
+        result = self.analyzer.compute_starr(target_mask)
+        
+        self.assertEqual(result['value'], 0.25) # 1/4
+        self.assertEqual(result['details']['success_count'], 1)
 
 if __name__ == '__main__':
     unittest.main()

@@ -19,6 +19,16 @@ from pydantic import BaseModel, Field
 from sklearn.tree._tree import TREE_LEAF, TREE_UNDEFINED
 from sklearn.tree import _tree
 
+# Import custom exceptions
+try:
+    from ..utils.exceptions import DiscoveryError, TradeoffDefinitionError
+except ImportError:
+    # Fallback for backward compatibility
+    class DiscoveryError(Exception):
+        pass
+    class TradeoffDefinitionError(Exception):
+        pass
+
 
 class Box(BaseModel):
     """Represents a discovered region in parameter space."""
@@ -401,64 +411,125 @@ class ScenarioDiscoveryManager:
     def discover(self, experiments_df: pd.DataFrame, outcomes_df: pd.DataFrame, outcome: str, method: Optional[str] = None, **kwargs) -> Any:
         """Delegates discovery to the selected strategy.
         
-        Special handling for 'Discretization' paradigm:
-        If kwargs contains 'target_spec' with paradigm='discretization', 
-        it creates the target mask 'y' based on 'target_bin'.
+        Handles different tradeoff paradigms and prepares the target mask 'y'
+        for scenario discovery algorithms.
         
-        Also supports passing a 'Tradeoff' object via 'tradeoff' kwarg.
+        Args:
+            experiments_df: DataFrame of input parameters
+            outcomes_df: DataFrame of outcomes
+            outcome: Name of the target outcome
+            method: Discovery method ('prim' or 'cart')
+            **kwargs: Additional parameters including:
+                - tradeoff: Tradeoff object for complex tradeoff definitions
+                - target_spec: Specification for target-based discovery
+                - discrete_outcomes_df: DataFrame with discretized outcomes
+                
+        Returns:
+            Result from the selected discovery strategy
+            
+        Raises:
+            DiscoveryError: If discovery setup fails
+            TradeoffDefinitionError: If tradeoff configuration is invalid
         """
-        tradeoff = kwargs.get('tradeoff')
-        target_spec = kwargs.get('target_spec')
+        self._validate_inputs(experiments_df, outcomes_df, outcome)
         
-        # If a first-class Tradeoff object is provided, use its definition
-        if tradeoff:
-            from ..core.models import Tradeoff
-            if not isinstance(tradeoff, Tradeoff):
-                 # Handle cases where it might be a dict
-                 tradeoff = Tradeoff.model_validate(tradeoff)
-            
-            supported_schemes = ['discretization', 'pareto', 'threshold', 'pareto_epsilon', 'pareto_knee']
-            if tradeoff.scheme in supported_schemes:
-                discrete_df = kwargs.get('discrete_outcomes_df')
-                if discrete_df is None:
-                    raise ValueError(f"discrete_outcomes_df is required for {tradeoff.scheme} tradeoff")
-                
-                # Create mask y based on all elements in the tradeoff
-                y = pd.Series([True] * len(discrete_df), index=discrete_df.index)
-                for obj_name, target_label in tradeoff.elements.items():
-                    if obj_name in discrete_df.columns:
-                        y = y & (discrete_df[obj_name] == target_label)
-                
-                if method == 'cart':
-                    kwargs['discrete_outcomes'] = y
-                else:
-                    kwargs['y_mask'] = y
-
-        elif target_spec and target_spec.get('paradigm') == 'discretization':
-            target_bin = target_spec.get('target_bin')
-            discrete_df = kwargs.get('discrete_outcomes_df')
-            
-            if discrete_df is None:
-                raise ValueError("discrete_outcomes_df is required for discretization paradigm")
-            
-            # Create mask y based ONLY on the target outcome column
-            if outcome in discrete_df.columns:
-                y = (discrete_df[outcome] == target_bin)
-            else:
-                # If outcome name doesn't match directly, it might be a multi-dimensional tradeoff label
-                # In that case, we fall back to the string representation of the whole row
-                from .discretization import DataProcessor
-                temp = discrete_df.to_string(header=False, index=False, index_names=False).split('\n')
-                row_labels = [','.join(ele.split()) for ele in temp]
-                y = pd.Series([label == target_bin for label in row_labels], index=discrete_df.index)
-            
-            if method == 'cart':
-                kwargs['discrete_outcomes'] = y
-            else:
-                kwargs['y_mask'] = y
-
+        # Handle tradeoff-based discovery
+        if 'tradeoff' in kwargs:
+            self._handle_tradeoff_based_discovery(kwargs, method)
+        
+        # Handle target specification-based discovery
+        elif 'target_spec' in kwargs:
+            self._handle_target_spec_discovery(kwargs, outcome, method)
+        
+        # Validate that required parameters are set
+        self._validate_discovery_parameters(kwargs, method)
+        
         strategy = self.get_strategy(method)
         return strategy.discover(experiments_df, outcomes_df, **kwargs)
+    
+    def _validate_inputs(self, experiments_df: pd.DataFrame, outcomes_df: pd.DataFrame, outcome: str) -> None:
+        """Validates input DataFrames and parameters."""
+        if experiments_df is None or outcomes_df is None:
+            raise DiscoveryError("Input DataFrames cannot be None")
+        
+        if not isinstance(experiments_df, pd.DataFrame) or not isinstance(outcomes_df, pd.DataFrame):
+            raise DiscoveryError("Inputs must be pandas DataFrames")
+        
+        if experiments_df.empty or outcomes_df.empty:
+            raise DiscoveryError("Input DataFrames cannot be empty")
+        
+        if not outcome or not isinstance(outcome, str):
+            raise DiscoveryError("Outcome must be a non-empty string")
+    
+    def _handle_tradeoff_based_discovery(self, kwargs: Dict[str, Any], method: Optional[str]) -> None:
+        """Handles discovery based on Tradeoff objects."""
+        tradeoff = kwargs.get('tradeoff')
+        
+        try:
+            from ..core.models import Tradeoff
+            if not isinstance(tradeoff, Tradeoff):
+                tradeoff = Tradeoff.model_validate(tradeoff)
+            kwargs['tradeoff'] = tradeoff
+        except Exception as e:
+            raise TradeoffDefinitionError(f"Invalid tradeoff definition: {str(e)}")
+        
+        supported_schemes = ['discretization', 'pareto', 'threshold', 'pareto_epsilon', 'pareto_knee']
+        if tradeoff.scheme not in supported_schemes:
+            raise TradeoffDefinitionError(f"Unsupported tradeoff scheme: {tradeoff.scheme}")
+        
+        discrete_df = kwargs.get('discrete_outcomes_df')
+        if discrete_df is None:
+            raise DiscoveryError(f"discrete_outcomes_df is required for {tradeoff.scheme} tradeoff")
+        
+        # Create mask y based on all elements in the tradeoff
+        y = pd.Series([True] * len(discrete_df), index=discrete_df.index)
+        for obj_name, target_label in tradeoff.elements.items():
+            if obj_name in discrete_df.columns:
+                y = y & (discrete_df[obj_name] == target_label)
+        
+        if method == 'cart':
+            kwargs['discrete_outcomes'] = y
+        else:
+            kwargs['y_mask'] = y
+    
+    def _handle_target_spec_discovery(self, kwargs: Dict[str, Any], outcome: str, method: Optional[str]) -> None:
+        """Handles discovery based on target specifications."""
+        target_spec = kwargs.get('target_spec')
+        
+        if target_spec.get('paradigm') != 'discretization':
+            raise DiscoveryError(f"Unsupported target specification paradigm: {target_spec.get('paradigm')}")
+        
+        target_bin = target_spec.get('target_bin')
+        if not target_bin:
+            raise DiscoveryError("target_bin is required for discretization paradigm")
+        
+        discrete_df = kwargs.get('discrete_outcomes_df')
+        if discrete_df is None:
+            raise DiscoveryError("discrete_outcomes_df is required for discretization paradigm")
+        
+        # Create mask y based on the target outcome column
+        if outcome in discrete_df.columns:
+            y = (discrete_df[outcome] == target_bin)
+        else:
+            # Fallback for multi-dimensional tradeoff labels
+            from .discretization import DataProcessor
+            temp = discrete_df.to_string(header=False, index=False, index_names=False).split('\n')
+            row_labels = [','.join(ele.split()) for ele in temp]
+            y = pd.Series([label == target_bin for label in row_labels], index=discrete_df.index)
+        
+        if method == 'cart':
+            kwargs['discrete_outcomes'] = y
+        else:
+            kwargs['y_mask'] = y
+    
+    def _validate_discovery_parameters(self, kwargs: Dict[str, Any], method: Optional[str]) -> None:
+        """Validates that required parameters are set for the chosen method."""
+        if method == 'cart':
+            if 'discrete_outcomes' not in kwargs:
+                raise DiscoveryError("discrete_outcomes is required for CART method")
+        else:  # PRIM or other methods
+            if 'y_mask' not in kwargs:
+                raise DiscoveryError("y_mask is required for PRIM method")
 
 
 __all__ = ["ScenarioDiscovery", "PRIMDiscovery", "CARTDiscovery", "ScenarioDiscoveryManager", "Box", "BoxEvaluator"]
