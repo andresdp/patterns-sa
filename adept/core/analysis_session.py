@@ -349,6 +349,134 @@ class PatternAnalysis:
                 
         return exclusive_pairs
 
+    # --- Robustness Analysis ---
+
+    def compute_robustness(
+        self, 
+        policy_name: str, 
+        tradeoff_name: str, 
+        metric: str = 'starr', 
+        subset: str = 'all', 
+        **kwargs
+    ) -> Dict[str, Any]:
+        """
+        Calculates a specific robustness metric for a policy relative to a tradeoff.
+        
+        Args:
+            policy_name: Name of the policy.
+            tradeoff_name: Name of the target tradeoff.
+            metric: 'starr' or 'regret'.
+            subset: 'all', 'train', or 'test'.
+            
+        Returns:
+            Dict[str, Any]: Metric value and detailed computation information.
+        """
+        from ..analysis.robustness import RobustnessAnalyzer
+        from ..analysis.contingency import ContingencyAnalyzer
+        
+        # 1. Prepare Data Subsets
+        indices = self._filter_indices_for_subset(range(len(self.raw_df)), subset)
+        
+        # Filter for Policy
+        # We need the decision key to find which column to look at, 
+        # but if names are unique we can search.
+        # Better: Assume user knows the policy.
+        # Find which decision this policy belongs to
+        config_col = self.sys_def.dataspace.configuration_identification.column
+        analyzer_cont = ContingencyAnalyzer(self.sys_def)
+        policy_map = analyzer_cont.get_decision_policy_map(self.experiments_df, config_col)
+        
+        policy_col = None
+        for col in policy_map.columns:
+            if (policy_map[col] == policy_name).any():
+                policy_col = col
+                break
+        
+        if policy_col is None:
+            raise ValueError(f"Policy '{policy_name}' not found in any decision.")
+            
+        policy_mask = (policy_map[policy_col] == policy_name)
+        
+        # Intersection of subset and policy
+        final_indices = [idx for idx in indices if policy_mask.iloc[idx]]
+        
+        if not final_indices:
+            return {'metric': metric, 'value': 0.0, 'details': 'No data for policy/subset'}
+
+        # 2. Get Targets
+        tradeoff = next((t for t in self.get_tradeoffs() if t.name == tradeoff_name), None)
+        if not tradeoff:
+            raise ValueError(f"Tradeoff '{tradeoff_name}' not found.")
+            
+        # Boolean mask for the target tradeoff
+        is_target = pd.Series(True, index=self.discrete_df.index)
+        for obj, label in tradeoff.elements.items():
+            if obj in self.discrete_df.columns:
+                is_target &= (self.discrete_df[obj] == label)
+        
+        target_subset = is_target.iloc[final_indices]
+        outcomes_subset = self.outcomes_df.iloc[final_indices]
+
+        # 3. Compute
+        if metric == 'starr':
+            return RobustnessAnalyzer.compute_starr(target_subset)
+        elif metric == 'regret':
+            # Extract boundaries
+            boundaries = {}
+            for obj, label in tradeoff.elements.items():
+                # Find scheme for this objective
+                scheme = next((s for s in self.schemes if s.objective_name == obj), None)
+                if scheme:
+                    q_bin = next((b for b in scheme.bins if b.label == label), None)
+                    if q_bin:
+                        boundaries[obj] = {'min': q_bin.min_value, 'max': q_bin.max_value}
+            
+            return RobustnessAnalyzer.compute_regret(
+                outcomes_subset, target_subset, boundaries, stats=self.feature_stats
+            )
+        else:
+            raise ValueError(f"Unknown robustness metric: {metric}")
+
+    def get_robustness_report(
+        self, 
+        decision_key: str, 
+        tradeoff_names: List[str], 
+        metric: str = 'starr', 
+        subset: str = 'all', 
+        **kwargs
+    ) -> pd.DataFrame:
+        """
+        Generates a consolidated robustness report for all policies in a decision.
+        
+        Args:
+            decision_key: The decision (e.g., 'Comp:Dec') to analyze.
+            tradeoff_names: List of tradeoffs to use as columns.
+            metric: 'starr' or 'regret'.
+            subset: 'all', 'train', or 'test'.
+            
+        Returns:
+            pd.DataFrame: Index=Policies, Columns=Tradeoffs, Values=Metric.
+        """
+        from ..analysis.contingency import ContingencyAnalyzer
+        config_col = self.sys_def.dataspace.configuration_identification.column
+        analyzer_cont = ContingencyAnalyzer(self.sys_def)
+        policy_map = analyzer_cont.get_decision_policy_map(self.experiments_df, config_col)
+        
+        if decision_key not in policy_map.columns:
+            raise ValueError(f"Decision '{decision_key}' not found.")
+            
+        policies = [p for p in policy_map[decision_key].unique() if pd.notna(p)]
+        
+        report_data = []
+        for policy in policies:
+            row = {'Policy': policy}
+            for t_name in tradeoff_names:
+                res = self.compute_robustness(policy, t_name, metric=metric, subset=subset, **kwargs)
+                row[t_name] = res.get('value', 0.0)
+            report_data.append(row)
+            
+        return pd.DataFrame(report_data).set_index('Policy')
+
     # --- Data Subset Helpers ---
 
     def _get_subset_data(self, subset: str = 'all') -> Tuple[pd.DataFrame, pd.DataFrame, Optional[pd.DataFrame]]:
