@@ -58,7 +58,21 @@ This stage answers the critical question: *"If I choose Policy X, what is the pr
 
 ---
 
-## 4. Feature Scoring (Sensitivity & Influence)
+## 4. Robustness Analysis (Quantifying Stability)
+While Contingency Analysis tells you "how often" a policy hits a target, Robustness Analysis quantifies the stability of that performance under uncertainty.
+
+*   **Metrics**:
+    *   **STARR (Success Rate)**: Simply the probability of satisfying the tradeoff. (Range: 0.0 to 1.0, Higher is Better).
+    *   **Regret (Distance to Satisfaction)**: If a system fails to meet the tradeoff, *how badly* did it miss? Regret measures the distance from the acceptable boundary. (Range: 0 to $\infty$, Lower is Better).
+*   **Tools**:
+    *   **Single Check**: `compute_robustness()` calculates the metric for one policy against one tradeoff.
+    *   **Full Report**: `get_robustness_report()` generates a table (DataFrame) comparing all policies across all tradeoffs.
+    *   **Visual Report**: `show_robustness_heatmap()` visualizes the report as a color-coded matrix, automatically using green scales for success rates (STARR) and red scales for error magnitudes (Regret).
+    *   **Ranking**: `get_policy_robustness_ranking()` returns a sorted list of policies, ordered from most to least robust for a specific target. It automatically handles the sorting direction (descending for STARR, ascending for Regret).
+
+---
+
+## 5. Feature Scoring (Sensitivity & Influence)
 Not all parameters are created equal. Feature scoring uses Machine Learning (Random Forests) to rank which parameters (Levers, Uncertainties, or Constraints) actually "drive" the values of your quality objectives.
 
 *   **Subset Recommendation**: Scoring should typically be performed on the `'train'` subset. You can then use the `'test'` subset to validate how well these features explain the outcomes in unseen scenarios.
@@ -71,7 +85,7 @@ Not all parameters are created equal. Feature scoring uses Machine Learning (Ran
 
 ---
 
-## 5. Scenario Discovery (Finding the Envelope)
+## 6. Scenario Discovery (Finding the Envelope)
 The final stage generates "Operational Rules" or "Envelopes." It finds the specific ranges of parameters that reliably produce target tradeoffs.
 
 *   **Multi-Tradeoff Targeting**: You can pass a single name, a list of names, or `None` (targets all tradeoffs) to the discovery method.
@@ -83,20 +97,6 @@ The final stage generates "Operational Rules" or "Envelopes." It finds the speci
     *   **Box Density**: The % of points *inside the box* that meet the target.
     *   **Lift**: Calculated as `Density / Prevalence`. A Lift of 5.0 means that by following the box's rules, you are **5 times more likely** to achieve your target tradeoff than if you chose parameters randomly.
 *   **De-standardization**: If standardization was applied during scoring, ADEPT automatically converts the rules back to the original units (e.g., converting a Z-score of 1.5 back to "5000 CPU Cycles").
-
----
-
-## 6. Robustness Analysis (Quantifying Stability)
-While Contingency Analysis tells you "how often" a policy hits a target, Robustness Analysis quantifies the stability of that performance under uncertainty.
-
-*   **Metrics**:
-    *   **STARR (Success Rate)**: Simply the probability of satisfying the tradeoff. (Range: 0.0 to 1.0, Higher is Better).
-    *   **Regret (Distance to Satisfaction)**: If a system fails to meet the tradeoff, *how badly* did it miss? Regret measures the distance from the acceptable boundary. (Range: 0 to $\infty$, Lower is Better).
-*   **Tools**:
-    *   **Single Check**: `compute_robustness()` calculates the metric for one policy against one tradeoff.
-    *   **Full Report**: `get_robustness_report()` generates a table (DataFrame) comparing all policies across all tradeoffs.
-    *   **Visual Report**: `show_robustness_heatmap()` visualizes the report as a color-coded matrix, automatically using green scales for success rates (STARR) and red scales for error magnitudes (Regret).
-    *   **Ranking**: `get_policy_robustness_ranking()` returns a sorted list of policies, ordered from most to least robust for a specific target. It automatically handles the sorting direction (descending for STARR, ascending for Regret).
 
 ---
 
