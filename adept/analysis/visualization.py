@@ -59,16 +59,19 @@ def plot_tradeoff_distribution(
             
         data = outcomes_df[col_name]
         
+        # Calculate explicit bin edges based on the overall data range
+        # This ensures that both the overall and subset histograms align perfectly
+        bin_edges = np.histogram_bin_edges(data.dropna(), bins=bins)
+
         # 1. Overall Distribution (Blue)
-        # Use fixed number of bins for consistency across objectives
-        sns.histplot(data, bins=bins, kde=True, ax=ax, color='skyblue', label='Overall', alpha=0.4)
+        sns.histplot(data, bins=bin_edges, kde=True, ax=ax, color='skyblue', label='Overall', alpha=0.4)
         
         # 2. Highlight Subset (Orange)
         if highlight_indices is not None and len(highlight_indices) > 0:
             valid_indices = highlight_indices[highlight_indices < len(data)]
             subset_data = data.iloc[valid_indices]
             if not subset_data.empty:
-                sns.histplot(subset_data, bins=bins, kde=False, ax=ax, color='orange', label='Target Tradeoff', alpha=0.8)
+                sns.histplot(subset_data, bins=bin_edges, kde=False, ax=ax, color='orange', label='Target Tradeoff', alpha=0.8)
                 ax.legend()
 
         # 3. Overlay Bin Boundaries and Labels
@@ -82,7 +85,7 @@ def plot_tradeoff_distribution(
             mid_point = (min_val + max_val) / 2
             if data.min() <= mid_point <= data.max():
                 ax.text(mid_point, ax.get_ylim()[1] * 0.9, b.label, 
-                        ha='center', va='top', fontsize=9, fontweight='bold',
+                        ha='center', va='top', fontsize=9, color='red', fontweight='bold',
                         bbox=dict(facecolor='white', alpha=0.7, edgecolor='none'))
 
         for b in boundaries:
@@ -96,7 +99,7 @@ def plot_tradeoff_distribution(
     title = f"Outcome Distributions" if title is None else title
     if tradeoff:
         # title += f"\n({tradeoff.name}: {tradeoff.description})"
-        title += f"\nTarget Tradeoff: {tradeoff.name}"
+        title += f" / Target Tradeoff: {tradeoff.name}"
     fig.suptitle(title, fontsize=14)
     
     return fig
