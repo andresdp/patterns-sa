@@ -148,6 +148,34 @@ def run_analysis(json_path: str, outdir: str, validate_integrity: bool = True) -
             except Exception as e:
                 print(f"  Error analyzing contingency for {decision_key}: {e}")
 
+        # --- Robustness Analysis ---
+        print("\n--- Generating Robustness Analysis ---")
+        for tradeoff in tradeoffs:
+            print(f"  Robustness Ranking for Tradeoff: {tradeoff.name}")
+            try:
+                # 1. Get Ranking (STARR metric)
+                ranking = session.get_policy_robustness_ranking(tradeoff.name, metric='starr')
+                print(f"    Top 3 Policies (STARR):")
+                for i, (pol, val) in enumerate(ranking[:3]):
+                    print(f"      {i+1}. {pol}: {val:.2f}% success")
+                
+                # 2. Compute Regret for the top policy
+                if ranking:
+                    top_pol = ranking[0][0]
+                    regret = session.compute_robustness(top_pol, tradeoff.name, metric='regret')
+                    print(f"    Top Policy '{top_pol}' Regret: {regret.get('value', 0.0):.4f} (lower is better)")
+            except Exception as e:
+                print(f"    Error during robustness ranking for {tradeoff.name}: {e}")
+
+        try:
+            # 3. Save Overall Robustness Heatmap
+            fig_rob = session.show_robustness_heatmap(metric='starr', title=f"Robustness (STARR): {scheme_name}")
+            rob_path = os.path.join(outdir, f"robustness_heatmap_{scheme_name}.png")
+            fig_rob.savefig(rob_path)
+            print(f"  Robustness heatmap saved to: {rob_path}")
+        except Exception as e:
+            print(f"  Error generating robustness heatmap: {e}")
+
         # --- Feature Scoring ---
         print("\n--- Generating Feature Importance Analysis ---")
         try:

@@ -14,7 +14,9 @@ def plot_tradeoff_distribution(
     schemes: List[DiscretizationScheme], 
     tradeoff: Optional[Tradeoff] = None,
     highlight_indices: Optional[np.ndarray] = None,
-    figsize: Tuple[int, int] = (10, 6)
+    figsize: Tuple[int, int] = (10, 6),
+    title: Optional[str] = None,
+    bins: int = 30
 ) -> plt.Figure:
     """
     Plots the distribution of outcomes with an overlay of tradeoff regions/bins.
@@ -35,6 +37,8 @@ def plot_tradeoff_distribution(
             rendered as an overlaid histogram in a distinct color (orange).
         figsize (Tuple[int, int]): [Optional] Size of each individual objective 
             subplot. Defaults to (10, 6).
+        title (Optional[str]): [Optional] Title of the plot. If not provided, a default title will be generated.
+        bins (int): [Optional] Number of bins to use for histograms. Defaults to 30.
         
     Returns:
         matplotlib.figure.Figure: The generated figure object.
@@ -55,10 +59,8 @@ def plot_tradeoff_distribution(
             
         data = outcomes_df[col_name]
         
-        # Calculate consistent bins for both histograms to ensure alignment
-        bins = np.histogram_bin_edges(data.dropna(), bins='auto')
-
         # 1. Overall Distribution (Blue)
+        # Use fixed number of bins for consistency across objectives
         sns.histplot(data, bins=bins, kde=True, ax=ax, color='skyblue', label='Overall', alpha=0.4)
         
         # 2. Highlight Subset (Orange)
@@ -87,13 +89,14 @@ def plot_tradeoff_distribution(
             if data.min() < b < data.max():
                 ax.axvline(b, color='red', linestyle='--', alpha=0.8)
         
-        ax.set_title(f"Distribution of {col_name}")
+        # ax.set_title(f"Distribution of {col_name}")
         ax.set_xlabel(col_name)
         ax.set_ylabel("Frequency")
 
-    title = "Outcome Distributions & Tradeoff Definitions"
+    title = f"Outcome Distributions" if title is None else title
     if tradeoff:
-        title += f"\n({tradeoff.name}: {tradeoff.description})"
+        # title += f"\n({tradeoff.name}: {tradeoff.description})"
+        title += f"\nTarget Tradeoff: {tradeoff.name}"
     fig.suptitle(title, fontsize=14)
     
     return fig
