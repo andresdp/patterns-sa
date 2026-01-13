@@ -14,11 +14,19 @@ def run_analysis(json_path: str, outdir: str, validate_integrity: bool = True) -
     # 2. Load
     session.load(validate_integrity=validate_integrity)
     
-    # print("DEBUG: Sampling data to 10%...")
-    # sample_df = session.raw_df.sample(frac=0.1, random_state=42)
-    # session.raw_df = sample_df
-    # session.experiments_df = session.experiments_df.loc[sample_df.index]
-    # session.outcomes_df = session.outcomes_df.loc[sample_df.index]
+    # 3. Check for programmatic tradeoffs if none defined in JSON
+    if not session.get_tradeoffs():
+        print("No tradeoffs defined in JSON. Defining programmatically...")
+        session.add_tradeoff(
+            name="Inexpensive-but-reliable",
+            elements={"cost": "low", "probSuccessfulExecution": "high"},
+            scheme="discretization"
+        )
+        session.add_tradeoff(
+            name="Fast-and-reliable",
+            elements={"executionTime": "low", "probSuccessfulExecution": "high"},
+            scheme="discretization"
+        )
 
     # Group tradeoffs by scheme
     tradeoffs_by_scheme = {}
