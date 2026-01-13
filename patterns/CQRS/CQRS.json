@@ -1,0 +1,64 @@
+{
+  "system": {
+    "name": "CQRS System",
+    "description": "System implementing Command Query Responsibility Segregation.",
+    "components": {
+      "cqrs_pattern": {
+        "name": "CQRS",
+        "parameters": {
+          "N_read": { "data_type": "integer", "type": "uncertainty", "level": "system" },
+          "N_write": { "data_type": "integer", "type": "uncertainty", "level": "system" },
+          "r_Z_read": { "data_type": "float", "type": "uncertainty", "level": "system" },
+          "r_Z_write": { "data_type": "float", "type": "uncertainty", "level": "system" },
+          "C_DB": { "data_type": "float", "type": "constraint", "level": "pattern" },
+          "r_DB_read": { "data_type": "float", "type": "uncertainty", "level": "pattern" },
+          "r_DB_write": { "data_type": "float", "type": "uncertainty", "level": "pattern" }
+        },
+        "decisions": {
+          "separation_type": {
+            "policies": {
+              "software": { "parameter_bindings": {} },
+              "hardware": { "parameter_bindings": {} }
+            }
+          }
+        }
+      }
+    },
+    "tradeoffs": [
+      {
+        "name": "performance-optimized",
+        "elements": { "response_time": "fast", "utilization": "average" },
+        "scheme": "discretization"
+      }
+    ]
+  },
+  "dataspace": {
+    "configuration_identification": {
+      "from": "file",
+      "column": "policy",
+      "configurations": [
+        { 
+          "name": "software", 
+          "source_file": "separated_SW/sep_mod.csv",
+          "pattern_policy_references": [{"component": "cqrs_pattern", "decision": "separation_type", "policy": "software"}] 
+        },
+        { 
+          "name": "hardware", 
+          "source_file": "separated_HW/sep_phy.csv",
+          "pattern_policy_references": [{"component": "cqrs_pattern", "decision": "separation_type", "policy": "hardware"}] 
+        }
+      ]
+    },
+    "quality_objectives": [
+      { "name": "response_time", "metric": "time", "maximize": false },
+      { "name": "utilization", "metric": "percentage", "maximize": false }
+    ],
+    "column_renames": {
+      "R0": "response_time",
+      "U_DBread": "utilization"
+    }
+  },
+  "metadata": {
+    "version": "3.0"
+  }
+}

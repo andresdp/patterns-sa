@@ -1,0 +1,64 @@
+{
+  "system": {
+    "name": "Gateway Aggregation System",
+    "description": "Microservices system implementing the Gateway Aggregation pattern.",
+    "components": {
+      "gateway_aggregator_pattern": {
+        "name": "Gateway Aggregation",
+        "description": "Component that handles request aggregation.",
+        "parameters": {
+          "N_A": { "data_type": "integer", "type": "uncertainty", "level": "system" },
+          "N_B": { "data_type": "integer", "type": "uncertainty", "level": "system" },
+          "r_Z_A": { "data_type": "float", "type": "uncertainty", "level": "system" },
+          "r_Z_B": { "data_type": "float", "type": "uncertainty", "level": "system" },
+          "r_A_gw": { "data_type": "float", "type": "uncertainty", "level": "pattern" },
+          "r_B_gw": { "data_type": "float", "type": "uncertainty", "level": "pattern" },
+          "r_A_s1": { "data_type": "float", "type": "uncertainty", "level": "pattern" },
+          "r_B_s1": { "data_type": "float", "type": "uncertainty", "level": "pattern" },
+          "r_A_s2": { "data_type": "float", "type": "uncertainty", "level": "pattern" },
+          "r_B_s2": { "data_type": "float", "type": "uncertainty", "level": "pattern" },
+          "r_A_s3": { "data_type": "float", "type": "uncertainty", "level": "pattern" },
+          "r_B_s3": { "data_type": "float", "type": "uncertainty", "level": "pattern" }
+        },
+        "decisions": {
+          "aggregation_policy": {
+            "policies": {
+              "standard": { "description": "Standard aggregation.", "parameter_bindings": {} }
+            }
+          }
+        }
+      }
+    },
+    "tradeoffs": [
+      {
+        "name": "performance-optimized",
+        "elements": { "response_time": "fast", "utilization": "average" },
+        "scheme": "discretization"
+      }
+    ]
+  },
+  "dataspace": {
+    "configuration_identification": {
+      "from": "file",
+      "column": "policy",
+      "configurations": [
+        { 
+          "name": "standard", 
+          "source_file": "multi_N25.csv",
+          "pattern_policy_references": [{ "component": "gateway_aggregator_pattern", "decision": "aggregation_policy", "policy": "standard" }] 
+        }
+      ]
+    },
+    "quality_objectives": [
+      { "name": "response_time", "metric": "time", "maximize": false },
+      { "name": "utilization", "metric": "percentage", "maximize": false }
+    ],
+    "column_renames": {
+      "R0": "response_time",
+      "Ugw": "utilization"
+    }
+  },
+  "metadata": {
+    "version": "3.0"
+  }
+}

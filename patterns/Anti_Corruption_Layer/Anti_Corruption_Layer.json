@@ -1,0 +1,66 @@
+{
+  "system": {
+    "name": "ACL System",
+    "description": "System implementing Anti-Corruption Layer.",
+    "components": {
+      "acl_pattern": {
+        "name": "Anti-Corruption Layer",
+        "parameters": {
+          "N_A": { "data_type": "integer", "type": "uncertainty", "level": "system" },
+          "N_B": { "data_type": "integer", "type": "uncertainty", "level": "system" },
+          "r_Z_A": { "data_type": "float", "type": "uncertainty", "level": "system" },
+          "r_Z_B": { "data_type": "float", "type": "uncertainty", "level": "system" },
+          "C_SS1": { "data_type": "float", "type": "constraint", "level": "pattern" },
+          "r_A_SS1": { "data_type": "float", "type": "uncertainty", "level": "pattern" },
+          "r_B_SS1": { "data_type": "float", "type": "uncertainty", "level": "pattern" },
+          "p_SS1toACL_A": { "data_type": "float", "type": "lever", "level": "pattern" },
+          "p_SS1toRef_A": { "data_type": "float", "type": "lever", "level": "pattern" },
+          "p_SS1toACL_B": { "data_type": "float", "type": "lever", "level": "pattern" },
+          "p_SS1toRef_B": { "data_type": "float", "type": "lever", "level": "pattern" },
+          "r_A_ACL": { "data_type": "float", "type": "uncertainty", "level": "pattern" },
+          "r_B_ACL": { "data_type": "float", "type": "uncertainty", "level": "pattern" },
+          "r_A_SS2": { "data_type": "float", "type": "uncertainty", "level": "pattern" },
+          "r_B_SS2": { "data_type": "float", "type": "uncertainty", "level": "pattern" }
+        },
+        "decisions": {
+          "invocation_strategy": {
+            "policies": {
+              "standard": { "parameter_bindings": {} }
+            }
+          }
+        }
+      }
+    },
+    "tradeoffs": [
+      {
+        "name": "performance-optimized",
+        "elements": { "response_time": "fast", "utilization": "average" },
+        "scheme": "discretization"
+      }
+    ]
+  },
+  "dataspace": {
+    "configuration_identification": {
+      "from": "file",
+      "column": "policy",
+      "configurations": [
+        { 
+          "name": "standard", 
+          "source_file": "multi_N25.csv",
+          "pattern_policy_references": [{"component": "acl_pattern", "decision": "invocation_strategy", "policy": "standard"}] 
+        }
+      ]
+    },
+    "quality_objectives": [
+      { "name": "response_time", "metric": "time", "maximize": false },
+      { "name": "utilization", "metric": "percentage", "maximize": false }
+    ],
+    "column_renames": {
+      "R0": "response_time",
+      "Uacl": "utilization"
+    }
+  },
+  "metadata": {
+    "version": "3.0"
+  }
+}

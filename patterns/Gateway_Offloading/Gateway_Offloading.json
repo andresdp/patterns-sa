@@ -1,0 +1,60 @@
+{
+  "system": {
+    "name": "Gateway Offloading System",
+    "description": "Microservices system implementing the Gateway Offloading pattern.",
+    "components": {
+      "gateway_offloading_pattern": {
+        "name": "Gateway Offloading",
+        "parameters": {
+          "N_A": { "data_type": "integer", "type": "lever", "level": "system" },
+          "N_B": { "data_type": "integer", "type": "lever", "level": "system" },
+          "Z_A": { "data_type": "float", "type": "uncertainty", "level": "system" },
+          "Z_B": { "data_type": "float", "type": "uncertainty", "level": "system" },
+          "S_gw": { "data_type": "float", "type": "lever", "level": "pattern" },
+          "s_A_s1": { "data_type": "float", "type": "uncertainty", "level": "pattern" },
+          "s_B_s2": { "data_type": "float", "type": "uncertainty", "level": "pattern" },
+          "s_B_s3": { "data_type": "float", "type": "uncertainty", "level": "pattern" }
+        },
+        "decisions": {
+          "offloading_strategy": {
+            "policies": {
+              "no-offloading": { "parameter_bindings": { "levers": { "S_gw": 0 } } },
+              "short-services-offloaded": { "parameter_bindings": { "levers": { "S_gw": 5 } } },
+              "long-services-offloaded": { "parameter_bindings": { "levers": { "S_gw": 10 } } }
+            }
+          }
+        }
+      }
+    },
+    "tradeoffs": [
+      {
+        "name": "performance-optimized",
+        "elements": { "response_time": "fast", "utilization": "average" },
+        "scheme": "discretization"
+      }
+    ]
+  },
+  "dataspace": {
+    "source_file": "multi_N25.csv",
+    "configuration_identification": {
+      "from": "column",
+      "column": "r_gw",
+      "configurations": {
+        "1e+15": { "name": "no-offloading", "pattern_policy_references": [{"component": "gateway_offloading_pattern", "decision": "offloading_strategy", "policy": "no-offloading"}] },
+        "0.2": { "name": "short-services-offloaded", "pattern_policy_references": [{"component": "gateway_offloading_pattern", "decision": "offloading_strategy", "policy": "short-services-offloaded"}] },
+        "0.1": { "name": "long-services-offloaded", "pattern_policy_references": [{"component": "gateway_offloading_pattern", "decision": "offloading_strategy", "policy": "long-services-offloaded"}] }
+      }
+    },
+    "quality_objectives": [
+      { "name": "response_time", "metric": "time", "maximize": false },
+      { "name": "utilization", "metric": "percentage", "maximize": false }
+    ],
+    "column_renames": {
+      "R0": "response_time",
+      "Ugw": "utilization"
+    }
+  },
+  "metadata": {
+    "version": "3.0"
+  }
+}
