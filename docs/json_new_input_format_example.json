@@ -1,0 +1,306 @@
+{
+  "system": {
+    "name": "Arch Example System (Discretization)",
+    "description": "A simple architecture system for testing and demonstration of the ADEPT framework (Discretization Paradigm).",
+    
+    "components": {
+      "arch_example_pattern": {
+        "name": "Arch Example Pattern",
+        "description": "A simple component-and-device pattern that defines a design space to explore.",
+        
+        "parameters": {
+          "deviceCPUCycles": { 
+            "data_type": "float", 
+            "type": "uncertainty", 
+            "level": "infrastructure", 
+            "description": "Number of CPU cycles required by the device processing unit.",
+            "distribution": {
+              "type": "normal",
+              "mean": 1000,
+              "std": 200
+            }
+          },
+          "deviceCost": { 
+            "data_type": "float", 
+            "type": "constraint", 
+            "level": "infrastructure", 
+            "description": "Monetary cost associated with operating a device instance.",
+            "default": 50.0
+          },
+          "lbExecTime": { 
+            "data_type": "float", 
+            "type": "uncertainty", 
+            "level": "pattern", 
+            "description": "Execution time overhead introduced by the load balancer.",
+            "distribution": {
+              "type": "uniform",
+              "min": 5,
+              "max": 50
+            }
+          },
+          "lbFailureProb": { 
+            "data_type": "float", 
+            "type": "uncertainty", 
+            "level": "pattern", 
+            "description": "Probability of failure for the load balancer component.",
+            "distribution": {
+              "type": "beta",
+              "alpha": 2,
+              "beta": 8
+            }
+          },
+          "serviceCost": { 
+            "data_type": "float", 
+            "type": "constraint", 
+            "level": "pattern", 
+            "description": "Monetary cost for invoking a single service.",
+            "default": 10.0
+          },
+          "serviceFailureProb": { 
+            "data_type": "float", 
+            "type": "uncertainty", 
+            "level": "pattern", 
+            "description": "Probability of failure for a service invocation.",
+            "distribution": {
+              "type": "beta",
+              "alpha": 1,
+              "beta": 9
+            }
+          },
+          "d1Services": { 
+            "data_type": "integer", 
+            "type": "lever", 
+            "level": "system", 
+            "description": "Number of services deployed on Device 1.",
+            "range": [0, 10],
+            "step": 1
+          },
+          "d2Services": { 
+            "data_type": "integer", 
+            "type": "lever", 
+            "level": "system", 
+            "description": "Number of services deployed on Device 2.",
+            "range": [0, 10],
+            "step": 1
+          },
+          "d3Services": { 
+            "data_type": "integer", 
+            "type": "lever", 
+            "level": "system", 
+            "description": "Number of services deployed on Device 3.",
+            "range": [0, 10],
+            "step": 1
+          }
+        },
+        
+        "decisions": {
+          "deployment_strategy": {
+            "description": "The number of devices effectively deployed and the number of services per device.",
+            "policies": {
+              "one_device_low": {
+                "description": "All services on Device 3 only (0_0_1 configuration).",
+                "parameter_bindings": {
+                  "levers": {
+                    "d1Services": 0,
+                    "d2Services": 0,
+                    "d3Services": 1
+                  },
+                  "constraints": {
+                    "deviceCost": 50.0,
+                    "serviceCost": 10.0
+                  }
+                }
+              },
+              "balanced_low": {
+                "description": "Services balanced on Devices 2 and 3 (0_1_1 configuration).",
+                "parameter_bindings": {
+                  "levers": {
+                    "d1Services": 0,
+                    "d2Services": 1,
+                    "d3Services": 1
+                  },
+                  "constraints": {
+                    "deviceCost": 100.0,  // Two devices
+                    "serviceCost": 20.0   // Two services
+                  }
+                }
+              },
+              "high_availability": {
+                "description": "Redundant deployment across all three devices (1_1_1 configuration).",
+                "parameter_bindings": {
+                  "levers": {
+                    "d1Services": 1,
+                    "d2Services": 1,
+                    "d3Services": 1
+                  },
+                  "constraints": {
+                    "deviceCost": 150.0,  // Three devices
+                    "serviceCost": 30.0   // Three services
+                  }
+                }
+              }
+            }
+          },
+          "load_balancing_strategy": {
+            "description": "Algorithm used by the load balancer component.",
+            "policies": {
+              "round_robin": {
+                "description": "Round-robin load balancing.",
+                "parameter_bindings": {
+                  "constraints": {
+                    "lbExecTime": {"adjustment_factor": 1.0}
+                  }
+                }
+              },
+              "least_connections": {
+                "description": "Least-connections load balancing.",
+                "parameter_bindings": {
+                  "constraints": {
+                    "lbExecTime": {"adjustment_factor": 1.2}
+                  }
+                }
+              }
+            }
+          }
+        },
+        
+        "interactions": {
+          "with": ["other_component_name"],
+          "description": "How this pattern interacts with other components in the system."
+        }
+      }
+    },
+    
+    "adaptive_processes": [],
+    
+    "tradeoffs": [
+      {
+        "name": "Inexpensive-but-reliable",
+        "description": "Low cost and average availability",
+        "elements": { "cost": "low", "probSuccessfulExecution": "high" },
+        "scheme": "discretization"
+      },
+      {
+        "name": "Fast-and-reliable",
+        "description": "Fast execution time and high availability",
+        "elements": { "executionTime": "low", "probSuccessfulExecution": "high" },
+        "scheme": "discretization"
+      }
+    ]
+  },
+  
+  "experiment_design": {
+    "description": "Design of the experiment that generated the dataset",
+    
+    "selected_policies": {
+      "arch_example_pattern": {
+        "deployment_strategy": ["one_device_low", "balanced_low"],
+        "load_balancing_strategy": ["round_robin"]
+      }
+    },
+    
+    "scenarios": {
+      "sampling_method": "latin_hypercube",
+      "n_scenarios_per_policy": 50,
+      "uncertainty_parameters": [
+        "deviceCPUCycles",
+        "lbExecTime", 
+        "lbFailureProb",
+        "serviceFailureProb"
+      ]
+    },
+    
+    "policy_scenario_combinations": {
+      "method": "full_factorial",
+      "total_configurations": 100  // 2 deployment policies × 50 scenarios
+    }
+  },
+  
+  "dataspace": {
+    "source_file": "data/merged.csv",
+    
+    "configuration_identification": {
+      "from": "column",
+      "column": "config_id",
+      "configurations": {
+        "0_0_1": {
+          "name": "one_device_low_configuration",
+          "description": "Minimal deployment configuration",
+          "pattern_policy_references": [
+            {
+              "component": "arch_example_pattern",
+              "decision": "deployment_strategy",
+              "policy": "one_device_low"
+            },
+            {
+              "component": "arch_example_pattern", 
+              "decision": "load_balancing_strategy",
+              "policy": "round_robin"
+            }
+          ]
+        },
+        "0_1_1": {
+          "name": "balanced_low_configuration", 
+          "description": "Balanced low-end configuration",
+          "pattern_policy_references": [
+            {
+              "component": "arch_example_pattern",
+              "decision": "deployment_strategy",
+              "policy": "balanced_low"
+            },
+            {
+              "component": "arch_example_pattern",
+              "decision": "load_balancing_strategy", 
+              "policy": "round_robin"
+            }
+          ]
+        }
+      }
+    },
+    
+    "quality_objectives": [
+      {
+        "name": "cost",
+        "metric": "currency",
+        "description": "Total monetary cost of the system configuration.",
+        "maximize": false,
+        "discretization": {
+          "bins": 3,
+          "labels": ["low", "medium", "high"],
+          "method": "equal_frequency"
+        }
+      },
+      {
+        "name": "executionTime",
+        "metric": "time",
+        "description": "Total time required to complete a request.",
+        "maximize": false,
+        "discretization": {
+          "bins": 3,
+          "labels": ["fast", "average", "slow"],
+          "method": "equal_width"
+        }
+      },
+      {
+        "name": "probSuccessfulExecution",
+        "metric": "probability",
+        "description": "Overall probability that a request executes successfully.",
+        "maximize": true,
+        "discretization": {
+          "bins": 3,
+          "labels": ["low", "medium", "high"],
+          "method": "equal_frequency"
+        }
+      }
+    ]
+  },
+  
+  "metadata": {
+    "version": "2.0",
+    "author": "System Architect",
+    "created_date": "2024-01-15",
+    "notes": "Pattern-centric configuration for ADEPT framework. Each pattern contains complete policy definitions with parameter bindings.",
+    "analysis_paradigm": "discretization",
+    "validation_status": "verified"
+  }
+}

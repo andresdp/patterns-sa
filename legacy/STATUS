@@ -1,0 +1,7 @@
+- Research Object Reviewed (ROR), Reusable
+*Motivation*
+The artifact is reusable: (i) it allows exactly replicating the results obtained in the paper; (ii) it allows using the same input parameters presented in the paper to generate new results and evaluate how they are affected by stochasticity; (iii) it allows users to change input parameters and study the same design pattern for different scenarios.
+
+- Open Research Object (ORO)
+*Motivation*
+This replication package is publicly available on Zenodo with DOI: 10.5281/zenodo.7503633
