@@ -205,7 +205,12 @@ class GenericDataLoader(DataLoader):
             
         # 2. For each parameter, create/update column
         for param in all_params:
-            val_map = {cid: props.get(param) for cid, props in config_param_map.items() if param in props}
+            # Filter out wildcards/None from the value mapping
+            val_map = {}
+            for cid, props in config_param_map.items():
+                val = props.get(param)
+                if val is not None and val != "*":
+                    val_map[cid] = val
             
             if not val_map: continue
             
@@ -213,9 +218,13 @@ class GenericDataLoader(DataLoader):
             mapped_values = df[ident.column].astype(str).map(val_map)
             
             if param not in df.columns:
+                # If column doesn't exist, we can only inject where we have values
+                # (Remaining will be NaN, which is appropriate for 'dynamic' values)
                 df[param] = mapped_values
             else:
                 # Overwrite existing values where mapping exists (JSON is source of truth)
+                # mask() applies the change where the condition is True.
+                # mapped_values.notna() correctly identifies where we have an explicit override.
                 df[param] = df[param].mask(mapped_values.notna(), mapped_values)
                 
         return df
