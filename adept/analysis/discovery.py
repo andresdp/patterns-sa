@@ -147,6 +147,13 @@ class PRIMDiscovery(ScenarioDiscovery):
             print("Total instances:", x.shape)
             print("Running PRIM ...", method)
 
+        if not y.any():
+            if verbose:
+                print("No instances satisfy the target property. Skipping PRIM.")
+            if n_boxes:
+                return []
+            return None
+
         if method == 'rhodium':
             prim_alg = rhodium_prim.Prim(x, y, threshold=threshold)
             all_boxes = prim_alg.find_all()
