@@ -715,6 +715,41 @@ class PatternAnalysis:
         if not self.sys_def: return []
         return self.sys_def.system.tradeoffs
 
+    def add_tradeoff(self, name: str, elements: Dict[str, Any], scheme: str = "discretization", description: str = "", params: Optional[Dict[str, Any]] = None) -> Tradeoff:
+        """Programmatically adds a tradeoff definition to the session.
+        
+        Args:
+            name: Unique name for the tradeoff.
+            elements: Dict mapping outcome names to target labels (e.g. {'cost': 'low'}).
+            scheme: The tradeoff scheme (default: 'discretization').
+            description: Optional text description.
+            params: Optional additional parameters for the scheme.
+            
+        Returns:
+            The created Tradeoff object.
+        """
+        if not self.sys_def:
+            raise RuntimeError("System definition must be loaded before adding tradeoffs.")
+            
+        from .models import Tradeoff
+        tradeoff = Tradeoff(
+            name=name, 
+            elements=elements, 
+            scheme=scheme, 
+            description=description,
+            params=params or {}
+        )
+        
+        # Check for duplicates
+        self.sys_def.system.tradeoffs = [t for t in self.sys_def.system.tradeoffs if t.name != name]
+        self.sys_def.system.tradeoffs.append(tradeoff)
+        return tradeoff
+
+    def clear_tradeoffs(self) -> None:
+        """Removes all tradeoff definitions from the current session."""
+        if self.sys_def:
+            self.sys_def.system.tradeoffs = []
+
     def get_adaptive_processes(self) -> List[Any]:
         """Returns the list of adaptive processes."""
         if not self.sys_def: return []
