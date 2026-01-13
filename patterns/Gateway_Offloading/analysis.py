@@ -2,6 +2,9 @@ import argparse
 import os
 import json
 import itertools
+import pandas as pd
+import numpy as np
+import matplotlib.pyplot as plt
 from adept import PatternAnalysis
 
 def run_analysis(json_path: str, outdir: str, validate_integrity: bool = True) -> None:
@@ -10,6 +13,10 @@ def run_analysis(json_path: str, outdir: str, validate_integrity: bool = True) -
     session = PatternAnalysis(json_path)
     session.load(validate_integrity=validate_integrity)
     
+    if not session.get_tradeoffs():
+        session.add_tradeoff(name="performance-optimized", elements={"response_time": "fast", "utilization": "average"})
+        session.add_tradeoff(name="balanced", elements={"response_time": "average", "utilization": "average"})
+
     tradeoffs_by_scheme = {}
     for t in session.get_tradeoffs():
         tradeoffs_by_scheme.setdefault(t.scheme, []).append(t)
@@ -17,7 +24,7 @@ def run_analysis(json_path: str, outdir: str, validate_integrity: bool = True) -
     for scheme_name, tradeoffs in tradeoffs_by_scheme.items():
         print(f"\n--- Processing Scheme: {scheme_name} ---")
         if scheme_name == 'discretization':
-            target_labels = {qa.name: ['low', 'avg', 'high'] for qa in session.get_outcomes()}
+            target_labels = {qa.name: ['fast', 'average', 'slow'] if 'time' in qa.name else ['low', 'average', 'high'] for qa in session.get_outcomes()}
             discrete_df, schemes = session.define_tradeoffs(n_bins=3, labels=target_labels, method='discretization')
         elif scheme_name == 'pareto' or scheme_name == 'pareto_nadir':
             discrete_df, schemes = session.define_tradeoffs(method='pareto')
@@ -38,13 +45,37 @@ def run_analysis(json_path: str, outdir: str, validate_integrity: bool = True) -
         outcome_cols = list(session.outcomes_df.columns)
         for x_col, y_col in itertools.combinations(outcome_cols, 2):
             try:
-                fig = session.show_quality_objective_space(x_col, y_col, highlight_tradeoffs=tradeoffs, subset='all')
-                fig.savefig(os.path.join(outdir, f"scatter_{x_col}_vs_{y_col}.png"))
+                fig = session.show_quality_objective_space(x_col, y_col, highlight_tradeoffs=tradeoffs, show_overall=True, subset='all')
+                fig.savefig(os.path.join(outdir, f"scatter_{x_col}_vs_{y_col}_all.png"))
             except Exception as e: print(f"Error scatter {x_col} vs {y_col}: {e}")
+
+        print("\n--- Generating Contingency Analysis ---")
+        decisions = session.get_decisions()
+        for decision_key in decisions.keys():
+            dec_name_clean = decision_key.replace(":", "_")
+            try:
+                fig_h = session.show_policy_contingency(decision_key, type='heatmap', subset='train', title=f"Contingency: {decision_key} (Train)")
+                fig_h.savefig(os.path.join(outdir, f"contingency_heatmap_{dec_name_clean}.png"))
+            except Exception as e: print(f"Error contingency {decision_key}: {e}")
+
+        print("\n--- Generating Robustness Analysis ---")
+        for tradeoff in tradeoffs:
+            try:
+                ranking = session.get_policy_robustness_ranking(tradeoff.name, metric='starr')
+                if ranking:
+                    top_pol = ranking[0][0]
+                    regret = session.compute_robustness(top_pol, tradeoff.name, metric='regret')
+                    print(f"    Top Policy '{top_pol}' for {tradeoff.name}: {ranking[0][1]:.2f}% STARR, {regret.get('value', 0.0):.4f} Regret")
+            except Exception as e: print(f"Error robustness {tradeoff.name}: {e}")
+
+        try:
+            fig_rob = session.show_robustness_heatmap(metric='starr', title=f"Robustness (STARR): {scheme_name}")
+            fig_rob.savefig(os.path.join(outdir, f"robustness_heatmap_{scheme_name}.png"))
+        except Exception as e: print(f"Error robust heatmap: {e}")
 
         try:
             scores_df = session.compute_feature_scores(use_smart_correlation=True, subset='train')
-            fig_imp = session.show_feature_heatmap(scores_df, title=f"Feature Influence (Train)")
+            fig_imp = session.show_feature_heatmap(scores_df, title=f"Feature Influence: {scheme_name} (Train)")
             fig_imp.savefig(os.path.join(outdir, f"feature_importance_{scheme_name}.png"))
         except Exception as e: print(f"Error scoring: {e}")
 
