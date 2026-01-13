@@ -198,7 +198,8 @@ class FeatureImportanceAnalyzer:
                 threshold=0.8,
                 missing_values="ignore",
                 selection_method="model_performance",
-                estimator=estimator
+                estimator=estimator,
+                scoring="r2"
             )
             sel.fit(X_train, y_train)
             features_to_use = sel.features_to_drop_
@@ -207,10 +208,12 @@ class FeatureImportanceAnalyzer:
             # feature-engine transforms X.
             X_train_transformed = sel.transform(X_train)
             features_to_use = X_train_transformed.columns.tolist()
+            print("HERE_1------------------------")
         else:
             X_train_transformed = X_train
 
         # 2. Scoring (Random Forest)
+        print("HERE_2------------------------")
         model = RandomForestRegressor(n_estimators=50, random_state=random_state)
         model.fit(X_train_transformed, y_train)
         
