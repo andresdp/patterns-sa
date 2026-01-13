@@ -29,6 +29,10 @@ class TradeoffDistributionStrategy(IVisualizationStrategy):
         """Plots outcome distributions with tradeoff overlays."""
         try:
             from .visualization import plot_tradeoff_distribution
+            # Pop known arguments to avoid multiple values error
+            tradeoff = kwargs.pop('tradeoff', tradeoff)
+            highlight_indices = kwargs.pop('highlight_indices', highlight_indices)
+            
             return plot_tradeoff_distribution(outcomes_df, schemes, tradeoff=tradeoff, highlight_indices=highlight_indices, **kwargs)
         except Exception as e:
             raise VisualizationError(f"Failed to plot tradeoff distribution: {str(e)}")
@@ -41,13 +45,20 @@ class QualityObjectiveSpaceStrategy(IVisualizationStrategy):
         """Plots a 2D scatter of outcomes with tradeoff overlays."""
         try:
             from .visualization import show_quality_objective_space
+            # Pop known arguments to avoid multiple values error if they are in kwargs
+            highlight_indices_map = kwargs.pop('highlight_indices_map', None)
+            policy_series = kwargs.pop('policy_series', None)
+            show_overall = kwargs.pop('show_overall', True)
+            color_points = kwargs.pop('color_points', True)
+            draw_rectangles = kwargs.pop('draw_rectangles', False)
+            
             return show_quality_objective_space(
                 outcomes_df, x_metric, y_metric, schemes, 
-                highlight_indices_map=kwargs.get('highlight_indices_map'),
-                policy_series=kwargs.get('policy_series'),
-                show_overall=kwargs.get('show_overall', True),
-                color_points=kwargs.get('color_points', True),
-                draw_rectangles=kwargs.get('draw_rectangles', False),
+                highlight_indices_map=highlight_indices_map,
+                policy_series=policy_series,
+                show_overall=show_overall,
+                color_points=color_points,
+                draw_rectangles=draw_rectangles,
                 **kwargs
             )
         except Exception as e:
