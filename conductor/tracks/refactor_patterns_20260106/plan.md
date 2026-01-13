@@ -26,7 +26,7 @@
 - [x] Task: Update `ScenarioDiscoveryManager` to explicitly support the "Discretization" paradigm mode with multi-dimensional targets.
 - [x] Task: Conductor - User Manual Verification 'Phase 4: Exploration Paradigm' (Protocol in workflow.md)
 
-## Phase 5: Static Pattern Migration (Microservices)
+## Phase 5: Static Pattern Migration (Microservices) [checkpoint: 1ff7acc]
 - [x] Task: Migrate `Toy_Example` to the full ADEPT model as a proof-of-concept.
 - [x] Task: Migrate microservices patterns: `Gateway_Aggregation`, `Gateway_Offloading`, `CQRS`, and `Anti_Corruption_Layer`.
   - *Implementation Note: Created JSON definitions for all 4 patterns. Used 'from: file' approach to handle legacy CSVs without configuration columns. Verified via TestPatternMigration.*
