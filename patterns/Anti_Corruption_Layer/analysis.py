@@ -7,15 +7,33 @@ import numpy as np
 import matplotlib.pyplot as plt
 from adept import PatternAnalysis
 
+def preprocess_acl(df: pd.DataFrame) -> pd.DataFrame:
+    """
+    Pattern-specific preprocessing for Anti-Corruption Layer.
+    Renames objectives.
+    """
+    renames = {
+        'R0': 'response_time',
+        'Uacl': 'utilization'
+    }
+    df.rename(columns={k: v for k, v in renames.items() if k in df.columns}, inplace=True)
+    return df
+
 def run_analysis(json_path: str, outdir: str, validate_integrity: bool = True) -> None:
     os.makedirs(outdir, exist_ok=True)
     print(f"Initializing analysis session for: {json_path}")
     session = PatternAnalysis(json_path)
-    session.load(validate_integrity=validate_integrity)
+    session.load(validate_integrity=validate_integrity, preprocessor=preprocess_acl)
     
     if not session.get_tradeoffs():
-        session.add_tradeoff(name="performance-optimized", elements={"response_time": "fast", "utilization": "average"})
-        session.add_tradeoff(name="balanced", elements={"response_time": "average", "utilization": "average"})
+        session.add_tradeoff(
+            name="performance-optimized", 
+            elements={"response_time": "fast", "utilization": "average"}
+        )
+        session.add_tradeoff(
+            name="balanced", 
+            elements={"response_time": "average", "utilization": "average"}
+        )
 
     tradeoffs_by_scheme = {}
     for t in session.get_tradeoffs():
@@ -23,14 +41,13 @@ def run_analysis(json_path: str, outdir: str, validate_integrity: bool = True) -
 
     for scheme_name, tradeoffs in tradeoffs_by_scheme.items():
         print(f"\n--- Processing Scheme: {scheme_name} ---")
+        
         if scheme_name == 'discretization':
-            target_labels = {qa.name: ['fast', 'average', 'slow'] if 'time' in qa.name else ['low', 'average', 'high'] for qa in session.get_outcomes()}
+            target_labels = {qa.name: ['fast', 'average', 'slow'] if 'time' in qa.name else ['low', 'average', 'high'] 
+                             for qa in session.get_outcomes()}
             discrete_df, schemes = session.define_tradeoffs(n_bins=3, labels=target_labels, method='discretization')
-        elif scheme_name == 'pareto' or scheme_name == 'pareto_nadir':
+        elif scheme_name in ['pareto', 'pareto_nadir']:
             discrete_df, schemes = session.define_tradeoffs(method='pareto')
-        elif scheme_name == 'threshold':
-            params = tradeoffs[0].params
-            discrete_df, schemes = session.define_tradeoffs(method='threshold', params=params)
         else: continue
 
         session.split_data(test_size=0.2)
@@ -45,8 +62,8 @@ def run_analysis(json_path: str, outdir: str, validate_integrity: bool = True) -
         outcome_cols = list(session.outcomes_df.columns)
         for x_col, y_col in itertools.combinations(outcome_cols, 2):
             try:
-                fig = session.show_quality_objective_space(x_col, y_col, highlight_tradeoffs=tradeoffs, show_overall=True, subset='all')
-                fig.savefig(os.path.join(outdir, f"scatter_{x_col}_vs_{y_col}_all.png"))
+                fig = session.show_quality_objective_space(x_col, y_col, highlight_tradeoffs=tradeoffs, subset='all')
+                fig.savefig(os.path.join(outdir, f"scatter_{x_col}_vs_{y_col}.png"))
             except Exception as e: print(f"Error scatter {x_col} vs {y_col}: {e}")
 
         print("\n--- Generating Contingency Analysis ---")
@@ -73,12 +90,14 @@ def run_analysis(json_path: str, outdir: str, validate_integrity: bool = True) -
             fig_rob.savefig(os.path.join(outdir, f"robustness_heatmap_{scheme_name}.png"))
         except Exception as e: print(f"Error robust heatmap: {e}")
 
+        print("\n--- Generating Feature Importance Analysis ---")
         try:
             scores_df = session.compute_feature_scores(use_smart_correlation=True, subset='train')
             fig_imp = session.show_feature_heatmap(scores_df, title=f"Feature Influence: {scheme_name} (Train)")
             fig_imp.savefig(os.path.join(outdir, f"feature_importance_{scheme_name}.png"))
         except Exception as e: print(f"Error scoring: {e}")
 
+        print("\n--- Generating Scenario Discovery (PRIM) ---")
         for tradeoff in tradeoffs:
             try:
                 boxes = session.discover_scenarios(tradeoff.name, method='prim', threshold=0.7, standardize=True)

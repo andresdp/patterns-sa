@@ -54,11 +54,7 @@
     "quality_objectives": [
       { "name": "response_time", "metric": "time", "maximize": false },
       { "name": "utilization", "metric": "percentage", "maximize": false }
-    ],
-    "column_renames": {
-      "R0": "response_time",
-      "Uacl": "utilization"
-    }
+    ]
   },
   "metadata": {
     "version": "3.0"

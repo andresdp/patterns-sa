@@ -37,15 +37,20 @@ class GenericDataLoader(DataLoader):
        'outcomes' (objectives) based on the architectural model.
     5. Inject parameter values from pattern definitions based on configuration IDs.
     """
-    def load(self, source: Any, validate_integrity: bool = True) -> pd.DataFrame:
+    def load(self, source: Any, validate_integrity: bool = True, preprocessor: Optional[callable] = None) -> pd.DataFrame:
         """
         Loads data based on a system definition JSON file.
+        
+        Args:
+            source: Path to the system definition JSON file.
+            validate_integrity: Whether to run the SystemLinter.
+            preprocessor: Optional function(df) -> df to apply custom transformations immediately after loading.
         
         Returns:
             The raw, combined DataFrame after renames and parameter injection.
         """
         sys_def = self.load_system_definition(source)
-        df = self._load_from_definition(sys_def, base_path=os.path.dirname(source))
+        df = self._load_from_definition(sys_def, base_path=os.path.dirname(source), preprocessor=preprocessor)
         
         # Inject parameter bindings from pattern policies
         df = self._apply_parameter_bindings(sys_def, df)
@@ -70,18 +75,20 @@ class GenericDataLoader(DataLoader):
             else:
                 print(str(issue))
 
-    def load_data(self, source: Any, validate_integrity: bool = True) -> Tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
+    def load_data(self, source: Any, validate_integrity: bool = True, preprocessor: Optional[callable] = None) -> Tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
         """
         Loads data and automatically partitions it based on the architectural model.
         
         Args:
             source: Path to the system definition JSON file.
+            validate_integrity: Whether to run validation.
+            preprocessor: Optional transformation function.
             
         Returns:
             A tuple of (raw_df, experiments_df, outcomes_df).
         """
         sys_def = self.load_system_definition(source)
-        df = self._load_from_definition(sys_def, base_path=os.path.dirname(source))
+        df = self._load_from_definition(sys_def, base_path=os.path.dirname(source), preprocessor=preprocessor)
         
         # Inject parameter bindings from pattern policies
         df = self._apply_parameter_bindings(sys_def, df)
@@ -229,8 +236,10 @@ class GenericDataLoader(DataLoader):
                 
         return df
 
-    def _load_from_definition(self, sys_def: SystemDefinition, base_path: str) -> pd.DataFrame:
-        """Internal helper to resolve file paths and perform renames."""
+    def _load_from_definition(self, sys_def: SystemDefinition, base_path: str, preprocessor: Optional[callable] = None) -> pd.DataFrame:
+        """Internal helper to resolve file paths and perform renames/preprocessing."""
+        df = None
+        
         if sys_def.dataspace.source_file:
             path = sys_def.dataspace.source_file
             if not os.path.isabs(path):
@@ -238,12 +247,7 @@ class GenericDataLoader(DataLoader):
             
             df = pd.read_csv(path)
             
-            if sys_def.dataspace.column_renames:
-                df.rename(columns=sys_def.dataspace.column_renames, inplace=True)
-            
-            return df
-        
-        if sys_def.dataspace.configuration_identification.from_ == "file":
+        elif sys_def.dataspace.configuration_identification.from_ == "file":
             dfs = []
             configs = sys_def.dataspace.configuration_identification.configurations
             config_list = configs if isinstance(configs, list) else list(configs.values())
@@ -260,10 +264,18 @@ class GenericDataLoader(DataLoader):
             
             if dfs:
                 df = pd.concat(dfs, ignore_index=True)
-                if sys_def.dataspace.column_renames:
-                    df.rename(columns=sys_def.dataspace.column_renames, inplace=True)
-                return df
 
-        raise ValueError("Could not determine data source from SystemDefinition")
+        if df is None:
+            raise ValueError("Could not determine data source from SystemDefinition")
+
+        # 1. Apply programmatic preprocessor hook
+        if preprocessor:
+            df = preprocessor(df)
+
+        # 2. Apply declarative column renames (if not handled by preprocessor)
+        if sys_def.dataspace.column_renames:
+            df.rename(columns=sys_def.dataspace.column_renames, inplace=True)
+            
+        return df
 
 __all__ = ["DataLoader", "PandasDataLoader", "GenericDataLoader"]

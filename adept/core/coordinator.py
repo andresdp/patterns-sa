@@ -53,12 +53,13 @@ class ArchSpaceCore:
         self.robustness_analyzer = robustness_analyzer or RobustnessAnalyzer()
         self.tradeoff_analyzer = tradeoff_analyzer or TradeoffAnalyzer()
 
-    def load_data(self, source: Any, validate_integrity: bool = True) -> pd.DataFrame:
+    def load_data(self, source: Any, validate_integrity: bool = True, preprocessor: Optional[callable] = None) -> pd.DataFrame:
         """Loads raw data from the specified source.
         
         Args:
             source: Path to data source or data object
             validate_integrity: Whether to validate data integrity
+            preprocessor: Optional function(df) -> df to transform raw data.
             
         Returns:
             DataFrame containing loaded data
@@ -72,7 +73,7 @@ class ArchSpaceCore:
         
         try:
             if isinstance(self.loader, GenericDataLoader):
-                return self.loader.load(source, validate_integrity=validate_integrity)
+                return self.loader.load(source, validate_integrity=validate_integrity, preprocessor=preprocessor)
             return self.loader.load(source)
         except Exception as e:
             raise DataLoadingError(f"Failed to load data from {source}", {"original_error": str(e)})
@@ -86,13 +87,13 @@ class ArchSpaceCore:
             return self.loader.load_system_definition(source)
         raise TypeError("System definition loading requires GenericDataLoader")
 
-    def load_detailed_data(self, source: Any, validate_integrity: bool = True) -> Tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
+    def load_detailed_data(self, source: Any, validate_integrity: bool = True, preprocessor: Optional[callable] = None) -> Tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
         """Loads and automatically partitions data into raw, experiments, and outcomes.
         
         Requires a GenericDataLoader configured with a system.json.
         """
         if isinstance(self.loader, GenericDataLoader):
-            return self.loader.load_data(source, validate_integrity=validate_integrity)
+            return self.loader.load_data(source, validate_integrity=validate_integrity, preprocessor=preprocessor)
         raise TypeError("Detailed data loading requires GenericDataLoader")
 
     def validate(self, df: pd.DataFrame) -> bool:
