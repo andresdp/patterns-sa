@@ -1,4 +1,3 @@
-from abc import ABC, abstractmethod
 from typing import Any, Dict, Optional, List
 import pandas as pd
 import numpy as np
@@ -12,85 +11,15 @@ except ImportError:
     class VisualizationError(Exception):
         pass
 
-
-class IVisualizationStrategy(ABC):
-    """Abstract base class for visualization strategies."""
-    
-    @abstractmethod
-    def plot(self, data: Any, **kwargs) -> plt.Figure:
-        """Generates a visualization for the given data."""
-        raise NotImplementedError()
-
-
-class TradeoffDistributionStrategy(IVisualizationStrategy):
-    """Strategy for plotting tradeoff distributions."""
-    
-    def plot(self, outcomes_df: pd.DataFrame, schemes: List[Dict], tradeoff: Optional[Dict] = None, highlight_indices: Optional[np.ndarray] = None, **kwargs) -> plt.Figure:
-        """Plots outcome distributions with tradeoff overlays."""
-        try:
-            from .visualization import plot_tradeoff_distribution
-            # Pop known arguments to avoid multiple values error
-            tradeoff = kwargs.pop('tradeoff', tradeoff)
-            highlight_indices = kwargs.pop('highlight_indices', highlight_indices)
-            
-            return plot_tradeoff_distribution(outcomes_df, schemes, tradeoff=tradeoff, highlight_indices=highlight_indices, **kwargs)
-        except Exception as e:
-            raise VisualizationError(f"Failed to plot tradeoff distribution: {str(e)}")
-
-
-class QualityObjectiveSpaceStrategy(IVisualizationStrategy):
-    """Strategy for plotting quality objective space."""
-    
-    def plot(self, outcomes_df: pd.DataFrame, x_metric: str, y_metric: str, schemes: List[Dict], **kwargs) -> plt.Figure:
-        """Plots a 2D scatter of outcomes with tradeoff overlays."""
-        try:
-            from .visualization import show_quality_objective_space
-            # Pop known arguments to avoid multiple values error if they are in kwargs
-            highlight_indices_map = kwargs.pop('highlight_indices_map', None)
-            policy_series = kwargs.pop('policy_series', None)
-            show_overall = kwargs.pop('show_overall', True)
-            color_points = kwargs.pop('color_points', True)
-            draw_rectangles = kwargs.pop('draw_rectangles', False)
-            
-            return show_quality_objective_space(
-                outcomes_df, x_metric, y_metric, schemes, 
-                highlight_indices_map=highlight_indices_map,
-                policy_series=policy_series,
-                show_overall=show_overall,
-                color_points=color_points,
-                draw_rectangles=draw_rectangles,
-                **kwargs
-            )
-        except Exception as e:
-            raise VisualizationError(f"Failed to plot quality objective space: {str(e)}")
-
-
 class VisualizationManager:
-    """Manages visualization strategies and provides a unified interface."""
+    """Manages visualizations by providing a unified interface to plotting functions.
+    
+    This simplified manager directly delegates to the functional visualization API
+    after performing input validation.
+    """
     
     def __init__(self):
-        self._strategies = {
-            'tradeoff_distribution': TradeoffDistributionStrategy,
-            'quality_objective_space': QualityObjectiveSpaceStrategy
-        }
-    
-    def get_strategy(self, visualization_type: str) -> IVisualizationStrategy:
-        """Retrieves a visualization strategy by type.
-        
-        Args:
-            visualization_type: Type of visualization ('tradeoff_distribution' or 'quality_objective_space')
-            
-        Returns:
-            Configured visualization strategy instance
-            
-        Raises:
-            VisualizationError: If visualization type is not supported
-        """
-        strategy_class = self._strategies.get(visualization_type.lower())
-        if strategy_class:
-            return strategy_class()
-        
-        raise VisualizationError(f"Unsupported visualization type: {visualization_type}")
+        pass
     
     def plot_tradeoff_distribution(self, outcomes_df: pd.DataFrame, schemes: List[Dict], tradeoff: Optional[Dict] = None, highlight_indices: Optional[np.ndarray] = None, **kwargs) -> plt.Figure:
         """Plots outcome distributions with tradeoff overlays.
@@ -109,8 +38,12 @@ class VisualizationManager:
             VisualizationError: If plotting fails
         """
         self._validate_plot_inputs(outcomes_df, schemes)
-        strategy = self.get_strategy('tradeoff_distribution')
-        return strategy.plot(outcomes_df, schemes, tradeoff=tradeoff, highlight_indices=highlight_indices, **kwargs)
+        
+        try:
+            from .visualization import plot_tradeoff_distribution
+            return plot_tradeoff_distribution(outcomes_df, schemes, tradeoff=tradeoff, highlight_indices=highlight_indices, **kwargs)
+        except Exception as e:
+            raise VisualizationError(f"Failed to plot tradeoff distribution: {str(e)}")
     
     def show_quality_objective_space(self, outcomes_df: pd.DataFrame, x_metric: str, y_metric: str, schemes: List[Dict], **kwargs) -> plt.Figure:
         """Plots a 2D scatter of outcomes with tradeoff overlays.
@@ -130,8 +63,14 @@ class VisualizationManager:
         """
         self._validate_plot_inputs(outcomes_df, schemes)
         self._validate_metrics(outcomes_df, x_metric, y_metric)
-        strategy = self.get_strategy('quality_objective_space')
-        return strategy.plot(outcomes_df, x_metric, y_metric, schemes, **kwargs)
+        
+        try:
+            from .visualization import show_quality_objective_space
+            # Arguments are passed directly via kwargs, avoiding double-passing issues
+            # encountered in the previous Strategy pattern implementation.
+            return show_quality_objective_space(outcomes_df, x_metric, y_metric, schemes, **kwargs)
+        except Exception as e:
+            raise VisualizationError(f"Failed to plot quality objective space: {str(e)}")
     
     def _validate_plot_inputs(self, outcomes_df: pd.DataFrame, schemes: List[Dict]) -> None:
         """Validates common input parameters for plotting methods."""
@@ -163,8 +102,5 @@ class VisualizationManager:
 
 
 __all__ = [
-    "IVisualizationStrategy",
-    "TradeoffDistributionStrategy",
-    "QualityObjectiveSpaceStrategy",
     "VisualizationManager"
 ]
