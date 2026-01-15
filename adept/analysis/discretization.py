@@ -2,6 +2,8 @@ from typing import Dict, Optional, Tuple, List, Any
 import pandas as pd
 import numpy as np
 from collections import Counter
+from sklearn.preprocessing import MinMaxScaler
+from sklearn.neighbors import NearestNeighbors
 from ..core.models import QualityBin, DiscretizationScheme, QualityObjective
 
 
@@ -37,9 +39,11 @@ class DataProcessor:
         if method == 'discretization':
             labeled_df, schemes = DataProcessor._discretize(df, **kwargs)
         elif method in ['pareto', 'pareto_nadir']:
-            labeled_df, schemes, pareto_front = DataProcessor._pareto_segmentation(df, **kwargs)
+            labels = kwargs.pop('labels', ["pareto-efficient", "sub-optimal"])
+            labeled_df, schemes, pareto_front = DataProcessor._pareto_nadir(df, labels=labels,**kwargs)
         elif method == 'threshold':
-            labeled_df, schemes = DataProcessor._static_threshold(df, **kwargs)
+            labels = kwargs.pop('labels', ["satisfactory", "unsatisfactory"])
+            labeled_df, schemes = DataProcessor._static_threshold(df, labels=labels, **kwargs)
         elif method == 'pareto_knee':
             labeled_df, schemes, pareto_front = DataProcessor._pareto_knee(df, **kwargs)
         elif method == 'pareto_epsilon':
@@ -72,35 +76,67 @@ class DataProcessor:
         return Counter({k: len(v) for k, v in indices.items()})
 
     @staticmethod
-    def _static_threshold(df: pd.DataFrame, params: Dict[str, Any], objectives: List[QualityObjective]) -> Tuple[pd.DataFrame, List[DiscretizationScheme]]:
+    def _static_threshold(df: pd.DataFrame, params: Dict[str, Any], objectives: List[QualityObjective], labels = ["satisfactory", "unsatisfactory"]) -> Tuple[pd.DataFrame, List[DiscretizationScheme]]:
         """Segments data based on static user-defined thresholds."""
         thresholds = params.get('thresholds', {})
         discrete_df = df.copy()
         schemes = []
 
-        # Map directions
+        # Map directions (defaults if operator not provided)
         directions = {obj.name: ("max" if obj.maximize else "min") for obj in objectives if obj.name in df.columns}
 
-        for col, threshold in thresholds.items():
+        for col, thresh_val in thresholds.items():
             if col not in df.columns:
                 continue
             
-            direction = directions.get(col, "min") 
+            # 1. Parse Threshold and Operator
+            operator = None
+            value = thresh_val
             
-            if direction == "max":
-                bins = [-float('inf'), threshold, float('inf')]
-                labels = ["Unsatisfactory", "Satisfactory"]
-                discrete_df[col] = pd.cut(discrete_df[col], bins=bins, labels=labels, right=False)
+            if isinstance(thresh_val, (tuple, list)):
+                value = thresh_val[0]
+                if len(thresh_val) > 1:
+                    operator = thresh_val[1]
+            
+            # 2. Determine Logic based on Operator (or default direction)
+            # Default behavior if no operator:
+            if operator is None:
+                default_dir = directions.get(col, "min")
+                if default_dir == "max":
+                    operator = ">="
+                else:
+                    operator = "<="
+
+            # 3. Configure pd.cut
+            # Bins are always [-inf, value, inf]
+            bins = [-float('inf'), value, float('inf')]
+            
+            if operator == "<=":
+                # Sat: (-inf, val], Unsat: (val, inf]
+                current_labels = labels
+                right = True
+            elif operator == "<":
+                # Sat: [-inf, val), Unsat: [val, inf)
+                current_labels = labels
+                right = False
+            elif operator == ">=":
+                # Unsat: [-inf, val), Sat: [val, inf)
+                current_labels = labels[::-1] # Reverse: [Unsat, Sat]
+                right = False
+            elif operator == ">":
+                # Unsat: (-inf, val], Sat: (val, inf]
+                current_labels = labels[::-1] # Reverse: [Unsat, Sat]
+                right = True
             else:
-                bins = [-float('inf'), threshold, float('inf')]
-                labels = ["Satisfactory", "Unsatisfactory"]
-                discrete_df[col] = pd.cut(discrete_df[col], bins=bins, labels=labels, right=True)
+                raise ValueError(f"Unknown threshold operator: {operator}")
+
+            discrete_df[col] = pd.cut(discrete_df[col], bins=bins, labels=current_labels, right=right)
 
             q_bins = [
-                QualityBin(label=labels[0], min_value=bins[0], max_value=bins[1]),
-                QualityBin(label=labels[1], min_value=bins[1], max_value=bins[2])
+                QualityBin(label=current_labels[0], min_value=bins[0], max_value=bins[1]),
+                QualityBin(label=current_labels[1], min_value=bins[1], max_value=bins[2])
             ]
-            schemes.append(DiscretizationScheme(objective_name=col, bins=q_bins, method="static_threshold"))
+            schemes.append(DiscretizationScheme(objective_name=col, bins=q_bins, method=f"static_threshold_{operator}"))
 
         return discrete_df, schemes
 
@@ -112,7 +148,7 @@ class DataProcessor:
         except ImportError:
             raise ImportError("paretoset library is required.")
 
-        epsilon = params.get('epsilon', 0.05) 
+        epsilon = params.get('epsilon', 0.0) 
         
         directions = {}
         for obj in objectives:
@@ -128,18 +164,14 @@ class DataProcessor:
         mask = paretoset.paretoset(df[subset_cols], sense=sense_list)
         pareto_df = df[mask][subset_cols].copy()
         
-        normalized_df = df[subset_cols].copy()
-        normalized_pareto = pareto_df.copy()
+        # Normalize using MinMaxScaler
+        scaler = MinMaxScaler()
+        normalized_df_arr = scaler.fit_transform(df[subset_cols])
+        normalized_df = pd.DataFrame(normalized_df_arr, index=df.index, columns=subset_cols)
         
-        for col in subset_cols:
-            min_val = df[col].min()
-            max_val = df[col].max()
-            denom = max_val - min_val if max_val != min_val else 1.0
-            
-            normalized_df[col] = (normalized_df[col] - min_val) / denom
-            normalized_pareto[col] = (normalized_pareto[col] - min_val) / denom
+        normalized_pareto_arr = scaler.transform(pareto_df)
+        normalized_pareto = pd.DataFrame(normalized_pareto_arr, index=pareto_df.index, columns=subset_cols)
 
-        from sklearn.neighbors import NearestNeighbors
         nbrs = NearestNeighbors(n_neighbors=1, algorithm='ball_tree').fit(normalized_pareto)
         distances, indices = nbrs.kneighbors(normalized_df)
         
@@ -147,7 +179,7 @@ class DataProcessor:
         compliant_df = df[is_epsilon_optimal]
         
         discrete_df = df.copy()
-        labels_map = {True: "Epsilon-Optimal", False: "Sub-optimal"}
+        labels_map = {True: "epsilon-pareto-optimal", False: "out"}
         label_series = pd.Series(is_epsilon_optimal).map(labels_map)
         
         schemes = []
@@ -159,8 +191,9 @@ class DataProcessor:
                 opt_max = float(compliant_df[col].max())
                 
                 q_bins = [
-                    QualityBin(label="Epsilon-Optimal", min_value=opt_min, max_value=opt_max),
-                    QualityBin(label="Sub-optimal", min_value=float('-inf'), max_value=float('inf'))
+                    QualityBin(label="out", min_value=float('-inf'), max_value=opt_min),
+                    QualityBin(label="epsilon-pareto-optimal", min_value=opt_min, max_value=opt_max),
+                    QualityBin(label="out", min_value=opt_max, max_value=float('inf'))
                 ]
             else:
                 q_bins = []
@@ -192,14 +225,13 @@ class DataProcessor:
         pareto_indices = df[mask].index
         pareto_df = df.loc[pareto_indices, subset_cols].copy()
         
-        normalized_pareto = pareto_df.copy()
-        utopia_point = []
+        # Normalize using MinMaxScaler
+        scaler = MinMaxScaler()
+        normalized_pareto_arr = scaler.fit_transform(pareto_df)
+        normalized_pareto = pd.DataFrame(normalized_pareto_arr, index=pareto_df.index, columns=subset_cols)
         
+        utopia_point = []
         for col in subset_cols:
-            min_val = df[col].min()
-            max_val = df[col].max()
-            denom = max_val - min_val if max_val != min_val else 1.0
-            normalized_pareto[col] = (normalized_pareto[col] - min_val) / denom
             target = 1.0 if directions[col] == "max" else 0.0
             utopia_point.append(target)
             
@@ -208,24 +240,20 @@ class DataProcessor:
         knee_index = pareto_df.index[min_dist_idx]
         
         discrete_df = df.copy()
-        labels_series = pd.Series(["Off-Knee"] * len(df), index=df.index)
-        labels_series[knee_index] = "Knee"
+        labels_series = pd.Series(["off-knee"] * len(df), index=df.index)
+        labels_series[knee_index] = "knee"
         
-        knee_tolerance = params.get('tolerance', 0.0)
+        knee_tolerance = params.get('tolerance', 0.1)
         if knee_tolerance > 0:
-             normalized_df = df[subset_cols].copy()
-             for col in subset_cols:
-                min_val = df[col].min()
-                max_val = df[col].max()
-                denom = max_val - min_val if max_val != min_val else 1.0
-                normalized_df[col] = (normalized_df[col] - min_val) / denom
+             normalized_df_arr = scaler.transform(df[subset_cols])
+             normalized_df = pd.DataFrame(normalized_df_arr, index=df.index, columns=subset_cols)
              
              knee_norm = normalized_pareto.loc[knee_index]
              dists_to_knee = np.linalg.norm(normalized_df - knee_norm, axis=1)
              close_points = dists_to_knee <= knee_tolerance
-             labels_series[close_points] = "Knee"
+             labels_series[close_points] = "knee"
 
-        compliant_df = df[labels_series == "Knee"]
+        compliant_df = df[labels_series == "knee"]
 
         schemes = []
         for col in subset_cols:
@@ -235,7 +263,7 @@ class DataProcessor:
                 k_min = float(compliant_df[col].min())
                 k_max = float(compliant_df[col].max())
                 q_bins = [
-                    QualityBin(label="Knee", min_value=k_min, max_value=k_max)
+                    QualityBin(label="knee", min_value=k_min, max_value=k_max)
                 ]
             else:
                 q_bins = []
@@ -249,7 +277,7 @@ class DataProcessor:
         return discrete_df, schemes, df[mask]
 
     @staticmethod
-    def _pareto_segmentation(df: pd.DataFrame, objectives: List[QualityObjective]) -> Tuple[pd.DataFrame, List[DiscretizationScheme], pd.DataFrame]:
+    def _pareto_nadir(df: pd.DataFrame, objectives: List[QualityObjective], labels = ["pareto-efficient", "sub-optimal"]) -> Tuple[pd.DataFrame, List[DiscretizationScheme], pd.DataFrame]:
         """Segments data based on the Pareto Front Nadir point."""
         try:
             import paretoset
@@ -276,17 +304,18 @@ class DataProcessor:
             if direction == "max":
                 threshold = float(pareto_df[col].min())
                 bins = [-float('inf'), threshold, float('inf')]
-                labels = ["Sub-optimal", "Pareto-Compliant"]
+                labels1 = labels[::-1] # reverse labels
             else:
                 threshold = float(pareto_df[col].max())
                 bins = [-float('inf'), threshold, float('inf')]
-                labels = ["Pareto-Compliant", "Sub-optimal"]
-
-            discrete_df[col] = pd.cut(discrete_df[col], bins=bins, labels=labels)
+                labels1 = labels
             
+            # print(col,"threshold:", threshold)
+
+            discrete_df[col] = pd.cut(discrete_df[col], bins=bins, labels=labels1)
             q_bins = [
-                QualityBin(label=labels[0], min_value=bins[0], max_value=bins[1]),
-                QualityBin(label=labels[1], min_value=bins[1], max_value=bins[2])
+                QualityBin(label=labels1[0], min_value=bins[0], max_value=bins[1]),
+                QualityBin(label=labels1[1], min_value=bins[1], max_value=bins[2])
             ]
             schemes.append(DiscretizationScheme(
                 objective_name=col,

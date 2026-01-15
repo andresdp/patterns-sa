@@ -110,6 +110,8 @@ class PatternAnalysis:
             kwargs = {'objectives': self.sys_def.dataspace.quality_objectives}
             if params:
                 kwargs['params'] = params
+            if labels:
+                kwargs['labels'] = labels
 
         self.discrete_df, self.schemes, self.tradeoff_indices, self.pareto_front = self.coordinator.define_tradeoffs(
             self.outcomes_df, method=method, **kwargs
@@ -777,13 +779,15 @@ class PatternAnalysis:
         if self.sys_def:
             self.sys_def.system.tradeoffs = []
 
-    def create_static_threshold_tradeoffs(self, thresholds: Dict[str, float]) -> None:
+    def create_static_threshold_tradeoffs(self, thresholds: Dict[str, Union[float, Tuple[float, str]]]) -> None:
         """
         Generates all combinatorial tradeoffs based on static thresholds.
         
         Args:
-            thresholds: Dictionary mapping objective names to threshold values.
-                        e.g., {'latency': 200, 'cost': 50}
+            thresholds: Dictionary mapping objective names to threshold values OR (value, operator) tuples.
+                        e.g., {'latency': 200, 'cost': (50, '<')}
+                        Supported operators: <, <=, >, >=.
+                        Default depends on objective direction (minimize -> <=, maximize -> >=).
         """
         import itertools
         
