@@ -489,9 +489,11 @@ class PatternAnalysis:
             analyzer_fi = FeatureImportanceAnalyzer(self.sys_def)
             parameter_cols = analyzer_fi.get_parameter_columns(self.experiments_df)
             distance_metric = kwargs.get('distance_metric', 'euclidean')
+            baseline = kwargs.get('baseline', None)
             
             return RobustnessAnalyzer.compute_stability_radius(
-                experiments_subset, target_subset, parameter_cols, distance_metric=distance_metric
+                experiments_subset, target_subset, parameter_cols, 
+                distance_metric=distance_metric, baseline=baseline
             )
         else:
             raise ValueError(f"Unknown robustness metric: {metric}")

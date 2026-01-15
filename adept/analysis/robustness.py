@@ -112,7 +112,8 @@ class RobustnessAnalyzer:
         experiments_df: pd.DataFrame,
         is_target_mask: pd.Series,
         parameter_cols: List[str],
-        distance_metric: str = 'euclidean'
+        distance_metric: str = 'euclidean',
+        baseline: Optional[Dict[str, float]] = None
     ) -> Dict[str, Any]:
         """
         Calculates the minimum distance from the parameter centroid to the nearest failure mode.
@@ -125,6 +126,8 @@ class RobustnessAnalyzer:
             is_target_mask: Boolean Series where True = Success, False = Failure.
             parameter_cols: List of column names to include in the distance calculation.
             distance_metric: 'euclidean' (default) or 'cosine'.
+            baseline: Optional dict defining the nominal point {param: value}.
+                      If None, uses the centroid of the experiments_df.
             
         Returns:
             Dict with 'value' (radius), 'baseline' (coordinates), and 'nearest_failure'.
@@ -142,8 +145,18 @@ class RobustnessAnalyzer:
         X_norm_arr = scaler.fit_transform(X)
         X_norm = pd.DataFrame(X_norm_arr, index=X.index, columns=X.columns)
 
-        # 2. Calculate Baseline (Centroid of normalized space)
-        baseline = X_norm.mean().values.reshape(1, -1)
+        # 2. Determine Baseline
+        if baseline is not None:
+            # Validate and Normalize user baseline
+            # Order must match X columns
+            try:
+                base_vector = np.array([baseline[col] for col in X.columns]).reshape(1, -1)
+                baseline_norm = scaler.transform(base_vector)
+            except KeyError as e:
+                raise ValueError(f"Baseline dict missing parameter: {e}")
+        else:
+            # Default: Centroid of normalized space
+            baseline_norm = X_norm.mean().values.reshape(1, -1)
 
         # 3. Identify Failure Modes
         failing_indices = is_target_mask[~is_target_mask].index
@@ -153,12 +166,16 @@ class RobustnessAnalyzer:
             # We return the distance to the farthest corner of the [0,1]^N hypercube as a proxy.
             # Max possible Euclidean distance in unit hypercube is sqrt(N).
             max_val = np.sqrt(len(parameter_cols)) if distance_metric == 'euclidean' else 2.0
+            
+            # Use original scale for reporting if possible, or normalized
+            display_baseline = baseline if baseline else X.mean().to_dict()
+            
             return {
                 'metric': 'stability_radius',
                 'value': float(max_val),
                 'details': {
                     'status': 'no_failures',
-                    'baseline': X_norm.mean().to_dict()
+                    'baseline': display_baseline
                 }
             }
 
@@ -167,10 +184,10 @@ class RobustnessAnalyzer:
         # 4. Compute Distances from Baseline to Failures
         if distance_metric == 'cosine':
             # Cosine distance = 1 - cosine_similarity
-            dists = distance.cdist(baseline, X_failures, metric='cosine').flatten()
+            dists = distance.cdist(baseline_norm, X_failures, metric='cosine').flatten()
         else:
             # Default Euclidean
-            dists = distance.cdist(baseline, X_failures, metric='euclidean').flatten()
+            dists = distance.cdist(baseline_norm, X_failures, metric='euclidean').flatten()
 
         # 5. Determine Radius
         min_dist_idx = np.argmin(dists)
@@ -179,13 +196,16 @@ class RobustnessAnalyzer:
         # Details about the nearest failure
         nearest_fail_idx = failing_indices[min_dist_idx]
         nearest_fail_params = experiments_df.loc[nearest_fail_idx, parameter_cols].to_dict()
+        
+        display_baseline = baseline if baseline else X.mean().to_dict()
 
         return {
             'metric': 'stability_radius',
             'value': float(stability_radius),
             'details': {
                 'distance_metric': distance_metric,
-                'baseline': X_norm.mean().to_dict(),
+                'baseline': display_baseline,
+                'normalized_baseline': baseline_norm.flatten().tolist(),
                 'nearest_failure_index': int(nearest_fail_idx),
                 'nearest_failure_parameters': nearest_fail_params
             }

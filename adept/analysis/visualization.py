@@ -412,7 +412,14 @@ def show_stability_radius_plot(
     X_norm = scaler.fit_transform(X)
     
     # Add Centroid to projection
-    centroid_norm = np.array(list(radius_info['details']['baseline'].values())).reshape(1, -1)
+    if 'normalized_baseline' in radius_info['details']:
+        centroid_norm = np.array(radius_info['details']['normalized_baseline']).reshape(1, -1)
+    else:
+        # Fallback (should not be reached with current analyzer)
+        # Note: If baseline is in original scale, this would be wrong without scaler.transform
+        # But previous code assumed baseline was from mean() of X_norm if not provided.
+        centroid_norm = np.array(list(radius_info['details']['baseline'].values())).reshape(1, -1)
+
     X_combined = np.vstack([X_norm, centroid_norm])
     
     mds = MDS(n_components=2, random_state=42, normalized_stress='auto')
