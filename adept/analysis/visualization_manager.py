@@ -1,4 +1,4 @@
-from typing import Any, Dict, Optional, List
+from typing import Any, Dict, Optional, List, Tuple
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
@@ -21,7 +21,7 @@ class VisualizationManager:
     def __init__(self):
         pass
     
-    def plot_tradeoff_distribution(self, outcomes_df: pd.DataFrame, schemes: List[Dict], tradeoff: Optional[Dict] = None, highlight_indices: Optional[np.ndarray] = None, **kwargs) -> plt.Figure:
+    def show_tradeoff_distribution(self, outcomes_df: pd.DataFrame, schemes: List[Dict], tradeoff: Optional[Dict] = None, highlight_indices: Optional[np.ndarray] = None, **kwargs) -> plt.Figure:
         """Plots outcome distributions with tradeoff overlays.
         
         Args:
@@ -40,8 +40,8 @@ class VisualizationManager:
         self._validate_plot_inputs(outcomes_df, schemes)
         
         try:
-            from .visualization import plot_tradeoff_distribution
-            return plot_tradeoff_distribution(outcomes_df, schemes, tradeoff=tradeoff, highlight_indices=highlight_indices, **kwargs)
+            from .visualization import show_tradeoff_distribution
+            return show_tradeoff_distribution(outcomes_df, schemes, tradeoff=tradeoff, highlight_indices=highlight_indices, **kwargs)
         except Exception as e:
             raise VisualizationError(f"Failed to plot tradeoff distribution: {str(e)}")
     
@@ -71,6 +71,19 @@ class VisualizationManager:
             return show_quality_objective_space(outcomes_df, x_metric, y_metric, schemes, **kwargs)
         except Exception as e:
             raise VisualizationError(f"Failed to plot quality objective space: {str(e)}")
+
+    def show_stability_radius_plot(self, experiments_df: pd.DataFrame, outcomes_df: pd.DataFrame, target_mask: pd.Series, parameter_cols: List[str], radius_info: Dict[str, Any], objective_cols: Tuple[str, str], schemes: List[Any], **kwargs) -> plt.Figure:
+        """
+        Visualizes the stability radius in both parameter and objective space.
+        """
+        try:
+            from .visualization import show_stability_radius_plot
+            return show_stability_radius_plot(
+                experiments_df, outcomes_df, target_mask, parameter_cols, 
+                radius_info, objective_cols, schemes, **kwargs
+            )
+        except Exception as e:
+            raise VisualizationError(f"Failed to plot stability radius: {str(e)}")
     
     def _validate_plot_inputs(self, outcomes_df: pd.DataFrame, schemes: List[Dict]) -> None:
         """Validates common input parameters for plotting methods."""

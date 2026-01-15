@@ -1,15 +1,17 @@
 import matplotlib
-matplotlib.use('Agg')
+# matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 import matplotlib.patches as patches
 import seaborn as sns
 import pandas as pd
 import numpy as np
-from typing import List, Optional, Dict, Tuple
-from ..core.models import DiscretizationScheme, Tradeoff
+from typing import List, Optional, Dict, Tuple, Any
+from ..core.models import DiscretizationScheme, Tradeoff, QualityBin
 import sankeyflow as sf
+from sklearn.manifold import MDS
+from sklearn.preprocessing import MinMaxScaler
 
-def plot_tradeoff_distribution(
+def show_tradeoff_distribution(
     outcomes_df: pd.DataFrame, 
     schemes: List[DiscretizationScheme], 
     tradeoff: Optional[Tradeoff] = None,
@@ -88,8 +90,9 @@ def plot_tradeoff_distribution(
                         ha='center', va='top', fontsize=9, color='red', fontweight='bold',
                         bbox=dict(facecolor='white', alpha=0.7, edgecolor='none'))
 
+        print("BOUNDARIES",boundaries)
         for b in boundaries:
-            if data.min() < b < data.max():
+            if data.min() <= b <= data.max():
                 ax.axvline(b, color='red', linestyle='--', alpha=0.8)
         
         # ax.set_title(f"Distribution of {col_name}")
@@ -120,10 +123,11 @@ def show_quality_objective_space(
     """
     Plots a 2D scatter of outcomes with tradeoff overlays.
     """
-    title = kwargs.pop('title', f"{x_metric} vs {y_metric}")
+    title = kwargs.pop('title', None)
     
-    fig, ax = plt.subplots(figsize=kwargs.get('figsize', (10, 8)))
+    fig, ax = plt.subplots(figsize=kwargs.get('figsize', (12, 8)))
     alpha = kwargs.get('alpha', 0.3)
+    s = kwargs.get('s', 20)
     
     # Determine mode
     coloring_by_policy = policy_series is not None
@@ -141,7 +145,7 @@ def show_quality_objective_space(
     if coloring_by_policy and show_overall:
         sns.scatterplot(
             data=outcomes_df, x=x_metric, y=y_metric, 
-            ax=ax, color='gray', alpha=alpha, s=20, zorder=0
+            ax=ax, color='gray', alpha=alpha, s=s, zorder=0
         )
     elif not coloring_by_policy:
          sns.scatterplot(
@@ -150,7 +154,7 @@ def show_quality_objective_space(
             color='gray' if show_overall else 'white', 
             alpha=alpha if show_overall else 0, 
             label='Overall' if show_overall else None, 
-            s=20
+            s=s
         )
     
     # 2. Plot Policies (if enabled)
@@ -166,7 +170,7 @@ def show_quality_objective_space(
                 hue='__policy__',
                 ax=ax,
                 alpha=alpha,
-                s=20,
+                s=s,
                 legend='full'
             )
 
@@ -196,17 +200,20 @@ def show_quality_objective_space(
                 rect = patches.Rectangle(
                     (x_min, y_min), x_max - x_min, y_max - y_min,
                     linewidth=2, edgecolor=color, facecolor=color, alpha=0.2,
-                    label=f"{label} (Area)"
+                    label=f"{label} (tradeoff area)"
                 )
                 ax.add_patch(rect)
 
             if color_points:
                 sns.scatterplot(
                     data=subset, x=x_metric, y=y_metric, 
-                    ax=ax, color=color, label=label, s=20, alpha=alpha, edgecolors='none'
+                    ax=ax, color=color, label=label, s=s, alpha=alpha, edgecolors='none'
                 )
 
-    ax.set_title(f"Architectural Tradeoff Space: {x_metric} vs {y_metric}", pad=30)
+    if title is None:
+        ax.set_title(f"Quality Objective Space: {x_metric} vs {y_metric}", pad=30)
+    else:
+        ax.set_title(title, pad=30)
     
     # Handle Legend
     # If both hue (policies) and rectangles (tradeoffs) are present, legend might need adjustment
@@ -247,6 +254,8 @@ def show_contingency_heatmap(
     ax.set_title(title, pad=20)
     ax.set_xlabel("Tradeoff")
     ax.set_ylabel("Decision / Policy")
+    ax.set_yticklabels(ax.get_yticklabels(), rotation=0, horizontalalignment='right')
+
     plt.tight_layout()
     return fig
 
@@ -320,6 +329,8 @@ def show_importance_heatmap(
     ax.set_title(title, pad=20)
     ax.set_xlabel("Quality Objectives")
     ax.set_ylabel("Parameters")
+    ax.set_yticklabels(ax.get_yticklabels(), rotation=0, horizontalalignment='right')
+
     plt.tight_layout()
     return fig
 
@@ -354,3 +365,97 @@ def _apply_axis_segmentation(ax: plt.Axes, scheme: Optional[DiscretizationScheme
             ax.axvline(val, color=line_color, linestyle='--', alpha=line_alpha)
         else:
             ax.axhline(val, color=line_color, linestyle='--', alpha=line_alpha)
+
+
+def show_stability_radius_plot(
+    experiments_df: pd.DataFrame,
+    outcomes_df: pd.DataFrame,
+    target_mask: pd.Series,
+    parameter_cols: List[str],
+    radius_info: Dict[str, Any],
+    objective_cols: Tuple[str, str],
+    schemes: List[DiscretizationScheme],
+    figsize: Tuple[int, int] = (14, 6),
+    max_points: int = 2000
+) -> plt.Figure:
+    """
+    Visualizes the stability radius in both parameter and objective space.
+    
+    Args:
+        experiments_df: Filtered parameters for the policy.
+        outcomes_df: Filtered outcomes for the policy.
+        target_mask: Success/Failure mask.
+        parameter_cols: Names of parameters used for distance.
+        radius_info: Output from compute_stability_radius.
+        objective_cols: Pair of outcomes to plot on right panel.
+        schemes: Discretization schemes for outcome axes.
+        figsize: Figure size.
+        max_points: Max points to plot using MDS (downsampling threshold).
+    """
+    import matplotlib.patches as patches
+    
+    # 1. Downsampling for performance
+    n_points = len(experiments_df)
+    if n_points > max_points:
+        indices = np.random.choice(n_points, max_points, replace=False)
+        exp_sub = experiments_df.iloc[indices]
+        out_sub = outcomes_df.iloc[indices]
+        mask_sub = target_mask.iloc[indices]
+    else:
+        exp_sub = experiments_df
+        out_sub = outcomes_df
+        mask_sub = target_mask
+
+    # 2. MDS Projection of Parameter Space
+    X = exp_sub[parameter_cols].select_dtypes(include=[np.number])
+    scaler = MinMaxScaler()
+    X_norm = scaler.fit_transform(X)
+    
+    # Add Centroid to projection
+    centroid_norm = np.array(list(radius_info['details']['baseline'].values())).reshape(1, -1)
+    X_combined = np.vstack([X_norm, centroid_norm])
+    
+    mds = MDS(n_components=2, random_state=42, normalized_stress='auto')
+    X_2d = mds.fit_transform(X_combined)
+    
+    points_2d = X_2d[:-1]
+    centroid_2d = X_2d[-1]
+
+    # 3. Setup Plot
+    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=figsize)
+    
+    # Left Panel: Parameter Space
+    colors = ['green' if v else 'red' for v in mask_sub]
+    ax1.scatter(points_2d[:, 0], points_2d[:, 1], c=colors, alpha=0.5, s=25, edgecolors='none')
+    
+    # Plot Centroid (Nominal Solution) in Black
+    ax1.scatter(centroid_2d[0], centroid_2d[1], c='black', marker='*', s=200, label='Nominal (Centroid)', edgecolors='white', zorder=5)
+    
+    # Draw visual stability radius in 2D
+    # We find the nearest 2D distance to a failure point to represent the radius visually
+    failures_2d = points_2d[~mask_sub.values]
+    if len(failures_2d) > 0:
+        dists_2d = np.linalg.norm(failures_2d - centroid_2d, axis=1)
+        visual_r = np.min(dists_2d)
+        circle = patches.Circle(centroid_2d, visual_r, fill=False, edgecolor='black', linestyle='--', alpha=0.6)
+        ax1.add_patch(circle)
+    
+    ax1.set_title(f"Parameter Space Projection (MDS)\nRadius ({radius_info['details']['distance_metric']}): {radius_info['value']:.3f}")
+    ax1.legend(loc='lower left', fontsize='small')
+
+    # Right Panel: Objective Space
+    x_obj, y_obj = objective_cols
+    ax2.scatter(out_sub[x_obj], out_sub[y_obj], c=colors, alpha=0.6, s=30)
+    
+    # Add axis segmentation for context
+    scheme_x = next((s for s in schemes if s.objective_name == x_obj), None)
+    scheme_y = next((s for s in schemes if s.objective_name == y_obj), None)
+    _apply_axis_segmentation(ax2, scheme_x, outcomes_df[x_obj], orientation='x')
+    _apply_axis_segmentation(ax2, scheme_y, outcomes_df[y_obj], orientation='y')
+    
+    ax2.set_title(f"Objective Space: {x_obj} vs {y_obj}")
+    ax2.set_xlabel(x_obj)
+    ax2.set_ylabel(y_obj)
+
+    plt.tight_layout()
+    return fig

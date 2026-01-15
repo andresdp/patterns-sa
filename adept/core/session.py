@@ -415,7 +415,7 @@ class PatternAnalysis:
         Args:
             policy_name: Name of the policy.
             tradeoff_name: Name of the target tradeoff.
-            metric: 'starr' or 'regret'.
+            metric: 'starr', 'regret', or 'stability_radius'.
             subset: 'all', 'train', or 'test'.
             
         Returns:
@@ -423,15 +423,12 @@ class PatternAnalysis:
         """
         from ..analysis.robustness import RobustnessAnalyzer
         from ..analysis.contingency import ContingencyAnalyzer
+        from ..analysis.feature_importance import FeatureImportanceAnalyzer
         
         # 1. Prepare Data Subsets
         indices = self._filter_indices_for_subset(range(len(self.raw_df)), subset)
         
         # Filter for Policy
-        # We need the decision key to find which column to look at, 
-        # but if names are unique we can search.
-        # Better: Assume user knows the policy.
-        # Find which decision this policy belongs to
         config_col = self.sys_def.dataspace.configuration_identification.column
         analyzer_cont = ContingencyAnalyzer(self.sys_def)
         policy_map = analyzer_cont.get_decision_policy_map(self.experiments_df, config_col)
@@ -466,6 +463,7 @@ class PatternAnalysis:
         
         target_subset = is_target.iloc[final_indices]
         outcomes_subset = self.outcomes_df.iloc[final_indices]
+        experiments_subset = self.experiments_df.iloc[final_indices]
 
         # 3. Compute
         if metric == 'starr':
@@ -486,6 +484,14 @@ class PatternAnalysis:
             
             return RobustnessAnalyzer.compute_regret(
                 outcomes_subset, target_subset, boundaries, stats=self.outcome_stats
+            )
+        elif metric == 'stability_radius':
+            analyzer_fi = FeatureImportanceAnalyzer(self.sys_def)
+            parameter_cols = analyzer_fi.get_parameter_columns(self.experiments_df)
+            distance_metric = kwargs.get('distance_metric', 'euclidean')
+            
+            return RobustnessAnalyzer.compute_stability_radius(
+                experiments_subset, target_subset, parameter_cols, distance_metric=distance_metric
             )
         else:
             raise ValueError(f"Unknown robustness metric: {metric}")
@@ -651,6 +657,77 @@ class PatternAnalysis:
         plt.tight_layout()
         
         return fig
+
+    def show_stability_radius(
+        self, 
+        policy_name: str, 
+        tradeoff_name: str, 
+        objective_cols: Optional[Tuple[str, str]] = None,
+        subset: str = 'all', 
+        **kwargs
+    ) -> plt.Figure:
+        """
+        Visualizes the stability radius for a specific policy and tradeoff.
+        
+        This multi-panel plot shows the parameter space (MDS projection) and 
+        the quality objective space, highlighting the nominal center and failure modes.
+        
+        Args:
+            policy_name: Name of the policy to analyze.
+            tradeoff_name: Name of the target tradeoff region.
+            objective_cols: Pair of outcome names for the objective space panel.
+            subset: 'all', 'train', or 'test'.
+            **kwargs: Plotting parameters (e.g. figsize, max_points).
+        """
+        from ..analysis.contingency import ContingencyAnalyzer
+        from ..analysis.feature_importance import FeatureImportanceAnalyzer
+        
+        # 1. Get Radius Info
+        radius_info = self.compute_robustness(
+            policy_name, tradeoff_name, metric='stability_radius', subset=subset, **kwargs
+        )
+        
+        # 2. Extract Data for the policy
+        X_full, Y_full, _ = self._get_subset_data(subset)
+        
+        config_col = self.sys_def.dataspace.configuration_identification.column
+        analyzer_cont = ContingencyAnalyzer(self.sys_def)
+        policy_map = analyzer_cont.get_decision_policy_map(self.experiments_df, config_col)
+        
+        policy_col = None
+        for col in policy_map.columns:
+            if (policy_map[col] == policy_name).any():
+                policy_col = col
+                break
+        
+        if policy_col is None:
+            raise ValueError(f"Policy '{policy_name}' not found.")
+            
+        policy_mask = (policy_map[policy_col] == policy_name)
+        indices = self._filter_indices_for_subset(range(len(self.raw_df)), subset)
+        final_mask = policy_mask.iloc[indices]
+        
+        exp_subset = X_full[final_mask]
+        out_subset = Y_full[final_mask]
+        
+        # 3. Determine target mask (Success/Failure)
+        tradeoff = self.get_tradeoff(tradeoff_name)
+        is_target = pd.Series(True, index=out_subset.index)
+        for obj, label in tradeoff.elements.items():
+            if obj in self.discrete_df.columns:
+                is_target &= (self.discrete_df.loc[out_subset.index, obj] == label)
+        
+        # 4. Parameters and Objectives
+        analyzer_fi = FeatureImportanceAnalyzer(self.sys_def)
+        parameter_cols = analyzer_fi.get_parameter_columns(self.experiments_df)
+        
+        if objective_cols is None:
+            objs = [o.name for o in self.get_outcomes()]
+            objective_cols = (objs[0], objs[1]) if len(objs) >= 2 else (objs[0], objs[0])
+
+        return self.coordinator.show_stability_radius_plot(
+            exp_subset, out_subset, is_target, parameter_cols, radius_info, objective_cols, self.schemes, **kwargs
+        )
 
     # --- Data Subset Helpers ---
 

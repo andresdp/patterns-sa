@@ -1,6 +1,8 @@
-from typing import Dict, Any, Optional
+from typing import Dict, Any, Optional, List
 import pandas as pd
 import numpy as np
+from sklearn.preprocessing import MinMaxScaler
+from scipy.spatial import distance
 
 class RobustnessAnalyzer:
     """
@@ -9,6 +11,7 @@ class RobustnessAnalyzer:
     Supported Metrics:
     - 'starr': Success rate (fraction of scenarios hitting the target).
     - 'regret': Standardized Euclidean distance from the target tradeoff.
+    - 'stability_radius': Minimum distance from parameter centroid to the nearest failure mode.
     """
 
     @staticmethod
@@ -101,5 +104,89 @@ class RobustnessAnalyzer:
                 'max_regret': max_regret,
                 'avg_regret_failing': float(distances[failing_mask].mean()) if failing_mask.any() else 0.0,
                 'objective_regret_contribution': obj_regret
+            }
+        }
+
+    @staticmethod
+    def compute_stability_radius(
+        experiments_df: pd.DataFrame,
+        is_target_mask: pd.Series,
+        parameter_cols: List[str],
+        distance_metric: str = 'euclidean'
+    ) -> Dict[str, Any]:
+        """
+        Calculates the minimum distance from the parameter centroid to the nearest failure mode.
+        
+        A 'failure' is defined as any point where is_target_mask is False.
+        Distances are calculated in the normalized (MinMax) parameter space.
+        
+        Args:
+            experiments_df: DataFrame of input parameters (rows filtered for specific policy).
+            is_target_mask: Boolean Series where True = Success, False = Failure.
+            parameter_cols: List of column names to include in the distance calculation.
+            distance_metric: 'euclidean' (default) or 'cosine'.
+            
+        Returns:
+            Dict with 'value' (radius), 'baseline' (coordinates), and 'nearest_failure'.
+        """
+        if experiments_df.empty:
+            return {'metric': 'stability_radius', 'value': 0.0, 'details': {}}
+
+        # 1. Prepare and Normalize Data
+        # Filter to numeric parameter columns provided
+        X = experiments_df[parameter_cols].select_dtypes(include=[np.number])
+        if X.empty:
+             return {'metric': 'stability_radius', 'value': 0.0, 'details': 'No numeric parameters found'}
+
+        scaler = MinMaxScaler()
+        X_norm_arr = scaler.fit_transform(X)
+        X_norm = pd.DataFrame(X_norm_arr, index=X.index, columns=X.columns)
+
+        # 2. Calculate Baseline (Centroid of normalized space)
+        baseline = X_norm.mean().values.reshape(1, -1)
+
+        # 3. Identify Failure Modes
+        failing_indices = is_target_mask[~is_target_mask].index
+        
+        if len(failing_indices) == 0:
+            # If no failures, the radius is theoretically infinite within the sampled space.
+            # We return the distance to the farthest corner of the [0,1]^N hypercube as a proxy.
+            # Max possible Euclidean distance in unit hypercube is sqrt(N).
+            max_val = np.sqrt(len(parameter_cols)) if distance_metric == 'euclidean' else 2.0
+            return {
+                'metric': 'stability_radius',
+                'value': float(max_val),
+                'details': {
+                    'status': 'no_failures',
+                    'baseline': X_norm.mean().to_dict()
+                }
+            }
+
+        X_failures = X_norm.loc[failing_indices].values
+
+        # 4. Compute Distances from Baseline to Failures
+        if distance_metric == 'cosine':
+            # Cosine distance = 1 - cosine_similarity
+            dists = distance.cdist(baseline, X_failures, metric='cosine').flatten()
+        else:
+            # Default Euclidean
+            dists = distance.cdist(baseline, X_failures, metric='euclidean').flatten()
+
+        # 5. Determine Radius
+        min_dist_idx = np.argmin(dists)
+        stability_radius = dists[min_dist_idx]
+        
+        # Details about the nearest failure
+        nearest_fail_idx = failing_indices[min_dist_idx]
+        nearest_fail_params = experiments_df.loc[nearest_fail_idx, parameter_cols].to_dict()
+
+        return {
+            'metric': 'stability_radius',
+            'value': float(stability_radius),
+            'details': {
+                'distance_metric': distance_metric,
+                'baseline': X_norm.mean().to_dict(),
+                'nearest_failure_index': int(nearest_fail_idx),
+                'nearest_failure_parameters': nearest_fail_params
             }
         }

@@ -166,7 +166,7 @@ class ArchSpaceCore:
         with open(path, "w", encoding="utf-8") as fh:
             json.dump(report, fh, indent=2)
 
-    def plot_distributions(self, outcomes_df: pd.DataFrame, schemes: List[DiscretizationScheme], tradeoff: Optional[Tradeoff] = None, highlight_indices: Optional[np.ndarray] = None, **kwargs) -> plt.Figure:
+    def show_distributions(self, outcomes_df: pd.DataFrame, schemes: List[DiscretizationScheme], tradeoff: Optional[Tradeoff] = None, highlight_indices: Optional[np.ndarray] = None, **kwargs) -> plt.Figure:
         """Plots outcome distributions with tradeoff overlays.
         
         Delegates to the VisualizationManager.
@@ -184,7 +184,7 @@ class ArchSpaceCore:
         Raises:
             VisualizationError: If plotting fails
         """
-        return self.visualization_manager.plot_tradeoff_distribution(outcomes_df, schemes, tradeoff=tradeoff, highlight_indices=highlight_indices, **kwargs)
+        return self.visualization_manager.show_tradeoff_distribution(outcomes_df, schemes, tradeoff=tradeoff, highlight_indices=highlight_indices, **kwargs)
     
     def show_quality_objective_space(self, outcomes_df: pd.DataFrame, x_metric: str, y_metric: str, schemes: List[DiscretizationScheme], highlight_indices_map: Optional[Dict[str, np.ndarray]] = None, policy_series: Optional[pd.Series] = None, show_overall: bool = True, color_points: bool = True, draw_rectangles: bool = False, **kwargs) -> plt.Figure:
         """Plots a 2D scatter of outcomes with tradeoff overlays and highlighting.
@@ -217,6 +217,16 @@ class ArchSpaceCore:
             color_points=color_points,
             draw_rectangles=draw_rectangles,
             **kwargs
+        )
+
+    def show_stability_radius_plot(self, experiments_df: pd.DataFrame, outcomes_df: pd.DataFrame, target_mask: pd.Series, parameter_cols: List[str], radius_info: Dict[str, Any], objective_cols: Tuple[str, str], schemes: List[DiscretizationScheme], **kwargs) -> plt.Figure:
+        """Visualizes the stability radius in both parameter and objective space.
+        
+        Delegates to the VisualizationManager.
+        """
+        return self.visualization_manager.show_stability_radius_plot(
+            experiments_df, outcomes_df, target_mask, parameter_cols, 
+            radius_info, objective_cols, schemes, **kwargs
         )
 
 
