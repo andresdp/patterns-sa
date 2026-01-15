@@ -901,6 +901,50 @@ class PatternAnalysis:
                 description=f"Pareto Epsilon combination: {name}"
             )
 
+    def create_discretization_tradeoffs(self, labels: Optional[Dict[str, List[str]]] = None, objectives: Optional[List[str]] = None) -> None:
+        """
+        Generates all combinatorial tradeoffs based on discretization bins.
+        
+        Args:
+            labels: Dictionary mapping objective names to lists of labels.
+                    e.g., {'cost': ['low', 'high'], 'latency': ['fast', 'slow']}
+                    If None (or missing for an objective), defaults to ['low', 'avg', 'high'].
+            objectives: List of objective names to consider. If None, uses all defined outcomes.
+        """
+        import itertools
+        
+        if objectives is None:
+            objectives = [obj.name for obj in self.get_outcomes()]
+            
+        # Prepare label sets for each objective
+        label_sets = []
+        final_objectives = []
+        
+        for obj in objectives:
+            if labels and obj in labels:
+                label_sets.append(labels[obj])
+            else:
+                # Default labels
+                label_sets.append(['low', 'avg', 'high'])
+            final_objectives.append(obj)
+            
+        # Generate combinations
+        combinations = list(itertools.product(*label_sets))
+        
+        for combo in combinations:
+            # Name: e.g. "cost-low_latency-fast"
+            name_parts = [f"{obj}-{val}" for obj, val in zip(final_objectives, combo)]
+            name = "_".join(name_parts)
+            
+            elements = dict(zip(final_objectives, combo))
+            
+            self.add_tradeoff(
+                name=name,
+                scheme="discretization",
+                elements=elements,
+                description=f"Discretization combination: {name}"
+            )
+
     def get_adaptive_processes(self) -> List[Any]:
         """Returns the list of adaptive processes."""
         if not self.sys_def: return []
