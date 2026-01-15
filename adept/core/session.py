@@ -1127,6 +1127,7 @@ class PatternAnalysis:
         method: str = 'prim', 
         parameters: Optional[List[str]] = None,
         standardize: bool = False,
+        combine_tradeoffs: bool = False,
         **kwargs
     ) -> List[Any]:
         """
@@ -1138,6 +1139,8 @@ class PatternAnalysis:
             method: 'prim' or 'cart'.
             parameters: List of parameters to include. If None, uses all parameters.
             standardize: Whether to standardize parameters before discovery.
+            combine_tradeoffs: If True and multiple tradeoffs are provided, finds a region
+                               that satisfies ANY of them (Union/OR logic). Only for PRIM.
             
         Returns:
             List[Box]: Structured box objects with limits and performance metrics.
@@ -1153,6 +1156,15 @@ class PatternAnalysis:
         elif isinstance(tradeoff_names, str):
             tradeoff_names = [tradeoff_names]
             tradeoff_labels = [','.join(t.elements.values()) for t in all_tradeoffs if t.name == tradeoff_names[0]]
+        else:
+            # List provided
+            tradeoff_labels = []
+            for name in tradeoff_names:
+                t = next((t for t in all_tradeoffs if t.name == name), None)
+                if t:
+                    tradeoff_labels.append(','.join(t.elements.values()))
+                else:
+                    tradeoff_labels.append("unknown")
 
         # Dataset bounds
         agg_results = self.experiments_df.agg(['min', 'max'])
@@ -1162,17 +1174,33 @@ class PatternAnalysis:
         # 2. Handle PRIM (Iterative)
         if method == 'prim':
             all_boxes = []
-            for name in tradeoff_names:
-                # We call ourselves recursively or just use the logic for one
-                # To avoid complex recursion, we extract the core logic
-                boxes = self._discover_single_prim(
-                    name, parameters=parameters, standardize=standardize, **kwargs
-                )
-                all_boxes.extend(boxes)
             
-            for box, tradeoff_label in zip(all_boxes, tradeoff_labels):
-                box.target_tradeoff_labels = tradeoff_label
-                box.dataset_bounds = min_max_dict
+            if combine_tradeoffs and len(tradeoff_names) > 1:
+                # Combined Logic
+                boxes = self._discover_combined_prim(
+                    tradeoff_names, parameters=parameters, standardize=standardize, **kwargs
+                )
+                
+                # Set metadata for combined result
+                combined_label = " OR ".join(tradeoff_names)
+                for box in boxes:
+                    box.target_tradeoff = combined_label
+                    box.target_tradeoff_labels = "combined"
+                    box.dataset_bounds = min_max_dict
+                
+                all_boxes.extend(boxes)
+                
+            else:
+                # Iterative Logic
+                for name, label in zip(tradeoff_names, tradeoff_labels):
+                    boxes = self._discover_single_prim(
+                        name, parameters=parameters, standardize=standardize, **kwargs
+                    )
+                    for box in boxes:
+                        box.target_tradeoff_labels = label
+                        box.dataset_bounds = min_max_dict
+                    all_boxes.extend(boxes)
+            
             return all_boxes
 
         # 3. Handle CART (Global + Filter)
@@ -1252,6 +1280,74 @@ class PatternAnalysis:
             boxes.append(box)
                 
         return boxes
+
+    def _discover_combined_prim(self, tradeoff_names: List[str], parameters=None, standardize=False, **kwargs) -> List[Any]:
+        """Internal helper for combined PRIM discovery (Union of tradeoffs)."""
+        from ..analysis.discovery import Box, BoxEvaluator
+        from ..analysis.feature_importance import FeatureImportanceAnalyzer
+        
+        if self.train_indices is None:
+            self.split_data()
+            
+        analyzer = FeatureImportanceAnalyzer(self.sys_def)
+        if parameters is None:
+            parameters = analyzer.get_parameter_columns(self.experiments_df)
+            
+        X_train = self.experiments_df.iloc[self.train_indices][parameters]
+        X_test = self.experiments_df.iloc[self.test_indices][parameters]
+        
+        # Build Combined Mask (Union)
+        y_all = pd.Series(False, index=self.experiments_df.index)
+        
+        for t_name in tradeoff_names:
+            tradeoff = next((t for t in self.get_tradeoffs() if t.name == t_name), None)
+            if not tradeoff: continue
+            
+            # Mask for this tradeoff
+            t_mask = pd.Series(True, index=self.experiments_df.index)
+            for obj_name, target_label in tradeoff.elements.items():
+                if obj_name in self.discrete_df.columns:
+                    t_mask &= (self.discrete_df[obj_name] == target_label)
+            
+            # Union
+            y_all |= t_mask
+        
+        y_train = y_all.iloc[self.train_indices]
+        y_test = y_all.iloc[self.test_indices]
+        prevalence = y_train.sum() / len(y_train) if len(y_train) > 0 else 0.0
+
+        # Preprocessing
+        current_stats = None
+        if standardize:
+             X_train, _, stats = analyzer.preprocess_features(X_train, standardize=True)
+             current_stats = stats
+             X_test_arr = stats['scaler'].transform(X_test[stats['numeric_cols']])
+             X_test = pd.DataFrame(X_test_arr, index=X_test.index, columns=stats['numeric_cols'])
+
+        print(f"Running Combined PRIM discovery for: {tradeoff_names} ...")
+        discovery_kwargs = kwargs.copy()
+        discovery_kwargs['y_mask'] = y_train
+            
+        # We pass a dummy outcome name since we provided y_mask
+        result = self.coordinator.discover_scenarios(
+            X_train, outcome="combined", method='prim', experiments_df=X_train, **discovery_kwargs
+        )
+        
+        if not result: return []
+        
+        # Post-process
+        final_boxes = []
+        for box in result:
+            # Evaluate on Test Set
+            box.metrics = BoxEvaluator.evaluate(box.limits, X_test, y_test, population_prevalence=prevalence)
+            box.population_prevalence = prevalence
+            
+            if standardize and current_stats:
+                self._destandardize_box(box, current_stats)
+            
+            final_boxes.append(box)
+            
+        return final_boxes
 
     def _discover_single_prim(self, tradeoff_name: str, parameters=None, standardize=False, **kwargs) -> List[Any]:
         """Internal helper for single PRIM discovery."""
