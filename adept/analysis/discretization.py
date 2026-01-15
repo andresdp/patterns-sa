@@ -4,6 +4,8 @@ import numpy as np
 from collections import Counter
 from sklearn.preprocessing import MinMaxScaler
 from sklearn.neighbors import NearestNeighbors
+from sklearn.cluster import KMeans
+from sklearn.metrics import silhouette_score
 from ..core.models import QualityBin, DiscretizationScheme, QualityObjective
 
 
@@ -38,6 +40,8 @@ class DataProcessor:
 
         if method == 'discretization':
             labeled_df, schemes = DataProcessor._discretize(df, **kwargs)
+        elif method == 'clustering':
+            labeled_df, schemes = DataProcessor._discretize_kmeans(df, **kwargs)
         elif method in ['pareto', 'pareto_nadir']:
             labels = kwargs.pop('labels', ["pareto-efficient", "sub-optimal"])
             labeled_df, schemes, pareto_front = DataProcessor._pareto_nadir(df, labels=labels,**kwargs)
@@ -324,6 +328,109 @@ class DataProcessor:
             ))
             
         return discrete_df, schemes, pareto_df
+
+    @staticmethod
+    def _discretize_kmeans(df: pd.DataFrame, min_k: int = 2, max_k: int = 5, random_state: int = 42, **kwargs) -> Tuple[pd.DataFrame, List[DiscretizationScheme]]:
+        """
+        Discretizes data using K-Means clustering to find natural groupings.
+        Auto-selects the number of bins (k) using Silhouette Score.
+        """
+        discrete_df = df.copy()
+        schemes = []
+        
+        for col in df.columns:
+            # Prepare data (drop NaNs for clustering)
+            data = df[col].dropna()
+            if len(data) == 0:
+                continue
+
+            X = data.values.reshape(-1, 1)
+            
+            best_score = -1.0
+            best_k = min_k
+            best_model = None
+            
+            # 1. Find optimal k
+            # If min_k == max_k, skip search
+            if min_k == max_k:
+                best_k = min_k
+                best_model = KMeans(n_clusters=best_k, random_state=random_state, n_init=10)
+                best_model.fit(X)
+            else:
+                search_range = range(min_k, max_k + 1)
+                # Can't have more clusters than data points
+                search_range = [k for k in search_range if k < len(data)]
+                
+                if not search_range:
+                    # Fallback if data is tiny
+                    best_k = 1
+                else:
+                    for k in search_range:
+                        km = KMeans(n_clusters=k, random_state=random_state, n_init=10)
+                        labels = km.fit_predict(X)
+                        
+                        if len(np.unique(labels)) < 2:
+                            continue 
+                            
+                        score = silhouette_score(X, labels)
+                        if score > best_score:
+                            best_score = score
+                            best_k = k
+                            best_model = km
+            
+            if best_model is None and best_k > 1:
+                # If loop didn't find valid k (e.g. all scores low or error), try forcing min_k
+                try:
+                    best_model = KMeans(n_clusters=min_k, random_state=random_state, n_init=10)
+                    best_model.fit(X)
+                    best_k = min_k
+                except Exception:
+                    best_k = 1
+
+            if best_k == 1 or best_model is None:
+                centroids = [data.mean()]
+            else:
+                centroids = sorted(best_model.cluster_centers_.flatten())
+            
+            # 2. Calculate Boundaries (Midpoints)
+            # Bins: (-inf, mid1], (mid1, mid2], ..., (midN, inf)
+            boundaries = [-float('inf')]
+            if best_k > 1:
+                for i in range(len(centroids) - 1):
+                    mid = (centroids[i] + centroids[i+1]) / 2
+                    boundaries.append(mid)
+            boundaries.append(float('inf'))
+            
+            # 3. Create Labels
+            # Use "L1", "L2"... or "C1", "C2"
+            labels = [f"C{i+1}" for i in range(best_k)]
+            
+            # 4. Apply Cut
+            discrete_df[col] = pd.cut(df[col], bins=boundaries, labels=labels)
+            
+            # 5. Create Scheme
+            q_bins = []
+            for i in range(best_k):
+                min_v = boundaries[i]
+                max_v = boundaries[i+1]
+                
+                # Display bounds logic
+                display_min = min_v if np.isfinite(min_v) else df[col].min()
+                display_max = max_v if np.isfinite(max_v) else df[col].max()
+                
+                q_bins.append(QualityBin(
+                    label=labels[i],
+                    min_value=float(display_min),
+                    max_value=float(display_max)
+                ))
+                
+            schemes.append(DiscretizationScheme(
+                objective_name=col,
+                bins=q_bins,
+                method=f"kmeans_k{best_k}"
+            ))
+            
+        return discrete_df, schemes
 
     @staticmethod
     def _discretize(df: pd.DataFrame, n_bins: int = 3, ranges: Optional[Dict[str, Tuple[float, float]]] = None, all_labels: Optional[Dict] = None) -> Tuple[pd.DataFrame, List[DiscretizationScheme]]:

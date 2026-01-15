@@ -945,6 +945,32 @@ class PatternAnalysis:
                 description=f"Discretization combination: {name}"
             )
 
+    def create_clustering_tradeoffs(self, min_k: int = 2, max_k: int = 5, objectives: Optional[List[str]] = None) -> None:
+        """
+        Generates combinatorial tradeoffs based on Univariate K-Means Clustering.
+        
+        Args:
+            min_k: Minimum number of clusters to test.
+            max_k: Maximum number of clusters to test.
+            objectives: List of objective names. If None, uses all outcomes.
+        """
+        # 1. Run Clustering Discretization
+        # This populates self.schemes with the discovered clusters and labels (C1, C2...)
+        self.define_tradeoffs(method='clustering', params={'min_k': min_k, 'max_k': max_k})
+        
+        # 2. Extract Labels from Schemes
+        labels_map = {}
+        target_schemes = self.schemes
+        
+        if objectives:
+            target_schemes = [s for s in self.schemes if s.objective_name in objectives]
+            
+        for scheme in target_schemes:
+            labels_map[scheme.objective_name] = [b.label for b in scheme.bins]
+            
+        # 3. Generate Combinatorial Tradeoffs
+        self.create_discretization_tradeoffs(labels=labels_map, objectives=objectives)
+
     def create_tradeoffs(self, method: str = 'discretization', **kwargs) -> None:
         """
         Unified entry point for programmatically generating combinatorial tradeoffs.
@@ -953,21 +979,33 @@ class PatternAnalysis:
         to populate the system definition with all possible outcome combinations.
         
         Args:
-            method: 'discretization', 'threshold', 'pareto', or 'pareto_epsilon'.
+            method: 'discretization', 'threshold', 'pareto', 'pareto_epsilon', or 'clustering'.
             **kwargs: Arguments passed to the underlying helper method:
                 - For 'discretization': 'labels', 'objectives'.
-                - For 'threshold': 'thresholds'.
+                - For 'threshold': 'thresholds' (Required).
                 - For 'pareto': 'objectives'.
-                - For 'pareto_epsilon': 'epsilon', 'objectives'.
+                - For 'pareto_epsilon': 'epsilon' (Required), 'objectives'.
+                - For 'clustering': 'min_k', 'max_k', 'objectives'.
         """
         if method == 'discretization':
             self.create_discretization_tradeoffs(**kwargs)
+            
+        elif method == 'clustering':
+            self.create_clustering_tradeoffs(**kwargs)
+            
         elif method == 'threshold':
+            if 'thresholds' not in kwargs:
+                raise ValueError("Method 'threshold' requires 'thresholds' argument (dict of {objective: value}).")
             self.create_static_threshold_tradeoffs(**kwargs)
+            
         elif method in ['pareto', 'pareto_nadir']:
             self.create_pareto_nadir_tradeoffs(**kwargs)
+            
         elif method == 'pareto_epsilon':
+            if 'epsilon' not in kwargs:
+                raise ValueError("Method 'pareto_epsilon' requires 'epsilon' argument (float).")
             self.create_pareto_epsilon_tradeoffs(**kwargs)
+            
         else:
             raise ValueError(f"Unknown tradeoff creation method: {method}")
 
