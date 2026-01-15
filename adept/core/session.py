@@ -860,6 +860,47 @@ class PatternAnalysis:
                 description=f"Pareto Nadir combination: {name}"
             )
 
+    def create_pareto_epsilon_tradeoffs(self, epsilon: float = 0.05, objectives: Optional[List[str]] = None) -> None:
+        """
+        Generates all combinatorial tradeoffs based on Epsilon-Pareto dominance.
+        
+        Args:
+            epsilon: The tolerance parameter (e.g., 0.05 for 5%).
+            objectives: List of objective names to consider. If None, uses all defined outcomes.
+        """
+        import itertools
+        
+        if objectives is None:
+            objectives = [obj.name for obj in self.get_outcomes()]
+            
+        states = ["epsilon-pareto-optimal", "out"]
+        
+        # Generate all combinations
+        combinations = list(itertools.product(states, repeat=len(objectives)))
+        
+        for combo in combinations:
+            is_all_eff = all(s == "epsilon-pareto-optimal" for s in combo)
+            is_all_out = all(s == "out" for s in combo)
+            
+            if is_all_eff:
+                name = "epsilon-pareto-optimal"
+            elif is_all_out:
+                name = "outside-epsilon-pareto"
+            else:
+                # Name based on efficient objectives
+                eff_objs = [obj for obj, state in zip(objectives, combo) if state == "epsilon-pareto-optimal"]
+                name = f"efficient-{'-'.join(eff_objs)}"
+            
+            elements = dict(zip(objectives, combo))
+            
+            self.add_tradeoff(
+                name=name,
+                scheme="pareto_epsilon",
+                params={'epsilon': epsilon},
+                elements=elements,
+                description=f"Pareto Epsilon combination: {name}"
+            )
+
     def get_adaptive_processes(self) -> List[Any]:
         """Returns the list of adaptive processes."""
         if not self.sys_def: return []
