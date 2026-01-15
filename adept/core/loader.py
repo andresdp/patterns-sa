@@ -4,7 +4,7 @@ import pandas as pd
 import os
 import glob
 import warnings
-from .models import SystemDefinition, Dataspace, BehavioralTrace
+from .models import SystemDefinition, DataSpace, BehavioralTrace
 from ..utils.linter import SystemLinter
 
 class DataLoader(ABC):

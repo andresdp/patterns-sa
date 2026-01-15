@@ -1,0 +1,82 @@
+{
+  "limits": {
+    "serviceCost": {
+      "min": 1.0000000000000002,
+      "max": 3.5
+    },
+    "d1Services": {
+      "min": 0.5,
+      "max": 6.0
+    },
+    "serviceFailureProb": {
+      "min": 10.0,
+      "max": 42.0
+    },
+    "d3Services": {
+      "min": 0.5,
+      "max": 6.0
+    },
+    "deviceCost": {
+      "min": 0.0,
+      "max": 13.5
+    },
+    "lbFailureProb": {
+      "min": 10.0,
+      "max": 26.5
+    }
+  },
+  "dataset_bounds": {
+    "deviceCPUCyles": {
+      "min": 100,
+      "max": 150
+    },
+    "deviceCost": {
+      "min": 0,
+      "max": 40
+    },
+    "lbExecTime": {
+      "min": 10,
+      "max": 50
+    },
+    "lbFailureProb": {
+      "min": 10,
+      "max": 50
+    },
+    "serviceCost": {
+      "min": 1,
+      "max": 5
+    },
+    "serviceFailureProb": {
+      "min": 10,
+      "max": 50
+    },
+    "d1Services": {
+      "min": 0,
+      "max": 6
+    },
+    "d2Services": {
+      "min": 0,
+      "max": 6
+    },
+    "d3Services": {
+      "min": 0,
+      "max": 6
+    },
+    "policy_config": {
+      "min": "0_0_1",
+      "max": "6_6_6"
+    }
+  },
+  "metrics": {
+    "density": 0.9798770262716602,
+    "coverage": 0.29211798033661057,
+    "population_prevalence": 0.17546052631578948,
+    "lift": 0.8044164999558707,
+    "samples_in_box": 1789,
+    "targets_in_box": 1753
+  },
+  "target_tradeoff": "Inexpensive-but-reliable",
+  "target_tradeoff_labels": "low,high",
+  "method": "prim",
+  "population_prevalence": 0.17546052631578948
+}

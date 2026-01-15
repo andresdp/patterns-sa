@@ -186,6 +186,7 @@ class FeatureImportanceAnalyzer:
         """
         # 1. Selection (Optional)
         features_to_use = X_train.columns.tolist()
+        print(f"Original features: {features_to_use}")
         
         if use_smart_correlation:
             # SmartCorrelatedSelection groups correlated features and selects one.
@@ -202,27 +203,31 @@ class FeatureImportanceAnalyzer:
                 scoring="r2"
             )
             sel.fit(X_train, y_train)
-            features_to_use = sel.features_to_drop_
-            # Wait, features_to_drop_ are the ones to drop.
-            # We want the ones to keep.
+            features_to_use = [col for col in X_train.columns if col not in sel.features_to_drop_]
+            print(f"Features selected: {features_to_use}")
             # feature-engine transforms X.
             X_train_transformed = sel.transform(X_train)
             features_to_use = X_train_transformed.columns.tolist()
-            print("HERE_1------------------------")
         else:
             X_train_transformed = X_train
 
         # 2. Scoring (Random Forest)
-        print("HERE_2------------------------")
         model = RandomForestRegressor(n_estimators=50, random_state=random_state)
         model.fit(X_train_transformed, y_train)
         
         importances = pd.Series(model.feature_importances_, index=features_to_use)
+        # print("Shape:", importances.shape, importances.index.tolist())
         
         # Reindex to include dropped features (as 0) if any
         if use_smart_correlation:
             full_series = pd.Series(0.0, index=X_train.columns)
             full_series[features_to_use] = importances
-            return full_series.sort_values(ascending=False)
+            # return full_series.sort_values(ascending=False)
+            importances = full_series
+        
+        importances = importances.sort_values(ascending=False)
+
+        # print("Parameters:", importances.index.tolist())
+        # print("Importances:", importances.tolist())
             
-        return importances.sort_values(ascending=False)
+        return importances

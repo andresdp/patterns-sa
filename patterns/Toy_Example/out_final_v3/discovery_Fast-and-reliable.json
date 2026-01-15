@@ -1,0 +1,82 @@
+{
+  "limits": {
+    "d1Services": {
+      "min": 0.5,
+      "max": 6.0
+    },
+    "d2Services": {
+      "min": 0.5,
+      "max": 6.0
+    },
+    "serviceFailureProb": {
+      "min": 11.5,
+      "max": 48.5
+    },
+    "d3Services": {
+      "min": 0.5,
+      "max": 6.0
+    },
+    "lbExecTime": {
+      "min": 10.0,
+      "max": 33.5
+    },
+    "lbFailureProb": {
+      "min": 10.0,
+      "max": 25.5
+    }
+  },
+  "dataset_bounds": {
+    "deviceCPUCyles": {
+      "min": 100,
+      "max": 150
+    },
+    "deviceCost": {
+      "min": 0,
+      "max": 40
+    },
+    "lbExecTime": {
+      "min": 10,
+      "max": 50
+    },
+    "lbFailureProb": {
+      "min": 10,
+      "max": 50
+    },
+    "serviceCost": {
+      "min": 1,
+      "max": 5
+    },
+    "serviceFailureProb": {
+      "min": 10,
+      "max": 50
+    },
+    "d1Services": {
+      "min": 0,
+      "max": 6
+    },
+    "d2Services": {
+      "min": 0,
+      "max": 6
+    },
+    "d3Services": {
+      "min": 0,
+      "max": 6
+    },
+    "policy_config": {
+      "min": "0_0_1",
+      "max": "6_6_6"
+    }
+  },
+  "metrics": {
+    "density": 1.0,
+    "coverage": 0.5227042110603755,
+    "population_prevalence": 0.2305263157894737,
+    "lift": 0.7694736842105263,
+    "samples_in_box": 4121,
+    "targets_in_box": 4121
+  },
+  "target_tradeoff": "Fast-and-reliable",
+  "target_tradeoff_labels": "low,high",
+  "method": "prim",
+  "population_prevalence": 0.2305263157894737
+}

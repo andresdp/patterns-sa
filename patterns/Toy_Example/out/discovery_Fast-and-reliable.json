@@ -1,5 +1,17 @@
 {
   "limits": {
+    "d1Services": {
+      "min": 0.5,
+      "max": 6.0
+    },
+    "d2Services": {
+      "min": 0.5,
+      "max": 6.0
+    },
+    "lbFailureProb": {
+      "min": 10.0,
+      "max": 25.5
+    },
     "lbExecTime": {
       "min": 10.0,
       "max": 33.5
@@ -8,61 +20,12 @@
       "min": 0.5,
       "max": 6.0
     },
-    "lbFailureProb": {
-      "min": 10.0,
-      "max": 25.5
-    },
-    "d1Services": {
-      "min": 0.5,
-      "max": 6.0
-    },
-    "d2Services": {
-      "min": 0.5,
-      "max": 6.0
-    },
     "serviceFailureProb": {
       "min": 11.5,
       "max": 48.5
     }
   },
-  "dataset_bounds": {
-    "deviceCPUCyles": {
-      "min": 100.0,
-      "max": 150.0
-    },
-    "lbExecTime": {
-      "min": 10.0,
-      "max": 50.0
-    },
-    "d3Services": {
-      "min": 0.0,
-      "max": 6.0
-    },
-    "lbFailureProb": {
-      "min": 10.0,
-      "max": 50.0
-    },
-    "serviceCost": {
-      "min": 1.0,
-      "max": 5.0
-    },
-    "d1Services": {
-      "min": 0.0,
-      "max": 6.0
-    },
-    "d2Services": {
-      "min": 0.0,
-      "max": 6.0
-    },
-    "deviceCost": {
-      "min": 0.0,
-      "max": 40.0
-    },
-    "serviceFailureProb": {
-      "min": 10.0,
-      "max": 50.0
-    }
-  },
+  "dataset_bounds": {},
   "metrics": {
     "density": 1.0,
     "coverage": 0.5227042110603755,

@@ -10,7 +10,7 @@
           "N_B": { "data_type": "integer", "type": "lever", "level": "system" },
           "r_Z_A": { "data_type": "float", "type": "uncertainty", "level": "system" },
           "r_Z_B": { "data_type": "float", "type": "uncertainty", "level": "system" },
-          "r_gw": { "data_type": "float", "type": "lever", "level": "pattern" },
+          "S_gw": { "data_type": "float", "type": "lever", "level": "pattern" },
           "r_A_s1": { "data_type": "float", "type": "uncertainty", "level": "pattern" },
           "r_B_s2": { "data_type": "float", "type": "uncertainty", "level": "pattern" },
           "r_B_s3": { "data_type": "float", "type": "uncertainty", "level": "pattern" }

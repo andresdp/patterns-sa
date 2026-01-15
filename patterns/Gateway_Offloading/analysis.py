@@ -5,35 +5,59 @@ import itertools
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
+
 from adept import PatternAnalysis
 
-def preprocess_offloading(df: pd.DataFrame) -> pd.DataFrame:
+
+# Specific parameters for Gateway Offloading
+S_GW_DECISIONS = [0, 5, 10]
+INPUT_PARAMETERS = ['N_A', 'N_B', 'r_Z_A', 'r_Z_B', 'r_gw', 'r_A_s1', 'r_B_s2', 'r_B_s3']
+OUTPUTS = ['response_time', 'utilization'] #['sim_time_sec', 'response_time', 'utilization_gw']
+CONFIGURATIONS = {
+    0: 'no-offloading',
+    5: 'short-services-offloaded',
+    10: 'long-services-offloaded'
+}
+
+def preprocess_gateway_offloading(df: pd.DataFrame) -> pd.DataFrame:
     """
     Pattern-specific preprocessing for Gateway Offloading.
     Transforms raw simulation rates into service times and renames objectives.
     """
-    # 1. Rename raw simulation outputs to ADEPT objectives
-    renames = {
-        'R0': 'response_time', 
-        'Ugw': 'utilization'
-    }
+
+    # 1. Rename raw simulation outputs
+    renames = {'R0': 'response_time', 'Ugw': 'utilization'}
     df.rename(columns={k: v for k, v in renames.items() if k in df.columns}, inplace=True)
 
-    # 2. Compute Derived Columns (from legacy logic)
-    # Convert 'r_gw' (rate) to 'S_gw' (service time in ms)
-    # Note: 1e15 is often used in these simulations to represent 0ms delay
+    # 2. Compute Derived Columns
     if 'r_gw' in df.columns:
         df['S_gw'] = df['r_gw'].apply(lambda x: 0.0 if x > 1e10 else (1.0 / x if x != 0 else 0.0))
 
-    # 3. Handle specific pattern filters if needed
-    # (Optional: Sort by workload and policy for cleaner plots)
-    sort_cols = [c for c in ['N_A', 'S_gw'] if c in df.columns]
+    # 3. Process policies
+    list_dfs = []
+    for s in df['S_gw'].unique():
+        # print(s,int(s))
+        if int(s) in S_GW_DECISIONS:
+            temp = df[df['S_gw'] == s][INPUT_PARAMETERS + OUTPUTS].copy()                
+            temp['policy'] = CONFIGURATIONS[int(s)] #int(s) #np.nan #float('nan')
+            temp['policy'] = temp['policy'].astype('category')
+            temp['S_gw'] = s
+            list_dfs.append(temp)
+    
+    experiments_df = pd.concat(list_dfs)
+    experiments_df.index.name = 'scenario'
+    experiments_df.reset_index(inplace=True)
+    experiments_df['model'] = 'gateway_offloading'
+
+    # 4. Sort
+    sort_cols = [c for c in ['N_A', 'S_gw'] if c in experiments_df.columns]
     if sort_cols:
-        df.sort_values(by=sort_cols, inplace=True)
-        df.reset_index(drop=True, inplace=True)
+        experiments_df.sort_values(by=sort_cols, inplace=True)
+        experiments_df.reset_index(drop=True, inplace=True)
 
-    return df
+    return experiments_df
 
+# Main method to perform all the analyses
 def run_analysis(json_path: str, outdir: str, validate_integrity: bool = True) -> None:
     os.makedirs(outdir, exist_ok=True)
     
@@ -42,7 +66,7 @@ def run_analysis(json_path: str, outdir: str, validate_integrity: bool = True) -
     session = PatternAnalysis(json_path)
     
     # 2. Load with Programmatic Hook
-    session.load(validate_integrity=validate_integrity, preprocessor=preprocess_offloading)
+    session.load(validate_integrity=validate_integrity, preprocessor=preprocess_gateway_offloading)
     
     # 3. Check for programmatic tradeoffs if none defined in JSON
     if not session.get_tradeoffs():
@@ -141,6 +165,9 @@ def run_analysis(json_path: str, outdir: str, validate_integrity: bool = True) -
                     with open(box_path, 'w') as f:
                         json.dump(boxes[0].model_dump(), f, indent=2)
             except Exception as e: print(f"Error discovery {tradeoff.name}: {e}")
+
+
+# -------------------
 
 def main():
     parser = argparse.ArgumentParser()

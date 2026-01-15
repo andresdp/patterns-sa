@@ -1,0 +1,40 @@
+{
+  "limits": {
+    "serviceFailureProb": {
+      "min": 11.5,
+      "max": 48.5
+    },
+    "d2Services": {
+      "min": 0.5,
+      "max": 6.0
+    },
+    "lbFailureProb": {
+      "min": 10.0,
+      "max": 25.5
+    },
+    "lbExecTime": {
+      "min": 10.0,
+      "max": 33.5
+    },
+    "d1Services": {
+      "min": 0.5,
+      "max": 6.0
+    },
+    "d3Services": {
+      "min": 0.5,
+      "max": 6.0
+    }
+  },
+  "dataset_bounds": {},
+  "metrics": {
+    "density": 1.0,
+    "coverage": 0.5227042110603755,
+    "population_prevalence": 0.2305263157894737,
+    "lift": 4.337899543378995,
+    "samples_in_box": 4121,
+    "targets_in_box": 4121
+  },
+  "target_tradeoff": "Fast-and-reliable",
+  "method": "prim",
+  "population_prevalence": 0.2305263157894737
+}

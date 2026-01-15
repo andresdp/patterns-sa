@@ -87,12 +87,72 @@ This strategy applies hard constraints defined by the user, independent of the d
     }
     ```
 
+## 4. Clustering-Based Exploration (Experimental)
+**Scheme Name:** `clustering` (internally `kmeans_k{N}`)
+
+This advanced strategy uses **Univariate K-Means Clustering** to discover the "natural" groupings within the data distribution, rather than imposing equal-width bins.
+
+*   **Logic:**
+    *   For each objective, the system tests clustering with $k$ ranging from `min_k` to `max_k` (default 2-5).
+    *   It calculates the **Silhouette Score** for each $k$ to determine the optimal number of clusters.
+    *   Bin boundaries are set at the midpoints between cluster centroids.
+*   **Use Case:** Finding data-driven performance modes (e.g., distinguishing "Normal Operation" from "Degraded" and "Failed" states without knowing the thresholds beforehand).
+*   **Labels:** Generated dynamically as `C1`, `C2`, `C3`... (Cluster 1 to Cluster N).
+
 ## Summary Table
 
 | Strategy | Goal | Key Parameters | Labels Generated |
 | :--- | :--- | :--- | :--- |
 | **Discretization** | General exploration | `n_bins`, `ranges`, `labels` | User-defined or `level_N` |
+| **Clustering** | Natural grouping discovery | `min_k`, `max_k` | `C1`, `C2`, ... `CN` |
 | **Pareto Nadir** | Bounding box of optimality | *None* | `Pareto-Compliant` |
 | **Pareto Epsilon** | Robust optimality | `epsilon` (0.0-1.0) | `Epsilon-Optimal` |
 | **Pareto Knee** | Balanced "sweet spot" | `tolerance` | `Knee` / `Off-Knee` |
 | **Threshold** | Hard constraints | `thresholds` (dict) | `Satisfactory` / `Unsatisfactory` |
+
+## 5. Programmatic Definition (Automated)
+
+Instead of defining tradeoffs manually in the JSON file, you can generate them programmatically using `session.create_tradeoffs()`. This is useful for exploring all possible combinations of outcomes without verbose configuration.
+
+### Programmatic Configuration Reference
+
+| Method | Mandatory Parameters | Optional Parameters | Description |
+| :--- | :--- | :--- | :--- |
+| `discretization` | *None* | `n_bins`, `labels`, `objectives`, `ranges` | Full combinatorial grid of bins. |
+| `clustering` | *None* | `min_k`, `max_k`, `objectives` | Data-driven bins using K-Means. |
+| `threshold` | `thresholds` (dict) | `labels` | Satisfactory vs Unsatisfactory logic. |
+| `pareto` | *None* | `objectives`, `labels` | Pareto-Efficient vs Sub-Optimal. |
+| `pareto_epsilon` | `epsilon` (float) | `objectives`, `labels` | Epsilon-Optimal vs Out. |
+
+### Usage Example
+
+```python
+# 1. Discretization (Full Grid)
+# Generates all combinations of Low/High for cost and latency
+session.create_tradeoffs(
+    method='discretization', 
+    labels={'cost': ['low', 'high'], 'latency': ['fast', 'slow']},
+    objectives=['cost', 'latency']
+)
+
+# 2. Clustering (Data-Driven)
+# Automatically finds optimal bins (2-5) for each objective
+session.create_tradeoffs(method='clustering', min_k=2, max_k=5)
+
+# 3. Static Thresholds (Compliance)
+# Generates all combinations of Satisfactory/Unsatisfactory
+# Supports custom operators: <, <=, >, >=
+thresholds = {
+    'latency': (200, '<'),      # Strict limit
+    'availability': (0.99, '>=') # Minimum requirement
+}
+session.create_tradeoffs(method='threshold', thresholds=thresholds)
+
+# 4. Pareto Efficiency (Optimality)
+# Generates combinations of Pareto-Efficient vs Sub-Optimal
+session.create_tradeoffs(method='pareto', objectives=['cost', 'latency'])
+
+# 5. Epsilon-Pareto (Robust Optimality)
+# Generates combinations of Epsilon-Optimal vs Out
+session.create_tradeoffs(method='pareto_epsilon', epsilon=0.05)
+```

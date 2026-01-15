@@ -45,7 +45,7 @@ class VisualizationManager:
         except Exception as e:
             raise VisualizationError(f"Failed to plot tradeoff distribution: {str(e)}")
     
-    def show_quality_objective_space(self, outcomes_df: pd.DataFrame, x_metric: str, y_metric: str, schemes: List[Dict], **kwargs) -> plt.Figure:
+    def show_quality_objective_space(self, outcomes_df: pd.DataFrame, x_metric: str, y_metric: str, schemes: List[Dict], eps: float = 0.01, background_alpha: float = 0.6, annotation_text: Optional[str] = None, **kwargs) -> plt.Figure:
         """Plots a 2D scatter of outcomes with tradeoff overlays.
         
         Args:
@@ -53,6 +53,9 @@ class VisualizationManager:
             x_metric: Name of metric for x-axis
             y_metric: Name of metric for y-axis
             schemes: List of discretization schemes
+            eps: Epsilon factor to enlarge tradeoff rectangles
+            background_alpha: Alpha for gray background points
+            annotation_text: Optional text to display in a box inside the plot
             **kwargs: Additional plotting parameters
             
         Returns:
@@ -68,11 +71,15 @@ class VisualizationManager:
             from .visualization import show_quality_objective_space
             # Arguments are passed directly via kwargs, avoiding double-passing issues
             # encountered in the previous Strategy pattern implementation.
-            return show_quality_objective_space(outcomes_df, x_metric, y_metric, schemes, **kwargs)
+            return show_quality_objective_space(
+                outcomes_df, x_metric, y_metric, schemes, 
+                eps=eps, background_alpha=background_alpha, 
+                annotation_text=annotation_text, **kwargs
+            )
         except Exception as e:
             raise VisualizationError(f"Failed to plot quality objective space: {str(e)}")
 
-    def show_stability_radius_plot(self, experiments_df: pd.DataFrame, outcomes_df: pd.DataFrame, target_mask: pd.Series, parameter_cols: List[str], radius_info: Dict[str, Any], objective_cols: Tuple[str, str], schemes: List[Any], **kwargs) -> plt.Figure:
+    def show_stability_radius_plot(self, experiments_df: pd.DataFrame, outcomes_df: pd.DataFrame, target_mask: pd.Series, parameter_cols: List[str], radius_info: Dict[str, Any], objective_cols: Tuple[str, str], schemes: List[Any], target_tradeoff: Optional[Any] = None, policy_name: Optional[str] = None, **kwargs) -> plt.Figure:
         """
         Visualizes the stability radius in both parameter and objective space.
         """
@@ -80,10 +87,27 @@ class VisualizationManager:
             from .visualization import show_stability_radius_plot
             return show_stability_radius_plot(
                 experiments_df, outcomes_df, target_mask, parameter_cols, 
-                radius_info, objective_cols, schemes, **kwargs
+                radius_info, objective_cols, schemes, target_tradeoff=target_tradeoff, 
+                policy_name=policy_name, **kwargs
             )
         except Exception as e:
             raise VisualizationError(f"Failed to plot stability radius: {str(e)}")
+
+    def show_robustness_heatmap(self, matrix: pd.DataFrame, metric: str = 'starr', **kwargs) -> plt.Figure:
+        """Plots a heatmap of the policy vs. tradeoff robustness matrix."""
+        try:
+            from .visualization import show_robustness_heatmap
+            return show_robustness_heatmap(matrix, metric=metric, **kwargs)
+        except Exception as e:
+            raise VisualizationError(f"Failed to plot robustness heatmap: {str(e)}")
+
+    def show_robustness_comparison_heatmap(self, baseline_matrix: pd.DataFrame, improved_matrix: pd.DataFrame, metric: str = 'starr', **kwargs) -> plt.Figure:
+        """Plots stacked heatmaps comparing baseline vs. improved robustness."""
+        try:
+            from .visualization import show_robustness_comparison_heatmap
+            return show_robustness_comparison_heatmap(baseline_matrix, improved_matrix, metric=metric, **kwargs)
+        except Exception as e:
+            raise VisualizationError(f"Failed to plot robustness comparison: {str(e)}")
     
     def _validate_plot_inputs(self, outcomes_df: pd.DataFrame, schemes: List[Dict]) -> None:
         """Validates common input parameters for plotting methods."""

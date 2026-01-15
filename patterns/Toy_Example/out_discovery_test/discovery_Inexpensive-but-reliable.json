@@ -1,0 +1,40 @@
+{
+  "limits": {
+    "deviceCost": {
+      "min": 0.0,
+      "max": 13.5
+    },
+    "serviceFailureProb": {
+      "min": 10.0,
+      "max": 42.0
+    },
+    "lbFailureProb": {
+      "min": 10.0,
+      "max": 26.5
+    },
+    "d1Services": {
+      "min": 0.5,
+      "max": 6.0
+    },
+    "d3Services": {
+      "min": 0.5,
+      "max": 6.0
+    },
+    "serviceCost": {
+      "min": 1.0000000000000002,
+      "max": 3.5
+    }
+  },
+  "dataset_bounds": {},
+  "metrics": {
+    "density": 0.9798770262716602,
+    "coverage": 0.29211798033661057,
+    "population_prevalence": 0.17546052631578948,
+    "lift": 5.5846009746266345,
+    "samples_in_box": 1789,
+    "targets_in_box": 1753
+  },
+  "target_tradeoff": "Inexpensive-but-reliable",
+  "method": "prim",
+  "population_prevalence": 0.17546052631578948
+}

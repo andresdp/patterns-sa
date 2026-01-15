@@ -246,13 +246,24 @@ class Tradeoff(BaseModel):
     raw performance data and architectural requirements.
     """
     name: str
+    label: str = "" # Human-readable display label
     description: str = ""
     # Mapping of objective names to their respective treatment values
     elements: Dict[str, Any] = Field(default_factory=dict)
     scheme: str = "discretization"
     params: Dict[str, Any] = Field(default_factory=dict)
+    
+    # Membership info (populated during analysis)
+    has_points: bool = False
+    point_count: int = 0
 
     model_config = {"extra": "allow", "validate_assignment": True}
+
+    @model_validator(mode="after")
+    def _ensure_label(self) -> Tradeoff:
+        if not self.label:
+            self.label = self.name
+        return self
 
 
 # --- ADEPT Schema Models ---
@@ -332,7 +343,7 @@ class ConfigurationIdentification(BaseModel):
         return values
 
 
-class Dataspace(BaseModel):
+class DataSpace(BaseModel):
     """Configuration for data loading and interpretation.
     
     Links the abstract System model to concrete CSV files or Behavioral Traces.
@@ -361,7 +372,7 @@ class SystemDefinition(BaseModel):
     """
     mode: str = "static"
     system: System
-    dataspace: Dataspace
+    dataspace: DataSpace
     metadata: Dict[str, Any] = Field(default_factory=dict)
 
     @classmethod
@@ -396,7 +407,7 @@ __all__ = [
     "Tradeoff",
     "SystemDefinition",
     "System",
-    "Dataspace",
+    "DataSpace",
     "ConfigurationIdentification",
     "SystemConfiguration",
     "PatternPolicyReference",

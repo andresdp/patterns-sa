@@ -87,26 +87,30 @@ class PatternAnalysis:
             'numeric_cols': numeric_cols
         }
 
-    def define_tradeoffs(self, n_bins: int = 3, labels: Optional[Dict[str, List[str]]] = None, ranges: Optional[Dict[str, Tuple[float, float]]] = None, method: str = 'discretization', params: Optional[Dict[str, Any]] = None) -> Tuple[pd.DataFrame, List[DiscretizationScheme]]:
+    def define_tradeoffs(self, method: str = 'discretization', n_bins: int = 3, labels: Optional[Union[Dict[str, List[str]], List[str]]] = None, ranges: Optional[Dict[str, Tuple[float, float]]] = None, params: Optional[Dict[str, Any]] = None) -> Tuple[pd.DataFrame, List[DiscretizationScheme]]:
         """Defines tradeoff regions in the outcome space.
         
         Args:
-            n_bins: Number of bins to use for discretization.
-            labels: Optional dictionary mapping objective names to lists of labels.
-                    If None, labels will be generated automatically.
-            ranges: Optional dictionary mapping objective names to (min, max) tuples.
-                    If provided, these bounds define the binning range instead of the data min/max.
-            method: 'discretization', 'pareto', 'threshold', 'pareto_epsilon', 'pareto_knee'.
-            params: Dictionary of parameters for specific methods (e.g. {'epsilon': 0.05} or {'thresholds': ...}).
+            method: 'discretization', 'pareto', 'threshold', 'pareto_epsilon', 'pareto_knee', 'clustering'.
+            n_bins: Number of bins (for discretization/clustering).
+            labels: Labels for bins. Can be Dict {obj: [labels]} for discretization, 
+                    or List [labels] for others.
+            ranges: Optional fixed ranges for bins.
+            params: Dict of parameters for specific methods.
         """
         if self.outcomes_df is None or self.sys_def is None:
             raise RuntimeError("Data must be loaded before defining tradeoffs.")
 
-        # Prepare kwargs based on method
+        # 1. Parameter Validation
+        self._validate_tradeoff_params(method, params)
+
+        # 2. Prepare kwargs based on method
         kwargs = {}
-        if method == 'discretization':
+        if method in ['discretization', 'clustering']:
             kwargs = {'n_bins': n_bins, 'all_labels': labels, 'ranges': ranges}
-        elif method in ['pareto', 'pareto_epsilon', 'pareto_knee', 'threshold']:
+            if method == 'clustering':
+                kwargs['params'] = params
+        else:
             kwargs = {'objectives': self.sys_def.dataspace.quality_objectives}
             if params:
                 kwargs['params'] = params
@@ -116,7 +120,31 @@ class PatternAnalysis:
         self.discrete_df, self.schemes, self.tradeoff_indices, self.pareto_front = self.coordinator.define_tradeoffs(
             self.outcomes_df, method=method, **kwargs
         )
+        
+        # 4. Update Tradeoff models with membership flags
+        self._update_tradeoff_membership()
+        
         return self.discrete_df, self.schemes
+
+    def _update_tradeoff_membership(self) -> None:
+        """Updates the has_points and point_count flags in all system tradeoffs."""
+        if not self.sys_def:
+            return
+            
+        for tradeoff in self.sys_def.system.tradeoffs:
+            indices = self.get_indices_for_tradeoff(tradeoff)
+            count = len(indices)
+            tradeoff.point_count = count
+            tradeoff.has_points = (count > 0)
+
+    def _validate_tradeoff_params(self, method: str, params: Optional[Dict[str, Any]]) -> None:
+        """Ensures mandatory parameters are present for the chosen method."""
+        if method == 'threshold':
+            if not params or 'thresholds' not in params:
+                raise ValueError("Method 'threshold' requires 'params' with 'thresholds' dictionary.")
+        elif method == 'pareto_epsilon':
+            if not params or 'epsilon' not in params:
+                raise ValueError("Method 'pareto_epsilon' requires 'params' with 'epsilon' float.")
 
     def get_indices_for_tradeoff(self, tradeoff: Tradeoff) -> np.ndarray:
         """Returns row indices satisfying the given tradeoff definition.
@@ -194,7 +222,7 @@ class PatternAnalysis:
             self.outcomes_df, self.schemes, tradeoff=tradeoff, highlight_indices=highlight_indices, **kwargs
         )
 
-    def show_quality_objective_space(self, x_metric: str, y_metric: str, highlight_tradeoffs: Optional[List[Tradeoff]] = None, highlight_policies: Optional[List[str]] = None, show_overall: bool = True, color_points: bool = True, draw_rectangles: bool = False, subset: str = 'all', **kwargs) -> plt.Figure:
+    def show_quality_objective_space(self, x_metric: str, y_metric: str, highlight_tradeoffs: Optional[List[Tradeoff]] = None, highlight_policies: Optional[List[str]] = None, show_overall: bool = True, color_points: bool = True, draw_rectangles: bool = False, subset: str = 'all', eps: float = 0.01, background_alpha: float = 0.6, **kwargs) -> plt.Figure:
         """Plots a 2D scatter of outcomes with tradeoff overlays and highlighting.
         
         Args:
@@ -206,6 +234,8 @@ class PatternAnalysis:
             color_points: Whether to color tradeoff points.
             draw_rectangles: Whether to draw rectangles for tradeoffs.
             subset: 'all' (default), 'train', or 'test'.
+            eps: Epsilon factor to enlarge tradeoff rectangles.
+            background_alpha: Alpha for gray background points.
         """
         X, Y, _ = self._get_subset_data(subset)
         
@@ -215,7 +245,8 @@ class PatternAnalysis:
                 indices = self.get_indices_for_tradeoff(t)
                 filtered = self._filter_indices_for_subset(indices, subset)
                 if len(filtered) > 0:
-                    highlight_indices_map[t.name] = filtered
+                    # Use the human-readable label for the plot legend
+                    highlight_indices_map[t.label] = filtered
                     
         policy_series = None
         if highlight_policies is not None:
@@ -232,7 +263,106 @@ class PatternAnalysis:
             highlight_indices_map=highlight_indices_map, 
             policy_series=policy_series,
             show_overall=show_overall, 
-            color_points=color_points, draw_rectangles=draw_rectangles, **kwargs
+            color_points=color_points, draw_rectangles=draw_rectangles, 
+            eps=eps, background_alpha=background_alpha, **kwargs
+        )
+
+    def show_box_impact_objective_space(
+        self, 
+        box: Any, 
+        x_metric: str, 
+        y_metric: str, 
+        tradeoff: Optional[Union[str, Tradeoff]] = None, 
+        subset: str = 'all', 
+        background_alpha: float = 0.6,
+        show_box_summary: bool = False,
+        **kwargs
+    ) -> plt.Figure:
+        """
+        Visualizes the impact of a discovered box on the quality objective space.
+        
+        Shows all points in gray, but highlights those satisfying the box constraints
+        using their original policy colors. Optionally draws a rectangle around a 
+        target tradeoff region and shows a summary of constraints.
+        
+        Args:
+            box: Box object defining parameter constraints.
+            x_metric: Metric for X-axis.
+            y_metric: Metric for Y-axis.
+            tradeoff: Optional tradeoff name or object to highlight with a rectangle.
+            subset: 'all', 'train', or 'test'.
+            background_alpha: Alpha for gray background points.
+            show_box_summary: Whether to display a text box with parameter constraints.
+            **kwargs: Additional plotting parameters.
+        """
+        X, Y, _ = self._get_subset_data(subset)
+        
+        # 1. Create Box Mask
+        mask = pd.Series(True, index=X.index)
+        for param, limits in box.limits.items():
+            if param in X.columns:
+                mask &= (X[param] >= limits['min']) & (X[param] <= limits['max'])
+        
+        # 2. Prepare Policy Series (Only show colors for points inside the box)
+        config_col = self.sys_def.dataspace.configuration_identification.column
+        if not config_col:
+            raise RuntimeError("Configuration column not defined.")
+        
+        # Get all policy names to ensure they appear in the legend
+        all_policies = sorted(self.experiments_df[config_col].dropna().unique())
+        
+        # Create categorical series with all policy names as categories
+        policy_series = X[config_col].copy().astype(pd.CategoricalDtype(categories=all_policies))
+        
+        # Points outside the box will be NaN in the policy series, thus plotted in gray
+        policy_series = policy_series.where(mask)
+        
+        # 3. Handle Tradeoff Rectangle
+        highlight_indices_map = {}
+        if tradeoff:
+            if isinstance(tradeoff, str):
+                tradeoff_obj = self.get_tradeoff(tradeoff)
+            else:
+                tradeoff_obj = tradeoff
+                
+            if tradeoff_obj:
+                indices = self.get_indices_for_tradeoff(tradeoff_obj)
+                filtered = self._filter_indices_for_subset(indices, subset)
+                if len(filtered) > 0:
+                    highlight_indices_map[tradeoff_obj.label] = filtered
+
+        # 4. Generate Box Summary Text
+        annotation_text = None
+        if show_box_summary:
+            lines = []
+            if box.name:
+                lines.append(f"NAME: {box.name}")
+                lines.append("-" * 20)
+            
+            lines.append(f"Metrics:")
+            density = box.metrics.get('density', 0.0)
+            coverage = box.metrics.get('coverage', 0.0)
+            lines.append(f"- Density:  {density:.2f}")
+            lines.append(f"- Coverage: {coverage:.2f}")
+            lines.append("")
+            lines.append("Constraints:")
+            for param, lims in box.limits.items():
+                lines.append(f"- {param}: [{lims['min']:.2f}, {lims['max']:.2f}]")
+            annotation_text = "\n".join(lines)
+
+        # 5. Delegate to standard plotter
+        title = kwargs.pop('title', f"What-If: Impact of Box ({box.target_tradeoff or 'discovered region'})")
+        
+        return self.coordinator.show_quality_objective_space(
+            Y, x_metric, y_metric, self.schemes,
+            highlight_indices_map=highlight_indices_map,
+            policy_series=policy_series,
+            show_overall=True,
+            draw_rectangles=len(highlight_indices_map) > 0,
+            title=title,
+            background_alpha=background_alpha,
+            annotation_text=annotation_text,
+            **kwargs
         )
 
     def get_policy_contingency_matrix(self, decision_key: str, normalization_mode: str = 'population', subset: str = 'all') -> pd.DataFrame:
@@ -401,12 +531,106 @@ class PatternAnalysis:
 
     # --- Robustness Analysis ---
 
+    def get_policy_robustness_improvement_matrix(
+        self, 
+        boxes: List[Optional[Any]], 
+        metric: str = 'starr', 
+        subset: str = 'all', 
+        min_samples: int = 1
+    ) -> pd.DataFrame:
+        """
+        Computes a matrix of Policy vs. Tradeoff robustness under box constraints.
+        
+        Args:
+            boxes: List of Box objects (one per tradeoff in system.tradeoffs, or None).
+            metric: 'starr' or 'regret'.
+            subset: 'all', 'train', or 'test'.
+            min_samples: Minimum points required to calculate the metric.
+            
+        Returns:
+            pd.DataFrame: Policies as rows, Tradeoff names as columns.
+        """
+        from ..analysis.discovery import BoxEvaluator
+        
+        X, Y, discrete = self._get_subset_data(subset)
+        config_col = self.sys_def.dataspace.configuration_identification.column
+        if not config_col:
+            raise RuntimeError("Configuration column not defined.")
+        
+        policy_series = X[config_col]
+        tradeoffs = self.get_tradeoffs()
+        
+        return BoxEvaluator.compute_policy_robustness_matrix(
+            X, Y, discrete, policy_series, tradeoffs, boxes, self.schemes,
+            metric=metric, stats=self.outcome_stats, min_samples=min_samples
+        )
+
+    def show_policy_robustness_improvement_heatmap(
+        self, 
+        boxes: Optional[List[Optional[Any]]] = None, 
+        metric: str = 'starr', 
+        subset: str = 'all', 
+        matrix: Optional[pd.DataFrame] = None,
+        title: Optional[str] = None,
+        figsize: Tuple[int, int] = (12, 10),
+        **kwargs
+    ) -> plt.Figure:
+        """
+        Calculates and visualizes the policy robustness improvement matrix as a heatmap.
+        """
+        if matrix is None:
+            if boxes is None:
+                raise ValueError("Either 'matrix' or 'boxes' must be provided.")
+            matrix = self.get_policy_robustness_improvement_matrix(boxes, metric=metric, subset=subset, **kwargs)
+            
+        return self.coordinator.show_robustness_heatmap(matrix, metric=metric, title=title, figsize=figsize)
+
+    def show_policy_robustness_comparison_heatmap(
+        self, 
+        boxes: Optional[List[Optional[Any]]] = None, 
+        metric: str = 'starr', 
+        subset: str = 'all', 
+        baseline_matrix: Optional[pd.DataFrame] = None,
+        improved_matrix: Optional[pd.DataFrame] = None,
+        title: Optional[str] = None,
+        figsize: Tuple[int, int] = (14, 12),
+        **kwargs
+    ) -> plt.Figure:
+        """
+        Visualizes a vertical comparison of Baseline vs. Improved (Boxed) robustness.
+        
+        Args:
+            boxes: List of Box objects. Required if improved_matrix is None.
+            metric: 'starr' or 'regret'.
+            subset: Data subset to use.
+            baseline_matrix: Pre-calculated baseline DataFrame. If None, it will be computed.
+            improved_matrix: Pre-calculated improved DataFrame. If None, it will be computed using boxes.
+            title: Custom plot title.
+            figsize: Figure size.
+            **kwargs: Additional parameters for matrix calculation.
+        """
+        # 1. Get Baseline Matrix (Overall)
+        if baseline_matrix is None:
+            baseline_matrix = self.get_robustness_report(metric=metric, subset=subset)
+        
+        # 2. Get Improved Matrix (What-If)
+        if improved_matrix is None:
+            if boxes is None:
+                raise ValueError("Either 'improved_matrix' or 'boxes' must be provided.")
+            improved_matrix = self.get_policy_robustness_improvement_matrix(boxes, metric=metric, subset=subset, **kwargs)
+        
+        # 3. Delegate to coordinator
+        return self.coordinator.show_robustness_comparison_heatmap(
+            baseline_matrix, improved_matrix, metric=metric, title=title, figsize=figsize
+        )
+
     def compute_robustness(
         self, 
         policy_name: str, 
         tradeoff_name: str, 
         metric: str = 'starr', 
         subset: str = 'all', 
+        matrix: Optional[pd.DataFrame] = None,
         **kwargs
     ) -> Dict[str, Any]:
         """
@@ -417,10 +641,15 @@ class PatternAnalysis:
             tradeoff_name: Name of the target tradeoff.
             metric: 'starr', 'regret', or 'stability_radius'.
             subset: 'all', 'train', or 'test'.
+            matrix: Optional pre-calculated matrix to extract the value from.
             
         Returns:
             Dict[str, Any]: Metric value and detailed computation information.
         """
+        if matrix is not None:
+            val = matrix.loc[policy_name, tradeoff_name] if tradeoff_name in matrix.columns else 0.0
+            return {'metric': metric, 'value': float(val), 'details': 'Extracted from matrix'}
+
         from ..analysis.robustness import RobustnessAnalyzer
         from ..analysis.contingency import ContingencyAnalyzer
         from ..analysis.feature_importance import FeatureImportanceAnalyzer
@@ -487,7 +716,10 @@ class PatternAnalysis:
             )
         elif metric == 'stability_radius':
             analyzer_fi = FeatureImportanceAnalyzer(self.sys_def)
-            parameter_cols = analyzer_fi.get_parameter_columns(self.experiments_df)
+            parameter_cols = kwargs.get('parameters')
+            if parameter_cols is None:
+                parameter_cols = analyzer_fi.get_parameter_columns(self.experiments_df)
+                
             distance_metric = kwargs.get('distance_metric', 'euclidean')
             baseline = kwargs.get('baseline', None)
             
@@ -505,6 +737,7 @@ class PatternAnalysis:
         metric: str = 'starr', 
         subset: str = 'all', 
         policy_names: Optional[List[str]] = None,
+        matrix: Optional[pd.DataFrame] = None,
         **kwargs
     ) -> pd.DataFrame:
         """
@@ -518,10 +751,15 @@ class PatternAnalysis:
             metric: 'starr' or 'regret'.
             subset: 'all', 'train', or 'test'.
             policy_names: Explicit list of policy names to include.
+            matrix: Pre-calculated DataFrame. If provided, it is returned directly.
             
         Returns:
             pd.DataFrame: Index=Policies, Columns=Tradeoffs, Values=Metric.
         """
+        if matrix is not None:
+            return matrix
+
+        from ..analysis.contingency import ContingencyAnalyzer
         from ..analysis.contingency import ContingencyAnalyzer
         config_col = self.sys_def.dataspace.configuration_identification.column
         analyzer_cont = ContingencyAnalyzer(self.sys_def)
@@ -609,6 +847,9 @@ class PatternAnalysis:
         subset: str = 'all', 
         decision_key: Optional[str] = None, 
         tradeoff_names: Optional[List[str]] = None,
+        matrix: Optional[pd.DataFrame] = None,
+        title: Optional[str] = None,
+        figsize: Optional[Tuple[int, int]] = None,
         **kwargs
     ) -> plt.Figure:
         """
@@ -616,49 +857,26 @@ class PatternAnalysis:
         
         Args:
             metric: 'starr' or 'regret'.
-            subset: 'all', 'train', or 'test'.
+            subset: Data subset to use.
             decision_key: Optional decision to filter policies.
             tradeoff_names: Optional list of tradeoffs to include.
-            **kwargs: Arguments passed to seaborn.heatmap (e.g., cmap, annot).
-            
-        Returns:
-            plt.Figure: The matplotlib figure object.
+            matrix: Pre-calculated DataFrame. If None, it will be computed.
+            title: Custom plot title.
+            figsize: Figure size.
+            **kwargs: Additional plotting parameters.
         """
-        import seaborn as sns
+        if matrix is None:
+            matrix = self.get_robustness_report(
+                decision_key=decision_key, 
+                tradeoff_names=tradeoff_names, 
+                metric=metric, 
+                subset=subset
+            )
         
-        # 1. Get Data
-        df = self.get_robustness_report(
-            decision_key=decision_key, 
-            tradeoff_names=tradeoff_names, 
-            metric=metric, 
-            subset=subset
-        )
-        
-        if df.empty:
-            raise ValueError("Robustness report is empty. Cannot generate heatmap.")
+        if matrix.empty:
+            raise ValueError("Robustness matrix is empty. Cannot generate heatmap.")
             
-        # 2. Setup Plot
-        fig, ax = plt.subplots(figsize=kwargs.pop('figsize', (10, len(df)*0.5 + 2)))
-        
-        # 3. Determine Color Map based on Metric
-        # STARR: 0..1 (Higher is better) -> Blues or Greens
-        # Regret: 0..inf (Lower is better) -> Reds or reversed sequential
-        cmap = kwargs.pop('cmap', None)
-        if cmap is None:
-            if metric == 'starr':
-                cmap = 'Greens'
-            else:
-                cmap = 'Reds' # Higher regret = Red
-        
-        # 4. Draw Heatmap
-        title = kwargs.pop('title', f"Robustness Heatmap ({metric.upper()}) - Subset: {subset}")
-        sns.heatmap(df, annot=kwargs.pop('annot', True), fmt=kwargs.pop('fmt', '.2f'), 
-                    cmap=cmap, ax=ax, **kwargs)
-        ax.set_yticklabels(ax.get_yticklabels(), rotation=0, horizontalalignment='right')
-        ax.set_title(title)
-        plt.tight_layout()
-        
-        return fig
+        return self.coordinator.show_robustness_heatmap(matrix, metric=metric, title=title, figsize=figsize, **kwargs)
 
     def show_stability_radius(
         self, 
@@ -721,14 +939,16 @@ class PatternAnalysis:
         
         # 4. Parameters and Objectives
         analyzer_fi = FeatureImportanceAnalyzer(self.sys_def)
-        parameter_cols = analyzer_fi.get_parameter_columns(self.experiments_df)
+        parameter_cols = kwargs.get('parameters')
+        if parameter_cols is None:
+            parameter_cols = analyzer_fi.get_parameter_columns(self.experiments_df)
         
         if objective_cols is None:
             objs = [o.name for o in self.get_outcomes()]
             objective_cols = (objs[0], objs[1]) if len(objs) >= 2 else (objs[0], objs[0])
 
         return self.coordinator.show_stability_radius_plot(
-            exp_subset, out_subset, is_target, parameter_cols, radius_info, objective_cols, self.schemes, **kwargs
+            exp_subset, out_subset, is_target, parameter_cols, radius_info, objective_cols, self.schemes, target_tradeoff=tradeoff, policy_name=policy_name, **kwargs
         )
 
     # --- Data Subset Helpers ---
@@ -823,13 +1043,14 @@ class PatternAnalysis:
                 return tradeoff
         return None
 
-    def add_tradeoff(self, name: str, elements: Dict[str, Any], scheme: str = "discretization", description: str = "", params: Optional[Dict[str, Any]] = None) -> Tradeoff:
+    def add_tradeoff(self, name: str, elements: Dict[str, Any], label: Optional[str] = None, scheme: str = "discretization", description: str = "", params: Optional[Dict[str, Any]] = None) -> Tradeoff:
         """Programmatically adds a tradeoff definition to the session.
         
         Args:
-            name: Unique name for the tradeoff.
-            elements: Dict mapping outcome names to target labels (e.g. {'cost': 'low'}).
-            scheme: The tradeoff scheme (default: 'discretization').
+            name: Unique concise name for the tradeoff.
+            elements: Dict mapping outcome names to target labels.
+            label: Human-readable display label.
+            scheme: The tradeoff scheme.
             description: Optional text description.
             params: Optional additional parameters for the scheme.
             
@@ -842,6 +1063,7 @@ class PatternAnalysis:
         from .models import Tradeoff
         tradeoff = Tradeoff(
             name=name, 
+            label=label or name,
             elements=elements, 
             scheme=scheme, 
             description=description,
@@ -858,173 +1080,160 @@ class PatternAnalysis:
         if self.sys_def:
             self.sys_def.system.tradeoffs = []
 
-    def create_static_threshold_tradeoffs(self, thresholds: Dict[str, Union[float, Tuple[float, str]]]) -> None:
+    def create_static_threshold_tradeoffs(self, thresholds: Dict[str, Union[float, Tuple[float, str]]], labels: Optional[List[str]] = None) -> Tuple[List[Tradeoff], List[DiscretizationScheme]]:
         """
         Generates all combinatorial tradeoffs based on static thresholds.
         
         Args:
             thresholds: Dictionary mapping objective names to threshold values OR (value, operator) tuples.
                         e.g., {'latency': 200, 'cost': (50, '<')}
-                        Supported operators: <, <=, >, >=.
-                        Default depends on objective direction (minimize -> <=, maximize -> >=).
+            labels: Optional list of 2 labels [satisfactory, unsatisfactory].
+            
+        Returns:
+            Tuple[List[Tradeoff], List[DiscretizationScheme]]: The created tradeoff objects and their schemes.
         """
         import itertools
         
+        # 1. Process data immediately
+        self.define_tradeoffs(method='threshold', params={'thresholds': thresholds}, labels=labels)
+        
+        # 2. Build Grid
         objs = list(thresholds.keys())
-        states = ["satisfactory", "unsatisfactory"]
+        states = labels if labels else ["satisfactory", "unsatisfactory"]
         
-        # Generate all combinations: e.g. (sat, sat), (sat, unsat)...
         combinations = list(itertools.product(states, repeat=len(objs)))
-        
         for combo in combinations:
-            # Create a readable name
-            is_all_sat = all(s == "satisfactory" for s in combo)
-            is_all_unsat = all(s == "unsatisfactory" for s in combo)
+            # Concise ID: sat-sat, sat-unsat
+            name = "-".join([s[:3] for s in combo]) # abbreviate to first 3 chars
             
-            if is_all_sat:
-                name = "compliant"
-            elif is_all_unsat:
-                name = "non-compliant"
-            else:
-                # Name based on satisfactory objectives
-                sat_objs = [obj for obj, state in zip(objs, combo) if state == "satisfactory"]
-                name = f"compliant-{'-'.join(sat_objs)}"
+            # Descriptive Label: obj1: sat, obj2: unsat
+            label_parts = [f"{obj}: {state}" for obj, state in zip(objs, combo)]
+            display_label = ", ".join(label_parts)
             
             elements = dict(zip(objs, combo))
-            
             self.add_tradeoff(
                 name=name,
+                label=display_label,
                 scheme="threshold",
                 params={'thresholds': thresholds},
                 elements=elements,
-                description=f"Static threshold combination: {name}"
+                description=f"Threshold combination: {display_label}"
             )
+        return self.get_tradeoffs(), self.schemes
 
-    def create_pareto_nadir_tradeoffs(self, objectives: Optional[List[str]] = None) -> None:
+    def create_pareto_nadir_tradeoffs(self, objectives: Optional[List[str]] = None, labels: Optional[List[str]] = None) -> Tuple[List[Tradeoff], List[DiscretizationScheme]]:
         """
         Generates all combinatorial tradeoffs based on the Pareto Nadir point.
         
         Args:
             objectives: List of objective names to consider. If None, uses all defined outcomes.
+            labels: Optional list of 2 labels [pareto-efficient, sub-optimal].
+            
+        Returns:
+            Tuple[List[Tradeoff], List[DiscretizationScheme]]: The created tradeoff objects and their schemes.
         """
         import itertools
+        
+        # 1. Process data
+        self.define_tradeoffs(method='pareto', labels=labels)
         
         if objectives is None:
             objectives = [obj.name for obj in self.get_outcomes()]
             
-        states = ["pareto-efficient", "sub-optimal"]
-        
-        # Generate all combinations
-        combinations = list(itertools.product(states, repeat=len(objectives)))
-        
-        for combo in combinations:
-            is_all_eff = all(s == "pareto-efficient" for s in combo)
-            is_all_sub = all(s == "sub-optimal" for s in combo)
+        # 2. Extract Labels from Schemes for consistency
+        labels_map = {}
+        target_schemes = [s for s in self.schemes if s.objective_name in objectives]
+        for scheme in target_schemes:
+            # Use unique labels only to avoid redundant combinations if a label is repeated in bins
+            labels_map[scheme.objective_name] = list(dict.fromkeys([b.label for b in scheme.bins]))
             
-            if is_all_eff:
-                name = "pareto-efficient"
-            elif is_all_sub:
-                name = "sub-optimal"
-            else:
-                # Name based on efficient objectives
-                eff_objs = [obj for obj, state in zip(objectives, combo) if state == "pareto-efficient"]
-                name = f"efficient-{'-'.join(eff_objs)}"
-            
-            elements = dict(zip(objectives, combo))
-            
-            self.add_tradeoff(
-                name=name,
-                scheme="pareto", # Maps to pareto_nadir in data processor
-                elements=elements,
-                description=f"Pareto Nadir combination: {name}"
-            )
+        # 3. Generate Combinatorial Tradeoffs
+        return self.create_discretization_tradeoffs(labels=labels_map, objectives=objectives, skip_definition=True)
 
-    def create_pareto_epsilon_tradeoffs(self, epsilon: float = 0.05, objectives: Optional[List[str]] = None) -> None:
+    def create_pareto_epsilon_tradeoffs(self, epsilon: float = 0.05, objectives: Optional[List[str]] = None, labels: Optional[List[str]] = None) -> Tuple[List[Tradeoff], List[DiscretizationScheme]]:
         """
         Generates all combinatorial tradeoffs based on Epsilon-Pareto dominance.
         
         Args:
             epsilon: The tolerance parameter (e.g., 0.05 for 5%).
             objectives: List of objective names to consider. If None, uses all defined outcomes.
+            labels: Optional list of 2 labels [epsilon-pareto-optimal, out].
+            
+        Returns:
+            Tuple[List[Tradeoff], List[DiscretizationScheme]]: The created tradeoff objects and their schemes.
         """
-        import itertools
+        # 1. Process data
+        self.define_tradeoffs(method='pareto_epsilon', params={'epsilon': epsilon}, labels=labels)
         
         if objectives is None:
             objectives = [obj.name for obj in self.get_outcomes()]
             
-        states = ["epsilon-pareto-optimal", "out"]
-        
-        # Generate all combinations
-        combinations = list(itertools.product(states, repeat=len(objectives)))
-        
-        for combo in combinations:
-            is_all_eff = all(s == "epsilon-pareto-optimal" for s in combo)
-            is_all_out = all(s == "out" for s in combo)
+        # 2. Extract Labels from Schemes
+        labels_map = {}
+        target_schemes = [s for s in self.schemes if s.objective_name in objectives]
+        for scheme in target_schemes:
+            labels_map[scheme.objective_name] = list(dict.fromkeys([b.label for b in scheme.bins]))
             
-            if is_all_eff:
-                name = "epsilon-pareto-optimal"
-            elif is_all_out:
-                name = "outside-epsilon-pareto"
-            else:
-                # Name based on efficient objectives
-                eff_objs = [obj for obj, state in zip(objectives, combo) if state == "epsilon-pareto-optimal"]
-                name = f"efficient-{'-'.join(eff_objs)}"
-            
-            elements = dict(zip(objectives, combo))
-            
-            self.add_tradeoff(
-                name=name,
-                scheme="pareto_epsilon",
-                params={'epsilon': epsilon},
-                elements=elements,
-                description=f"Pareto Epsilon combination: {name}"
-            )
+        # 3. Generate Combinatorial Tradeoffs
+        return self.create_discretization_tradeoffs(labels=labels_map, objectives=objectives, skip_definition=True)
 
-    def create_discretization_tradeoffs(self, labels: Optional[Dict[str, List[str]]] = None, objectives: Optional[List[str]] = None) -> None:
+    def create_discretization_tradeoffs(self, n_bins: int = 3, labels: Optional[Dict[str, List[str]]] = None, ranges: Optional[Dict[str, Tuple[float, float]]] = None, objectives: Optional[List[str]] = None, skip_definition: bool = False) -> Tuple[List[Tradeoff], List[DiscretizationScheme]]:
         """
         Generates all combinatorial tradeoffs based on discretization bins.
         
         Args:
+            n_bins: Number of bins per objective (if labels not provided).
             labels: Dictionary mapping objective names to lists of labels.
-                    e.g., {'cost': ['low', 'high'], 'latency': ['fast', 'slow']}
-                    If None (or missing for an objective), defaults to ['low', 'avg', 'high'].
+            ranges: Optional dictionary mapping objective names to (min, max) tuples.
             objectives: List of objective names to consider. If None, uses all defined outcomes.
+            skip_definition: If True, assumes define_tradeoffs has already been called (used for clustering).
+            
+        Returns:
+            Tuple[List[Tradeoff], List[DiscretizationScheme]]: The created tradeoff objects and their schemes.
         """
         import itertools
+        
+        # 1. Process data (unless skipped)
+        if not skip_definition:
+            self.define_tradeoffs(method='discretization', n_bins=n_bins, labels=labels, ranges=ranges)
         
         if objectives is None:
             objectives = [obj.name for obj in self.get_outcomes()]
             
-        # Prepare label sets for each objective
         label_sets = []
         final_objectives = []
         
         for obj in objectives:
-            if labels and obj in labels:
+            # Get actual labels from schemes if available, or provided labels, or defaults
+            scheme = next((s for s in self.schemes if s.objective_name == obj), None)
+            if scheme:
+                label_sets.append([b.label for b in scheme.bins])
+            elif labels and obj in labels:
                 label_sets.append(labels[obj])
             else:
-                # Default labels
-                label_sets.append(['low', 'avg', 'high'])
+                label_sets.append([f"level_{i+1}" for i in range(n_bins)])
             final_objectives.append(obj)
             
-        # Generate combinations
         combinations = list(itertools.product(*label_sets))
-        
         for combo in combinations:
-            # Name: e.g. "cost-low_latency-fast"
-            name_parts = [f"{obj}-{val}" for obj, val in zip(final_objectives, combo)]
-            name = "_".join(name_parts)
+            # Concise ID: e.g., low-fast, eff-sub
+            name = "-".join([str(val) for val in combo])
+            
+            # Descriptive Label: obj1: low, obj2: fast
+            label_parts = [f"{obj}: {val}" for obj, val in zip(final_objectives, combo)]
+            display_label = ", ".join(label_parts)
             
             elements = dict(zip(final_objectives, combo))
-            
             self.add_tradeoff(
                 name=name,
-                scheme="discretization",
+                label=display_label,
+                scheme="discretization" if not skip_definition else "automated",
                 elements=elements,
-                description=f"Discretization combination: {name}"
+                description=f"Automated combination: {display_label}"
             )
+        return self.get_tradeoffs(), self.schemes
 
-    def create_clustering_tradeoffs(self, min_k: int = 2, max_k: int = 5, objectives: Optional[List[str]] = None) -> None:
+    def create_clustering_tradeoffs(self, min_k: int = 2, max_k: int = 5, objectives: Optional[List[str]] = None) -> Tuple[List[Tradeoff], List[DiscretizationScheme]]:
         """
         Generates combinatorial tradeoffs based on Univariate K-Means Clustering.
         
@@ -1032,58 +1241,66 @@ class PatternAnalysis:
             min_k: Minimum number of clusters to test.
             max_k: Maximum number of clusters to test.
             objectives: List of objective names. If None, uses all outcomes.
+            
+        Returns:
+            Tuple[List[Tradeoff], List[DiscretizationScheme]]: The created tradeoff objects and their schemes.
         """
         # 1. Run Clustering Discretization
-        # This populates self.schemes with the discovered clusters and labels (C1, C2...)
         self.define_tradeoffs(method='clustering', params={'min_k': min_k, 'max_k': max_k})
         
         # 2. Extract Labels from Schemes
         labels_map = {}
         target_schemes = self.schemes
-        
         if objectives:
             target_schemes = [s for s in self.schemes if s.objective_name in objectives]
             
         for scheme in target_schemes:
             labels_map[scheme.objective_name] = [b.label for b in scheme.bins]
             
-        # 3. Generate Combinatorial Tradeoffs
-        self.create_discretization_tradeoffs(labels=labels_map, objectives=objectives)
+        # 3. Generate Combinatorial Tradeoffs (skipping re-definition)
+        return self.create_discretization_tradeoffs(labels=labels_map, objectives=objectives, skip_definition=True)
 
-    def create_tradeoffs(self, method: str = 'discretization', **kwargs) -> None:
+    def create_tradeoffs(self, method: str = 'discretization', **kwargs) -> Tuple[List[Tradeoff], List[DiscretizationScheme]]:
         """
         Unified entry point for programmatically generating combinatorial tradeoffs.
         
-        Depending on the 'method', this delegates to specific helper functions
-        to populate the system definition with all possible outcome combinations.
+        Delegates to strategy-specific helpers, ensuring a fresh start by calling 
+        clear_tradeoffs() and automatically processing data via define_tradeoffs().
         
         Args:
             method: 'discretization', 'threshold', 'pareto', 'pareto_epsilon', or 'clustering'.
             **kwargs: Arguments passed to the underlying helper method:
-                - For 'discretization': 'labels', 'objectives'.
-                - For 'threshold': 'thresholds' (Required).
-                - For 'pareto': 'objectives'.
-                - For 'pareto_epsilon': 'epsilon' (Required), 'objectives'.
+                - For 'discretization': 'n_bins', 'labels', 'ranges', 'objectives'.
+                - For 'threshold': 'thresholds' (Required), 'labels'.
+                - For 'pareto': 'objectives', 'labels'.
+                - For 'pareto_epsilon': 'epsilon' (Required), 'objectives', 'labels'.
                 - For 'clustering': 'min_k', 'max_k', 'objectives'.
+                
+        Returns:
+            Tuple[List[Tradeoff], List[DiscretizationScheme]]: The created tradeoff objects and their schemes.
         """
+        # Validate mandatory parameters for entry point
+        if method == 'threshold' and 'thresholds' not in kwargs:
+            raise ValueError("Method 'threshold' requires 'thresholds' argument (dict of {objective: value}).")
+        if method == 'pareto_epsilon' and 'epsilon' not in kwargs:
+            raise ValueError("Method 'pareto_epsilon' requires 'epsilon' argument (float).")
+
+        self.clear_tradeoffs()
+        
         if method == 'discretization':
-            self.create_discretization_tradeoffs(**kwargs)
+            return self.create_discretization_tradeoffs(**kwargs)
             
         elif method == 'clustering':
-            self.create_clustering_tradeoffs(**kwargs)
+            return self.create_clustering_tradeoffs(**kwargs)
             
         elif method == 'threshold':
-            if 'thresholds' not in kwargs:
-                raise ValueError("Method 'threshold' requires 'thresholds' argument (dict of {objective: value}).")
-            self.create_static_threshold_tradeoffs(**kwargs)
+            return self.create_static_threshold_tradeoffs(**kwargs)
             
         elif method in ['pareto', 'pareto_nadir']:
-            self.create_pareto_nadir_tradeoffs(**kwargs)
+            return self.create_pareto_nadir_tradeoffs(**kwargs)
             
         elif method == 'pareto_epsilon':
-            if 'epsilon' not in kwargs:
-                raise ValueError("Method 'pareto_epsilon' requires 'epsilon' argument (float).")
-            self.create_pareto_epsilon_tradeoffs(**kwargs)
+            return self.create_pareto_epsilon_tradeoffs(**kwargs)
             
         else:
             raise ValueError(f"Unknown tradeoff creation method: {method}")
@@ -1200,6 +1417,29 @@ class PatternAnalysis:
         from ..analysis.visualization import show_importance_heatmap
         return show_importance_heatmap(scores_df, **kwargs)
 
+    def align_boxes_to_tradeoffs(self, boxes: List[Any]) -> List[Optional[Any]]:
+        """
+        Aligns a list of discovered boxes to the full list of system tradeoffs.
+        
+        Useful for preparing the input list for robustness matrix methods.
+        If multiple boxes match a tradeoff name, the first one is used.
+        
+        Args:
+            boxes: List of Box objects (e.g., from discover_scenarios).
+            
+        Returns:
+            List[Optional[Box]]: A list matching the order of self.get_tradeoffs().
+        """
+        all_tradeoffs = self.get_tradeoffs()
+        box_list = []
+        
+        for tradeoff in all_tradeoffs:
+            # Find the best box for this tradeoff
+            best_box = next((b for b in boxes if b.target_tradeoff == tradeoff.name), None)
+            box_list.append(best_box)
+            
+        return box_list
+
     def discover_scenarios(
         self, 
         tradeoff_names: Optional[Union[str, List[str]]] = None, 
@@ -1266,6 +1506,7 @@ class PatternAnalysis:
                     box.target_tradeoff = combined_label
                     box.target_tradeoff_labels = "combined"
                     box.dataset_bounds = min_max_dict
+                    box.name = f"Box for {combined_label}"
                 
                 all_boxes.extend(boxes)
                 
@@ -1278,6 +1519,7 @@ class PatternAnalysis:
                     for box in boxes:
                         box.target_tradeoff_labels = label
                         box.dataset_bounds = min_max_dict
+                        box.name = f"Box for {name}"
                     all_boxes.extend(boxes)
             
             return all_boxes
@@ -1344,6 +1586,9 @@ class PatternAnalysis:
                 # Include the named tradeoff as metadata
                 box.target_tradeoff_labels = box.target_tradeoff 
                 box.target_tradeoff = matched_tradeoff 
+                box.name = f"Box for {matched_tradeoff}"
+            else:
+                box.name = f"Box for {class_str}"
 
             # Evaluate and Post-process
             y_test = y_test_map.get(class_str)

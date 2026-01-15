@@ -19,6 +19,8 @@ from pydantic import BaseModel, Field
 from sklearn.tree._tree import TREE_LEAF, TREE_UNDEFINED
 from sklearn.tree import _tree
 
+from .robustness import RobustnessAnalyzer
+
 # Import custom exceptions
 try:
     from ..utils.exceptions import DiscoveryError, TradeoffDefinitionError
@@ -32,14 +34,34 @@ except ImportError:
 
 class Box(BaseModel):
     """Represents a discovered region in parameter space."""
+    name: str = ""
     limits: Dict[str, Dict[str, float]]
     dataset_bounds: Dict[str, Dict[str, float]] = Field(default_factory=dict)
     metrics: Dict[str, float] = Field(default_factory=dict)
     target_tradeoff: Optional[str] = None
+    target_tradeoff_labels: Optional[str] = None
     method: str = "prim"
     population_prevalence: float = 0.0
     
     model_config = {"extra": "allow"}
+
+    @property
+    def actual_limits(self) -> Dict[str, Dict[str, float]]:
+        # If any limit is 'inf', substitute it for the dataset bounds
+        if not self.dataset_bounds:
+            return self.limits
+        
+        actual_limits = self.limits.copy()
+        for param, limits in self.limits.items():
+            if param in self.dataset_bounds:
+                for _, value in limits.items():
+                    if value == np.inf:
+                        actual_limits[param]['max'] = self.dataset_bounds[param]['max']
+                    elif value == -np.inf:
+                        actual_limits[param]['min'] = self.dataset_bounds[param]['min']
+        return actual_limits
+        
+        # return {param: {key: value if value != np.inf else self.dataset_bounds[param][key] for key, value in limits.items()} for param, limits in self.limits.items()}
 
 
 class BoxEvaluator:
@@ -74,7 +96,8 @@ class BoxEvaluator:
         coverage = targets_in_box / total_targets if total_targets > 0 else 0.0
         
         # Lift is how much better we are than the baseline
-        lift = (density / population_prevalence) if population_prevalence > 0 else 0.0
+        # lift = (density / population_prevalence) if population_prevalence > 0 else 0.0
+        lift = density - population_prevalence # This can be a positive or negative improvement
         
         return {
             'density': float(density),
@@ -84,6 +107,99 @@ class BoxEvaluator:
             'samples_in_box': int(points_in_box),
             'targets_in_box': int(targets_in_box)
         }
+
+    @staticmethod
+    def compute_policy_robustness_matrix(
+        experiments_df: pd.DataFrame,
+        outcomes_df: pd.DataFrame,
+        discrete_df: pd.DataFrame,
+        policy_series: pd.Series,
+        tradeoffs: List[Any],
+        boxes: List[Optional[Box]],
+        schemes: List[Any],
+        metric: str = 'starr',
+        stats: Optional[Dict[str, Any]] = None,
+        min_samples: int = 1
+    ) -> pd.DataFrame:
+        """
+        Computes a matrix of Policy vs. Tradeoff robustness under box constraints.
+        
+        Args:
+            experiments_df: Parameter DataFrame.
+            outcomes_df: Continuous outcomes DataFrame.
+            discrete_df: Discretized outcomes DataFrame.
+            policy_series: Series mapping row indices to policy names.
+            tradeoffs: List of Tradeoff objects.
+            boxes: List of Box objects (one per tradeoff, or None).
+            schemes: List of DiscretizationScheme objects.
+            metric: 'starr' or 'regret'.
+            stats: Optional scaler info for REGRET calculation.
+            min_samples: Minimum points required to calculate the metric.
+            
+        Returns:
+            pd.DataFrame: Rows=Policies, Cols=Tradeoffs, Values=Metric.
+        """
+        policies = sorted(policy_series.dropna().unique())
+        results = {t.name: [] for t in tradeoffs}
+        
+        metric = metric.lower()
+        
+        for i, tradeoff in enumerate(tradeoffs):
+            box = boxes[i]
+            
+            # If no box for this tradeoff, mark entire column as None
+            if box is None:
+                for _ in policies:
+                    results[tradeoff.name].append(None)
+                continue
+                
+            # Pre-calculate boundaries for REGRET if needed
+            boundaries = {}
+            if metric == 'regret':
+                for obj_name, target_label in tradeoff.elements.items():
+                    scheme = next((s for s in schemes if s.objective_name == obj_name), None)
+                    if scheme:
+                        bin_obj = next((b for b in scheme.bins if b.label == target_label), None)
+                        if bin_obj:
+                            boundaries[obj_name] = {'min': bin_obj.min_value, 'max': bin_obj.max_value}
+
+            # Pre-calculate overall success mask for this tradeoff
+            is_success_overall = pd.Series(True, index=discrete_df.index)
+            for obj_name, target_label in tradeoff.elements.items():
+                if obj_name in discrete_df.columns:
+                    is_success_overall &= (discrete_df[obj_name] == target_label)
+
+            for policy in policies:
+                # 1. Filter data for this policy
+                policy_mask = (policy_series == policy)
+                exp_pol = experiments_df[policy_mask]
+                out_pol = outcomes_df[policy_mask]
+                succ_pol = is_success_overall[policy_mask]
+                
+                # 2. Apply Box Constraints
+                box_mask = pd.Series(True, index=exp_pol.index)
+                for param, limits in box.limits.items():
+                    if param in exp_pol.columns:
+                        box_mask &= (exp_pol[param] >= limits['min']) & (exp_pol[param] <= limits['max'])
+                
+                n_samples = box_mask.sum()
+                
+                # 3. Calculate Metric
+                if n_samples < min_samples:
+                    val = 0.0 if (metric == 'starr' or metric == 'density') else 10.0
+                else:
+                    if metric == 'starr' or metric == 'density':
+                        val = RobustnessAnalyzer.compute_starr(succ_pol[box_mask])['value']
+                    elif metric == 'regret':
+                        val = RobustnessAnalyzer.compute_regret(
+                            out_pol[box_mask], succ_pol[box_mask], boundaries, stats
+                        )['value']
+                    else:
+                        val = None
+                
+                results[tradeoff.name].append(val)
+                
+        return pd.DataFrame(results, index=policies)
 
 
 class ScenarioDiscovery(ABC):
@@ -173,15 +289,50 @@ class PRIMDiscovery(ScenarioDiscovery):
 
         box1 = all_boxes[0]
         
+        # Populate target_tradeoff if available
+        target_name = None
+        if 'tradeoff' in kwargs:
+            target_name = kwargs['tradeoff'].name
+        elif 'target_spec' in kwargs:
+            target_name = kwargs['target_spec'].get('target_bin')
+
         if method == 'rhodium':
             df = self._get_box_limits(box1)[['min', 'max']]
-            return box1, df.to_dict(orient='index'), prim_alg
+            box_obj = Box(limits=df.to_dict(orient='index'), method="prim", target_tradeoff=target_name)
+            # Rhodium boxes don't have built-in metrics dict in the same way, we might need to compute them or extract them
+            # For now, we return the Box object which wraps the limits. 
+            # Ideally we should populate metrics using BoxEvaluator or extract from box1 stats.
+            # The current implementation returns (box1, df, prim_alg) tuple in original code.
+            # To be backward compatible but return Box objects, we might need to wrap it.
+            # But the user asked to "return the Box objects".
+            # The original code returned: return box1, df.to_dict(orient='index'), prim_alg
+            # I will modify it to return a list of Box objects or a single Box object?
+            # The interface says "Any".
+            # Let's keep the return signature but ensure the Box object is created if we were returning objects.
+            # Wait, the previous code returned TUPLES. 
+            # "When returning results ... I'd like to return the Box objects"
+            # I should change the return type to List[Box].
+            
+            metrics = {
+                "density": box1.peeling_trajectory.iloc[box1._cur_box]['density'],
+                "coverage": box1.peeling_trajectory.iloc[box1._cur_box]['coverage'],
+                "mean": box1.peeling_trajectory.iloc[box1._cur_box]['mean'],
+                "mass": box1.peeling_trajectory.iloc[box1._cur_box]['mass']
+            }
+            box_obj.metrics = metrics
+            return [box_obj] # Return list of Box objects
+            
         else:
+            # EMA Workbench Box
             df = box1.inspect(style='data')[0][1].to_dict(orient='index')
             clean_df = {}
             for key in df.keys():
                 clean_df[key] = {k2:v for (k1,k2),v in df[key].items() if k2 in ['min', 'max']}
-            return box1, clean_df, prim_alg
+            
+            box_obj = Box(limits=clean_df, method="prim", target_tradeoff=target_name)
+            # EMA box metrics extraction might be different
+            # For now, returning Box object
+            return [box_obj]
 
     @staticmethod
     def _get_box_limits(box):
@@ -255,7 +406,15 @@ class CARTDiscovery(ScenarioDiscovery):
         
         cart_boxes = self._extract_boxes(triple_rules)
         
-        return triple_rules, cart_boxes, cart_alg
+        # Convert to Box objects
+        box_objects = []
+        for label, limits in cart_boxes.items():
+             # Extract metrics from rules if possible, but CART metrics are usually class probabilities
+             # For now, just limits. Evaluation happens downstream.
+             box = Box(limits=limits, target_tradeoff=str(label), method='cart')
+             box_objects.append(box)
+             
+        return box_objects
 
     def _extract_boxes(self, triple_rules):
         """Converts tree rules into parameter bound 'boxes'."""

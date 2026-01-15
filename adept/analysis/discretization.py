@@ -183,21 +183,23 @@ class DataProcessor:
         compliant_df = df[is_epsilon_optimal]
         
         discrete_df = df.copy()
-        labels_map = {True: "epsilon-pareto-optimal", False: "out"}
-        label_series = pd.Series(is_epsilon_optimal).map(labels_map)
-        
         schemes = []
         for col in subset_cols:
-            discrete_df[col] = label_series.values
-            
             if not compliant_df.empty:
                 opt_min = float(compliant_df[col].min())
                 opt_max = float(compliant_df[col].max())
                 
+                bins = [-float('inf'), opt_min, opt_max, float('inf')]
+                labels = ["out_low", "epsilon-pareto-optimal", "out_high"]
+                
+                # Apply per-column discretization to discrete_df
+                # Note: This is a projection-based discretization
+                discrete_df[col] = pd.cut(df[col], bins=bins, labels=labels, include_lowest=True)
+                
                 q_bins = [
-                    QualityBin(label="out", min_value=float('-inf'), max_value=opt_min),
-                    QualityBin(label="epsilon-pareto-optimal", min_value=opt_min, max_value=opt_max),
-                    QualityBin(label="out", min_value=opt_max, max_value=float('inf'))
+                    QualityBin(label="out_low", min_value=bins[0], max_value=bins[1]),
+                    QualityBin(label="epsilon-pareto-optimal", min_value=bins[1], max_value=bins[2]),
+                    QualityBin(label="out_high", min_value=bins[2], max_value=bins[3])
                 ]
             else:
                 q_bins = []
@@ -261,13 +263,19 @@ class DataProcessor:
 
         schemes = []
         for col in subset_cols:
-            discrete_df[col] = labels_series.values
-            
             if not compliant_df.empty:
                 k_min = float(compliant_df[col].min())
                 k_max = float(compliant_df[col].max())
+                
+                bins = [-float('inf'), k_min, k_max, float('inf')]
+                labels = ["off-knee-low", "knee", "off-knee-high"]
+                
+                discrete_df[col] = pd.cut(df[col], bins=bins, labels=labels, include_lowest=True)
+                
                 q_bins = [
-                    QualityBin(label="knee", min_value=k_min, max_value=k_max)
+                    QualityBin(label="off-knee-low", min_value=bins[0], max_value=bins[1]),
+                    QualityBin(label="knee", min_value=bins[1], max_value=bins[2]),
+                    QualityBin(label="off-knee-high", min_value=bins[2], max_value=bins[3])
                 ]
             else:
                 q_bins = []

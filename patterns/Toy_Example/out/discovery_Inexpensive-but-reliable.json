@@ -1,6 +1,6 @@
 {
   "limits": {
-    "d3Services": {
+    "d1Services": {
       "min": 0.5,
       "max": 6.0
     },
@@ -12,7 +12,7 @@
       "min": 1.0000000000000002,
       "max": 3.5
     },
-    "d1Services": {
+    "d3Services": {
       "min": 0.5,
       "max": 6.0
     },
@@ -25,44 +25,7 @@
       "max": 42.0
     }
   },
-  "dataset_bounds": {
-    "deviceCPUCyles": {
-      "min": 100.0,
-      "max": 150.0
-    },
-    "lbExecTime": {
-      "min": 10.0,
-      "max": 50.0
-    },
-    "d3Services": {
-      "min": 0.0,
-      "max": 6.0
-    },
-    "lbFailureProb": {
-      "min": 10.0,
-      "max": 50.0
-    },
-    "serviceCost": {
-      "min": 1.0,
-      "max": 5.0
-    },
-    "d1Services": {
-      "min": 0.0,
-      "max": 6.0
-    },
-    "d2Services": {
-      "min": 0.0,
-      "max": 6.0
-    },
-    "deviceCost": {
-      "min": 0.0,
-      "max": 40.0
-    },
-    "serviceFailureProb": {
-      "min": 10.0,
-      "max": 50.0
-    }
-  },
+  "dataset_bounds": {},
   "metrics": {
     "density": 0.9798770262716602,
     "coverage": 0.29211798033661057,

@@ -186,8 +186,8 @@ class ArchSpaceCore:
         """
         return self.visualization_manager.show_tradeoff_distribution(outcomes_df, schemes, tradeoff=tradeoff, highlight_indices=highlight_indices, **kwargs)
     
-    def show_quality_objective_space(self, outcomes_df: pd.DataFrame, x_metric: str, y_metric: str, schemes: List[DiscretizationScheme], highlight_indices_map: Optional[Dict[str, np.ndarray]] = None, policy_series: Optional[pd.Series] = None, show_overall: bool = True, color_points: bool = True, draw_rectangles: bool = False, **kwargs) -> plt.Figure:
-        """Plots a 2D scatter of outcomes with tradeoff overlays and highlighting.
+    def show_quality_objective_space(self, outcomes_df: pd.DataFrame, x_metric: str, y_metric: str, schemes: List[DiscretizationScheme], highlight_indices_map: Optional[Dict[str, np.ndarray]] = None, policy_series: Optional[pd.Series] = None, show_overall: bool = True, color_points: bool = True, draw_rectangles: bool = False, eps: float = 0.01, background_alpha: float = 0.6, annotation_text: Optional[str] = None, **kwargs) -> plt.Figure:
+        """Plots a 2D scatter of outcomes with tradeoff overlays.
         
         Delegates to the VisualizationManager.
         
@@ -196,11 +196,14 @@ class ArchSpaceCore:
             x_metric: Name of metric for x-axis
             y_metric: Name of metric for y-axis
             schemes: List of discretization schemes
-            highlight_indices_map: Optional mapping of tradeoff labels to indices
-            policy_series: Optional series indicating policy assignments
+            highlight_indices_map: Mapping of tradeoff names to row indices
+            policy_series: Series mapping indices to policy names
             show_overall: Whether to show overall distribution
             color_points: Whether to color points by tradeoff
             draw_rectangles: Whether to draw tradeoff rectangles
+            eps: Epsilon factor to enlarge tradeoff rectangles
+            background_alpha: Alpha for gray background points
+            annotation_text: Optional text to display in a box inside the plot
             **kwargs: Additional plotting parameters
             
         Returns:
@@ -216,18 +219,30 @@ class ArchSpaceCore:
             show_overall=show_overall,
             color_points=color_points,
             draw_rectangles=draw_rectangles,
+            eps=eps,
+            background_alpha=background_alpha,
+            annotation_text=annotation_text,
             **kwargs
         )
 
-    def show_stability_radius_plot(self, experiments_df: pd.DataFrame, outcomes_df: pd.DataFrame, target_mask: pd.Series, parameter_cols: List[str], radius_info: Dict[str, Any], objective_cols: Tuple[str, str], schemes: List[DiscretizationScheme], **kwargs) -> plt.Figure:
+    def show_stability_radius_plot(self, experiments_df: pd.DataFrame, outcomes_df: pd.DataFrame, target_mask: pd.Series, parameter_cols: List[str], radius_info: Dict[str, Any], objective_cols: Tuple[str, str], schemes: List[DiscretizationScheme], target_tradeoff: Optional[Tradeoff] = None, policy_name: Optional[str] = None, **kwargs) -> plt.Figure:
         """Visualizes the stability radius in both parameter and objective space.
         
         Delegates to the VisualizationManager.
         """
         return self.visualization_manager.show_stability_radius_plot(
             experiments_df, outcomes_df, target_mask, parameter_cols, 
-            radius_info, objective_cols, schemes, **kwargs
+            radius_info, objective_cols, schemes, target_tradeoff=target_tradeoff, 
+            policy_name=policy_name, **kwargs
         )
+
+    def show_robustness_heatmap(self, matrix: pd.DataFrame, metric: str = 'starr', **kwargs) -> plt.Figure:
+        """Visualizes a robustness matrix as a heatmap."""
+        return self.visualization_manager.show_robustness_heatmap(matrix, metric=metric, **kwargs)
+
+    def show_robustness_comparison_heatmap(self, baseline_matrix: pd.DataFrame, improved_matrix: pd.DataFrame, metric: str = 'starr', **kwargs) -> plt.Figure:
+        """Visualizes a comparison of robustness matrices."""
+        return self.visualization_manager.show_robustness_comparison_heatmap(baseline_matrix, improved_matrix, metric=metric, **kwargs)
 
 
 __all__ = ["ArchSpaceCore", "VisualizationManager"]
