@@ -945,6 +945,32 @@ class PatternAnalysis:
                 description=f"Discretization combination: {name}"
             )
 
+    def create_tradeoffs(self, method: str = 'discretization', **kwargs) -> None:
+        """
+        Unified entry point for programmatically generating combinatorial tradeoffs.
+        
+        Depending on the 'method', this delegates to specific helper functions
+        to populate the system definition with all possible outcome combinations.
+        
+        Args:
+            method: 'discretization', 'threshold', 'pareto', or 'pareto_epsilon'.
+            **kwargs: Arguments passed to the underlying helper method:
+                - For 'discretization': 'labels', 'objectives'.
+                - For 'threshold': 'thresholds'.
+                - For 'pareto': 'objectives'.
+                - For 'pareto_epsilon': 'epsilon', 'objectives'.
+        """
+        if method == 'discretization':
+            self.create_discretization_tradeoffs(**kwargs)
+        elif method == 'threshold':
+            self.create_static_threshold_tradeoffs(**kwargs)
+        elif method in ['pareto', 'pareto_nadir']:
+            self.create_pareto_nadir_tradeoffs(**kwargs)
+        elif method == 'pareto_epsilon':
+            self.create_pareto_epsilon_tradeoffs(**kwargs)
+        else:
+            raise ValueError(f"Unknown tradeoff creation method: {method}")
+
     def get_adaptive_processes(self) -> List[Any]:
         """Returns the list of adaptive processes."""
         if not self.sys_def: return []
