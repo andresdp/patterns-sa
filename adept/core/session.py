@@ -393,7 +393,7 @@ class PatternAnalysis:
                 if decision_key == col_suffix:
                     decision_key = col
                     approximate_match = True
-                    print(f"Warning: Using approximate match for decision: {decision_key} -> {col}")
+                    print(f"Warning: Using approximate match for decision: {decision_key} -> {col_suffix}")
                     break
             if not approximate_match:
                 available = list(policy_df.columns)
