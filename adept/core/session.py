@@ -186,9 +186,9 @@ class PatternAnalysis:
         
         return results
 
-    def plot_distributions(self, tradeoff: Optional[Tradeoff] = None, highlight_indices: Optional[np.ndarray] = None, **kwargs) -> plt.Figure:
+    def show_distributions(self, tradeoff: Optional[Tradeoff] = None, highlight_indices: Optional[np.ndarray] = None, **kwargs) -> plt.Figure:
         """Plots outcome distributions with tradeoff overlays for the current session."""
-        return self.coordinator.plot_distributions(
+        return self.coordinator.show_distributions(
             self.outcomes_df, self.schemes, tradeoff=tradeoff, highlight_indices=highlight_indices, **kwargs
         )
 
@@ -255,8 +255,17 @@ class PatternAnalysis:
         policy_df = analyzer.get_decision_policy_map(X, config_col)
         
         if decision_key not in policy_df.columns:
-            available = list(policy_df.columns)
-            raise ValueError(f"Decision '{decision_key}' not found. Available: {available}")
+            approximate_match = False
+            for col in policy_df.columns:
+                col_suffix = col.split(':')[-1]
+                if decision_key == col_suffix:
+                    decision_key = col
+                    approximate_match = True
+                    print(f"Warning: Using approximate match for decision: {decision_key} -> {col}")
+                    break
+            if not approximate_match:
+                available = list(policy_df.columns)
+                raise ValueError(f"Decision '{decision_key}' not found. Available: {available}")
 
         # 2. Get Tradeoff Mask
         tradeoff_mask = pd.DataFrame(index=X.index)
@@ -635,7 +644,7 @@ class PatternAnalysis:
         title = kwargs.pop('title', f"Robustness Heatmap ({metric.upper()}) - Subset: {subset}")
         sns.heatmap(df, annot=kwargs.pop('annot', True), fmt=kwargs.pop('fmt', '.2f'), 
                     cmap=cmap, ax=ax, **kwargs)
-        
+        ax.set_yticklabels(ax.get_yticklabels(), rotation=0, horizontalalignment='right')
         ax.set_title(title)
         plt.tight_layout()
         
@@ -689,7 +698,7 @@ class PatternAnalysis:
         if not self.sys_def: return {}
         return self.sys_def.system.components
 
-    def get_decisions(self) -> Dict[str, Any]:
+    def get_decisions(self, include_component_name: bool = False) -> Dict[str, Any]:
         """
         Returns a flat dictionary of all decisions across all patterns.
         Key format: "component_name:decision_name"
@@ -698,7 +707,8 @@ class PatternAnalysis:
         decisions = {}
         for comp_name, comp in self.sys_def.system.components.items():
             for dec_name, decision in comp.decisions.items():
-                decisions[f"{comp_name}:{dec_name}"] = decision
+                key = f"{comp_name}:{dec_name}" if include_component_name else dec_name
+                decisions[key] = decision
         return decisions
     
     def get_policies(self) -> Dict[str, Any]:
@@ -706,10 +716,13 @@ class PatternAnalysis:
         Returns all system-level configurations (policies) identified in the dataspace.
         """
         if not self.sys_def: return {}
+
         configs = self.sys_def.dataspace.configuration_identification.configurations
         if isinstance(configs, list):
-            return {c.name: c for c in configs}
-        return configs
+            policies = {c.name: c for c in configs}
+        else:
+            policies = configs
+        return policies
 
     def get_outcomes(self) -> List[Any]:
         """Returns the list of quality objectives (outcomes)."""
@@ -720,6 +733,14 @@ class PatternAnalysis:
         """Returns the list of defined tradeoffs."""
         if not self.sys_def: return []
         return self.sys_def.system.tradeoffs
+
+    def get_tradeoff(self, name: str) -> Tradeoff | None:
+        """Returns the tradeoff with the given name, or None if not found."""
+        if not self.sys_def: return None
+        for tradeoff in self.sys_def.system.tradeoffs:
+            if tradeoff.name == name:
+                return tradeoff
+        return None
 
     def add_tradeoff(self, name: str, elements: Dict[str, Any], scheme: str = "discretization", description: str = "", params: Optional[Dict[str, Any]] = None) -> Tradeoff:
         """Programmatically adds a tradeoff definition to the session.
@@ -755,6 +776,85 @@ class PatternAnalysis:
         """Removes all tradeoff definitions from the current session."""
         if self.sys_def:
             self.sys_def.system.tradeoffs = []
+
+    def create_static_threshold_tradeoffs(self, thresholds: Dict[str, float]) -> None:
+        """
+        Generates all combinatorial tradeoffs based on static thresholds.
+        
+        Args:
+            thresholds: Dictionary mapping objective names to threshold values.
+                        e.g., {'latency': 200, 'cost': 50}
+        """
+        import itertools
+        
+        objs = list(thresholds.keys())
+        states = ["satisfactory", "unsatisfactory"]
+        
+        # Generate all combinations: e.g. (sat, sat), (sat, unsat)...
+        combinations = list(itertools.product(states, repeat=len(objs)))
+        
+        for combo in combinations:
+            # Create a readable name
+            is_all_sat = all(s == "satisfactory" for s in combo)
+            is_all_unsat = all(s == "unsatisfactory" for s in combo)
+            
+            if is_all_sat:
+                name = "compliant"
+            elif is_all_unsat:
+                name = "non-compliant"
+            else:
+                # Name based on satisfactory objectives
+                sat_objs = [obj for obj, state in zip(objs, combo) if state == "satisfactory"]
+                name = f"compliant-{'-'.join(sat_objs)}"
+            
+            elements = dict(zip(objs, combo))
+            
+            self.add_tradeoff(
+                name=name,
+                scheme="threshold",
+                params={'thresholds': thresholds},
+                elements=elements,
+                description=f"Static threshold combination: {name}"
+            )
+
+    def create_pareto_nadir_tradeoffs(self, objectives: Optional[List[str]] = None) -> None:
+        """
+        Generates all combinatorial tradeoffs based on the Pareto Nadir point.
+        
+        Args:
+            objectives: List of objective names to consider. If None, uses all defined outcomes.
+        """
+        import itertools
+        
+        if objectives is None:
+            objectives = [obj.name for obj in self.get_outcomes()]
+            
+        states = ["pareto-efficient", "sub-optimal"]
+        
+        # Generate all combinations
+        combinations = list(itertools.product(states, repeat=len(objectives)))
+        
+        for combo in combinations:
+            is_all_eff = all(s == "pareto-efficient" for s in combo)
+            is_all_sub = all(s == "sub-optimal" for s in combo)
+            
+            if is_all_eff:
+                name = "pareto-efficient"
+            elif is_all_sub:
+                name = "sub-optimal"
+            else:
+                # Name based on efficient objectives
+                eff_objs = [obj for obj, state in zip(objectives, combo) if state == "pareto-efficient"]
+                name = f"efficient-{'-'.join(eff_objs)}"
+            
+            elements = dict(zip(objectives, combo))
+            
+            self.add_tradeoff(
+                name=name,
+                scheme="pareto", # Maps to pareto_nadir in data processor
+                elements=elements,
+                description=f"Pareto Nadir combination: {name}"
+            )
 
     def get_adaptive_processes(self) -> List[Any]:
         """Returns the list of adaptive processes."""
@@ -857,7 +957,9 @@ class PatternAnalysis:
                 y_full[outcome_col], 
                 use_smart_correlation=use_smart_correlation
             )
-            results[outcome_col] = scores
+            # Note: Order of scores for each outcome might be different
+            scores_sorted = scores.sort_index(ascending=True)
+            results[outcome_col] = scores_sorted
             
         return pd.DataFrame(results)
 
@@ -891,10 +993,18 @@ class PatternAnalysis:
         from ..analysis.feature_importance import FeatureImportanceAnalyzer
         
         # 1. Normalize input names
+        all_tradeoffs = self.get_tradeoffs()
         if tradeoff_names is None:
-            tradeoff_names = [t.name for t in self.get_tradeoffs()]
+            tradeoff_names = [t.name for t in all_tradeoffs]
+            tradeoff_labels = [','.join(t.elements.values()) for t in all_tradeoffs]
         elif isinstance(tradeoff_names, str):
             tradeoff_names = [tradeoff_names]
+            tradeoff_labels = [','.join(t.elements.values()) for t in all_tradeoffs if t.name == tradeoff_names[0]]
+
+        # Dataset bounds
+        agg_results = self.experiments_df.agg(['min', 'max'])
+        min_max_dict = agg_results.to_dict()
+        # print(f"Dataset bounds: {min_max_dict}")
 
         # 2. Handle PRIM (Iterative)
         if method == 'prim':
@@ -906,6 +1016,10 @@ class PatternAnalysis:
                     name, parameters=parameters, standardize=standardize, **kwargs
                 )
                 all_boxes.extend(boxes)
+            
+            for box, tradeoff_label in zip(all_boxes, tradeoff_labels):
+                box.target_tradeoff_labels = tradeoff_label
+                box.dataset_bounds = min_max_dict
             return all_boxes
 
         # 3. Handle CART (Global + Filter)
@@ -950,10 +1064,11 @@ class PatternAnalysis:
         
         if not result: return []
         
-        _, cart_boxes, _ = result
+        # result is List[Box] from CARTDiscovery
+        cart_boxes = result
         boxes = []
-        for label, limits in cart_boxes.items():
-            class_str = str(label)
+        for box in cart_boxes:
+            class_str = str(box.target_tradeoff)
             # Check if this class matches ANY of the requested tradeoffs
             matched_tradeoff = None
             for t_name in tradeoff_names:
@@ -961,25 +1076,27 @@ class PatternAnalysis:
                     matched_tradeoff = t_name
                     break
             
+            box.dataset_bounds = min_max_dict
+            
             # If no specific names were requested, we return all (matched_tradeoff is just informational)
             # But here the user specifically wants to filter.
             if matched_tradeoff:
-                box = Box(limits=limits, target_tradeoff=class_str, method='cart')
                 # Include the named tradeoff as metadata
-                box.target_tradeoff_name = matched_tradeoff 
-                
-                # Evaluate and Post-process
-                y_test = y_test_map.get(class_str)
-                prevalence = prevalence_map.get(class_str, 0.0)
-                if y_test is not None:
-                    box.metrics = BoxEvaluator.evaluate(box.limits, X_test, y_test, population_prevalence=prevalence)
-                    box.population_prevalence = prevalence
-                
-                # De-standardize
-                if standardize and current_stats:
-                    self._destandardize_box(box, current_stats)
-                
-                boxes.append(box)
+                box.target_tradeoff_labels = box.target_tradeoff 
+                box.target_tradeoff = matched_tradeoff 
+
+            # Evaluate and Post-process
+            y_test = y_test_map.get(class_str)
+            prevalence = prevalence_map.get(class_str, 0.0)
+            if y_test is not None:
+                box.metrics = BoxEvaluator.evaluate(box.limits, X_test, y_test, population_prevalence=prevalence)
+                box.population_prevalence = prevalence
+            
+            # De-standardize
+            if standardize and current_stats:
+                self._destandardize_box(box, current_stats)
+            
+            boxes.append(box)
                 
         return boxes
 
@@ -1028,16 +1145,24 @@ class PatternAnalysis:
         )
         
         if not result: return []
-        _, limits_dict, _ = result
         
-        box = Box(limits=limits_dict, target_tradeoff=tradeoff_name, method='prim')
-        box.metrics = BoxEvaluator.evaluate(box.limits, X_test, y_test, population_prevalence=prevalence)
-        box.population_prevalence = prevalence
+        # result is List[Box] from PRIMDiscovery
+        # Typically PRIM returns one best box, but could be multiple if n_boxes=True
+        prim_boxes = result
+        final_boxes = []
         
-        if standardize and current_stats:
-            self._destandardize_box(box, current_stats)
+        for box in prim_boxes:
+            box.target_tradeoff = tradeoff_name
+            # Evaluate on Test Set
+            box.metrics = BoxEvaluator.evaluate(box.limits, X_test, y_test, population_prevalence=prevalence)
+            box.population_prevalence = prevalence
             
-        return [box]
+            if standardize and current_stats:
+                self._destandardize_box(box, current_stats)
+            
+            final_boxes.append(box)
+            
+        return final_boxes
 
     def _destandardize_box(self, box, stats):
         """Helper to convert box limits back to original scales."""
@@ -1106,7 +1231,17 @@ class PatternAnalysis:
         # 3. Sort and Return
         return aggregated_scores.sort_values(ascending=False).index.tolist()
 
-
+    @staticmethod
+    def select_top_k_parameters(scores_df: pd.DataFrame, k: int=None, threshold=0.2, index_order=None) -> List[str]:
+        df = scores_df
+        if index_order is not None:
+            df = scores_df.reindex(index_order)
+        
+        rows_with_high_values = (df > threshold).any(axis=1)
+        selected_indices = df.index[rows_with_high_values].tolist()
+        if (k is not None) and len(selected_indices) > k:
+            selected_indices = selected_indices[:k]
+        return selected_indices
 
 
     
