@@ -20,6 +20,7 @@ from sklearn.tree._tree import TREE_LEAF, TREE_UNDEFINED
 from sklearn.tree import _tree
 
 from .robustness import RobustnessAnalyzer
+from ..core.models import Box
 
 # Import custom exceptions
 try:
@@ -30,38 +31,6 @@ except ImportError:
         pass
     class TradeoffDefinitionError(Exception):
         pass
-
-
-class Box(BaseModel):
-    """Represents a discovered region in parameter space."""
-    name: str = ""
-    limits: Dict[str, Dict[str, float]]
-    dataset_bounds: Dict[str, Dict[str, float]] = Field(default_factory=dict)
-    metrics: Dict[str, float] = Field(default_factory=dict)
-    target_tradeoff: Optional[str] = None
-    target_tradeoff_labels: Optional[str] = None
-    method: str = "prim"
-    population_prevalence: float = 0.0
-    
-    model_config = {"extra": "allow"}
-
-    @property
-    def actual_limits(self) -> Dict[str, Dict[str, float]]:
-        # If any limit is 'inf', substitute it for the dataset bounds
-        if not self.dataset_bounds:
-            return self.limits
-        
-        actual_limits = self.limits.copy()
-        for param, limits in self.limits.items():
-            if param in self.dataset_bounds:
-                for _, value in limits.items():
-                    if value == np.inf:
-                        actual_limits[param]['max'] = self.dataset_bounds[param]['max']
-                    elif value == -np.inf:
-                        actual_limits[param]['min'] = self.dataset_bounds[param]['min']
-        return actual_limits
-        
-        # return {param: {key: value if value != np.inf else self.dataset_bounds[param][key] for key, value in limits.items()} for param, limits in self.limits.items()}
 
 
 class BoxEvaluator:

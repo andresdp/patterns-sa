@@ -3,6 +3,7 @@ from __future__ import annotations
 from typing import List, Dict, Any, Optional, Union, Tuple
 from enum import Enum
 import pandas as pd
+import numpy as np
 
 from pydantic import BaseModel, Field, field_validator, model_validator
 
@@ -39,13 +40,13 @@ class Parameter(BaseModel):
     This model encapsulates the metadata and current state of a parameter,
     including its role (type) and scope (level).
     """
-    name: str = "" # Default empty, will be populated by parent
-    level: ParameterLevel
-    type: ParameterType
-    data_type: str = "float" # e.g., float, integer, string
-    description: str = ""
-    value: Any = None
-    bounds: Optional[Tuple[float, float]] = None
+    name: str = Field(default="", description="Unique name of the parameter.")
+    level: ParameterLevel = Field(..., description="The scope where the parameter is defined (System, Pattern, Infrastructure).")
+    type: ParameterType = Field(..., description="The role of the parameter (Lever, Uncertainty, Outcome, Constraint).")
+    data_type: str = Field(default="float", description="Python data type (float, int, str).")
+    description: str = Field(default="", description="Human-readable description of the parameter's meaning.")
+    value: Any = Field(default=None, description="Current value assigned to the parameter.")
+    bounds: Optional[Tuple[float, float]] = Field(default=None, description="Numeric range (min, max) for exploration.")
 
     model_config = {"extra": "allow", "validate_assignment": True}
 
@@ -55,25 +56,25 @@ class ParameterBindings(BaseModel):
     
     Groups values by parameter type (levers, uncertainties, constraints).
     """
-    levers: Dict[str, Any] = Field(default_factory=dict)
-    uncertainties: Dict[str, Any] = Field(default_factory=dict)
-    constraints: Dict[str, Any] = Field(default_factory=dict)
+    levers: Dict[str, Any] = Field(default_factory=dict, description="Assignments for design decisions.")
+    uncertainties: Dict[str, Any] = Field(default_factory=dict, description="Assignments for external factors.")
+    constraints: Dict[str, Any] = Field(default_factory=dict, description="Assignments for fixed parameters.")
 
     model_config = {"extra": "allow", "validate_assignment": True}
 
 
 class PatternPolicy(BaseModel):
     """A concrete implementation choice for a design decision within a pattern."""
-    description: str = ""
-    parameter_bindings: ParameterBindings = Field(default_factory=ParameterBindings)
+    description: str = Field(default="", description="Summary of what this policy does.")
+    parameter_bindings: ParameterBindings = Field(default_factory=ParameterBindings, description="The specific values this choice sets.")
 
     model_config = {"extra": "allow", "validate_assignment": True}
 
 
 class Decision(BaseModel):
     """A variation point within an architectural pattern."""
-    description: str = ""
-    policies: Dict[str, PatternPolicy] = Field(default_factory=dict)
+    description: str = Field(default="", description="Description of the architectural variation point.")
+    policies: Dict[str, PatternPolicy] = Field(default_factory=dict, description="Mapping of policy IDs to their concrete definitions.")
 
     model_config = {"extra": "allow", "validate_assignment": True}
 
@@ -84,10 +85,10 @@ class ArchitecturalPattern(BaseModel):
     Instances of this class represent concrete applications of patterns like 
     'CQRS' or 'Gateway Offloading' within a system.
     """
-    name: str
-    description: str = ""
-    parameters: Dict[str, Parameter] = Field(default_factory=dict)
-    decisions: Dict[str, Decision] = Field(default_factory=dict)
+    name: str = Field(..., description="The pattern identifier (e.g., 'Gateway_Offloading').")
+    description: str = Field(default="", description="Overall description of the pattern's role.")
+    parameters: Dict[str, Parameter] = Field(default_factory=dict, description="Parameters specific to this pattern.")
+    decisions: Dict[str, Decision] = Field(default_factory=dict, description="Design decisions associated with this pattern.")
 
     model_config = {"extra": "allow", "validate_assignment": True}
 
@@ -112,7 +113,7 @@ class ConfigurationSpace(BaseModel):
     Used primarily during experimental design to bound the exploration space.
     """
     # mapping parameter name -> list of possible values
-    parameters: Dict[str, List[Any]] = Field(default_factory=dict)
+    parameters: Dict[str, List[Any]] = Field(default_factory=dict, description="Allowed values for each parameter.")
 
     model_config = {"extra": "allow", "validate_assignment": True}
 
@@ -136,11 +137,11 @@ class QualityObjective(BaseModel):
     Defines what constitutes 'success' for an architecture, including thresholds
     and optimization direction.
     """
-    name: str
-    description: str = ""
-    metric: str = ""
-    maximize: bool = True
-    threshold: Optional[float] = None
+    name: str = Field(..., description="The outcome identifier (e.g., 'response_time').")
+    description: str = Field(default="", description="Meaning of the metric.")
+    metric: str = Field(default="", description="Unit of measurement (e.g., 'ms', '%').")
+    maximize: bool = Field(default=True, description="Whether higher values are better.")
+    threshold: Optional[float] = Field(default=None, description="Optional target value for baseline compliance.")
 
     model_config = {"extra": "allow", "validate_assignment": True}
 
@@ -199,12 +200,12 @@ class AdaptiveProcess(BaseModel):
     Captures how system state evolves over cycles, enabling analysis of 
     adaptive systems.
     """
-    process_id: str
-    instance_id: str
-    process_type: str  # Iterative, Stateful, Adaptive
-    cycle_definition: Dict[str, Any] = Field(default_factory=dict)
-    initial_state: Dict[str, Any] = Field(default_factory=dict)
-    termination_logic: str = ""
+    process_id: str = Field(..., description="Unique ID for the process type.")
+    instance_id: str = Field(..., description="Unique ID for the specific trace.")
+    process_type: str = Field(..., description="Type: Iterative, Stateful, or Adaptive.")
+    cycle_definition: Dict[str, Any] = Field(default_factory=dict, description="Config for individual iterations.")
+    initial_state: Dict[str, Any] = Field(default_factory=dict, description="Values at cycle 0.")
+    termination_logic: str = Field(default="", description="Condition to stop the process.")
 
     model_config = {"extra": "allow", "validate_assignment": True}
 
@@ -218,7 +219,10 @@ class BehavioralTrace(BaseModel):
     scenario_id: str
     outcomes: pd.DataFrame
     
-    model_config = {"arbitrary_types_allowed": True}
+    model_config = {
+        "arbitrary_types_allowed": True,
+        "validate_assignment": True
+    }
 
 
 class QualityBin(BaseModel):
@@ -226,16 +230,46 @@ class QualityBin(BaseModel):
     
     E.g., label='fast', range=(0.0, 0.5).
     """
-    label: str
-    min_value: float
-    max_value: float
+    label: str = Field(..., description="The category name (e.g., 'low').")
+    min_value: float = Field(..., description="Lower bound of the bin.")
+    max_value: float = Field(..., description="Upper bound of the bin.")
 
 
 class DiscretizationScheme(BaseModel):
     """The mapping from continuous metric values to categorical bins for an objective."""
-    objective_name: str
-    bins: List[QualityBin]
-    method: str = "equal_width"
+    objective_name: str = Field(..., description="Target outcome name.")
+    bins: List[QualityBin] = Field(default_factory=list, description="Categorical segments.")
+    method: str = Field(default="equal_width", description="Method used to calculate boundaries.")
+
+
+class Box(BaseModel):
+    """Represents a discovered region in parameter space."""
+    name: str = Field(default="", description="Human-readable name for the box.")
+    limits: Dict[str, Dict[str, float]] = Field(..., description="Parameter bounds {param: {min, max}}.")
+    dataset_bounds: Dict[str, Dict[str, float]] = Field(default_factory=dict, description="Original data ranges.")
+    metrics: Dict[str, float] = Field(default_factory=dict, description="Discovery performance (density, coverage).")
+    target_tradeoff: Optional[str] = Field(default=None, description="ID of the targeted tradeoff.")
+    target_tradeoff_labels: Optional[str] = Field(default=None, description="Labels associated with the tradeoff.")
+    method: str = Field(default="prim", description="Algorithm used (prim, cart).")
+    population_prevalence: float = Field(default=0.0, description="Baseline prevalence of target in dataset.")
+    
+    model_config = {"extra": "allow", "validate_assignment": True}
+
+    @property
+    def actual_limits(self) -> Dict[str, Dict[str, float]]:
+        # If any limit is 'inf', substitute it for the dataset bounds
+        if not self.dataset_bounds:
+            return self.limits
+        
+        actual_limits = self.limits.copy()
+        for param, limits in self.limits.items():
+            if param in self.dataset_bounds:
+                for key, value in limits.items():
+                    if value == np.inf:
+                        actual_limits[param]['max'] = self.dataset_bounds[param]['max']
+                    elif value == -np.inf:
+                        actual_limits[param]['min'] = self.dataset_bounds[param]['min']
+        return actual_limits
 
 
 class Tradeoff(BaseModel):
@@ -245,17 +279,17 @@ class Tradeoff(BaseModel):
     in the multi-dimensional outcome space. It serves as a bridge between 
     raw performance data and architectural requirements.
     """
-    name: str
-    label: str = "" # Human-readable display label
-    description: str = ""
+    name: str = Field(..., description="Internal unique ID for the tradeoff.")
+    label: str = Field(default="", description="Human-readable display label.")
+    description: str = Field(default="", description="Summary of what this performance region represents.")
     # Mapping of objective names to their respective treatment values
-    elements: Dict[str, Any] = Field(default_factory=dict)
-    scheme: str = "discretization"
-    params: Dict[str, Any] = Field(default_factory=dict)
+    elements: Dict[str, Any] = Field(default_factory=dict, description="Mapping of {objective: bin_label}.")
+    scheme: str = Field(default="discretization", description="Logical scheme used (discretization, pareto, threshold).")
+    params: Dict[str, Any] = Field(default_factory=dict, description="Arguments for the specific scheme (e.g., epsilon).")
     
     # Membership info (populated during analysis)
-    has_points: bool = False
-    point_count: int = 0
+    has_points: bool = Field(default=False, description="Whether any data points fall into this region.")
+    point_count: int = Field(default=0, description="Total number of data points found in this region.")
 
     model_config = {"extra": "allow", "validate_assignment": True}
 
@@ -274,12 +308,12 @@ class System(BaseModel):
     Composes pattern instances, adaptive processes, and tradeoff definitions 
     into a unified system.
     """
-    name: str
-    description: str = ""
-    parameters: Dict[str, Parameter] = Field(default_factory=dict)
-    components: Dict[str, ArchitecturalPattern] = Field(default_factory=dict)
-    adaptive_processes: List[AdaptiveProcess] = Field(default_factory=list)
-    tradeoffs: List[Tradeoff] = Field(default_factory=list)
+    name: str = Field(..., description="Name of the software system.")
+    description: str = Field(default="", description="Overview of the architecture.")
+    parameters: Dict[str, Parameter] = Field(default_factory=dict, description="System-level parameters.")
+    components: Dict[str, ArchitecturalPattern] = Field(default_factory=dict, description="Pattern instances within the system.")
+    adaptive_processes: List[AdaptiveProcess] = Field(default_factory=list, description="Temporal models.")
+    tradeoffs: List[Tradeoff] = Field(default_factory=list, description="Performance regions of interest.")
 
     @model_validator(mode="after")
     def _sync_parameter_names(self) -> System:
@@ -291,9 +325,9 @@ class System(BaseModel):
 
 class PatternPolicyReference(BaseModel):
     """Points to a specific policy within an architectural pattern."""
-    component: str
-    decision: str
-    policy: str
+    component: str = Field(..., description="ID of the pattern instance.")
+    decision: str = Field(..., description="ID of the variation point.")
+    policy: str = Field(..., description="ID of the chosen policy.")
 
     model_config = {"extra": "allow", "validate_assignment": True}
 
@@ -304,22 +338,17 @@ class SystemConfiguration(BaseModel):
     Maps specific pattern-level choices into a named system configuration.
     Was previously named 'Policy'.
     """
-    name: str
-    description: str = ""
-    pattern_policy_references: List[PatternPolicyReference] = Field(default_factory=list)
-    source_file: Optional[str] = None
+    name: str = Field(..., description="Unique ID for this system configuration.")
+    description: str = Field(default="", description="Description of the configuration's design intent.")
+    pattern_policy_references: List[PatternPolicyReference] = Field(default_factory=list, description="Detailed pattern-level choices.")
+    source_file: Optional[str] = Field(default=None, description="Optional path to simulation results for this config.")
     # Backward compatibility for 'component_policies' map {component_name: policy_name}
-    # This is handled during ingestion but storing it might be useful if we want to preserve old structure
     component_policies: Dict[str, str] = Field(default_factory=dict)
 
     model_config = {"extra": "allow", "validate_assignment": True}
     
     @model_validator(mode="before")
     def _convert_component_policies(cls, values):
-        # Allow old style 'component_policies' dict and convert to references where possible
-        # However, 'component_policies' is usually {comp: policy}, missing 'decision'. 
-        # Without schema knowledge we can't infer decision easily.
-        # So we keep 'component_policies' as a field for backward compat usage in loader.
         return values
 
 
@@ -330,11 +359,15 @@ class ConfigurationIdentification(BaseModel):
     or by separating them into multiple files.
     Was previously named 'PolicyIdentification'.
     """
-    from_: str = Field(alias="from")
-    column: Optional[str] = None
-    configurations: Union[Dict[str, SystemConfiguration], List[SystemConfiguration]]
+    from_: str = Field(alias="from", description="Source: 'column' or 'file'.")
+    column: Optional[str] = Field(default=None, description="Name of CSV column containing configuration IDs.")
+    configurations: Union[Dict[str, SystemConfiguration], List[SystemConfiguration]] = Field(..., description="Available config mappings.")
 
-    model_config = {"extra": "allow", "validate_assignment": True}
+    model_config = {
+        "extra": "allow", 
+        "validate_assignment": True,
+        "populate_by_name": True
+    }
     
     @model_validator(mode="before")
     def _rename_policies_to_configurations(cls, values):
@@ -348,12 +381,12 @@ class DataSpace(BaseModel):
     
     Links the abstract System model to concrete CSV files or Behavioral Traces.
     """
-    configuration_identification: ConfigurationIdentification
-    quality_objectives: List[QualityObjective] = Field(default_factory=list)
-    source_file: Optional[str] = None
-    traces_path: Optional[str] = None
-    column_renames: Dict[str, str] = Field(default_factory=dict)
-    discovery_options: Dict[str, Any] = Field(default_factory=dict)
+    configuration_identification: ConfigurationIdentification = Field(..., description="Logic for policy mapping.")
+    quality_objectives: List[QualityObjective] = Field(default_factory=list, description="Target metrics.")
+    source_file: Optional[str] = Field(default=None, description="Primary CSV data file.")
+    traces_path: Optional[str] = Field(default=None, description="Path to behavioral trace datasets.")
+    column_renames: Dict[str, str] = Field(default_factory=dict, description="Mapping of CSV names to internal IDs.")
+    discovery_options: Dict[str, Any] = Field(default_factory=dict, description="Global defaults for scenario discovery.")
 
     model_config = {"extra": "allow", "validate_assignment": True}
     
@@ -370,10 +403,10 @@ class SystemDefinition(BaseModel):
     Typically loaded from a 'system.json' file to configure the entire 
     analysis pipeline.
     """
-    mode: str = "static"
-    system: System
-    dataspace: DataSpace
-    metadata: Dict[str, Any] = Field(default_factory=dict)
+    mode: str = Field(default="static", description="'static' or 'adaptive'.")
+    system: System = Field(..., description="The architectural structure.")
+    dataspace: DataSpace = Field(..., description="The data mapping config.")
+    metadata: Dict[str, Any] = Field(default_factory=dict, description="Optional analysis properties.")
 
     @classmethod
     def from_json(cls, path: str):
