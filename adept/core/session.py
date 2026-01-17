@@ -1312,23 +1312,72 @@ class PatternAnalysis:
 
     # --- Feature Scoring ---
 
-    def split_data(self, test_size: float = 0.2, random_state: int = 42) -> None:
+    def split_data(self, test_size: float = 0.2, random_state: int = 42, remove_outliers: bool = False, z_threshold: float = 3.0) -> None:
         """
         Splits data into train/test sets, stratifying by tradeoff membership.
         Indices are stored in self.train_indices and self.test_indices.
+        
+        Args:
+            test_size: Proportion of dataset to include in the test split.
+            random_state: Seed for the random number generator.
+            remove_outliers: If True, removes rows where any numeric outcome has a Z-score > z_threshold.
+            z_threshold: Threshold for outlier detection (default 3.0).
         """
         from ..analysis.feature_importance import FeatureImportanceAnalyzer
         
         if self.experiments_df is None or not self.tradeoff_indices:
             raise RuntimeError("Data must be loaded and tradeoffs defined before splitting.")
 
+        # 1. Determine Valid Indices (Optional Outlier Removal)
+        valid_indices = np.arange(len(self.experiments_df))
+        
+        if remove_outliers and self.outcomes_df is not None:
+            from sklearn.preprocessing import StandardScaler
+            numeric_outcomes = self.outcomes_df.select_dtypes(include=[np.number])
+            
+            if not numeric_outcomes.empty:
+                scaler = StandardScaler()
+                # Compute Z-scores just for detection
+                z_scores = scaler.fit_transform(numeric_outcomes)
+                
+                # Keep rows where ALL outcomes are within threshold
+                mask = (np.abs(z_scores) <= z_threshold).all(axis=1)
+                valid_indices = valid_indices[mask]
+                
+                dropped_count = len(self.experiments_df) - len(valid_indices)
+                if dropped_count > 0:
+                    print(f"Outlier removal: Dropped {dropped_count} rows based on outcome Z-scores > {z_threshold}.")
+
+        # 2. Prepare Subset Data
+        # We work on the valid subset to perform stratification
+        subset_df = self.experiments_df.iloc[valid_indices]
+        
+        # Map global tradeoff indices to the new subset space
+        # Create a lookup array: global_index -> subset_index (or -1 if invalid)
+        mapping_array = np.full(len(self.experiments_df), -1)
+        mapping_array[valid_indices] = np.arange(len(valid_indices))
+        
+        subset_tradeoff_indices = {}
+        for name, global_idxs in self.tradeoff_indices.items():
+            # Get corresponding local indices
+            local_idxs = mapping_array[global_idxs]
+            # Filter out those that were removed (-1)
+            subset_tradeoff_indices[name] = local_idxs[local_idxs != -1]
+
+        # 3. Perform Stratified Split on Subset
         analyzer = FeatureImportanceAnalyzer(self.sys_def)
-        self.train_indices, self.test_indices = analyzer.create_stratified_split(
-            self.experiments_df,
-            self.tradeoff_indices,
+        train_local, test_local = analyzer.create_stratified_split(
+            subset_df,
+            subset_tradeoff_indices,
             test_size=test_size,
             random_state=random_state
         )
+        
+        # 4. Map back to Global Indices
+        # self.train_indices must point to rows in the original self.experiments_df
+        self.train_indices = valid_indices[train_local]
+        self.test_indices = valid_indices[test_local]
+        
         print(f"Data split: {len(self.train_indices)} train, {len(self.test_indices)} test.")
 
     def compute_feature_scores(
@@ -1447,6 +1496,8 @@ class PatternAnalysis:
         parameters: Optional[List[str]] = None,
         standardize: bool = False,
         combine_tradeoffs: bool = False,
+        threshold: float = 0.8,
+        mass_min: Optional[float] = None,
         **kwargs
     ) -> List[Any]:
         """
@@ -1460,6 +1511,13 @@ class PatternAnalysis:
             standardize: Whether to standardize parameters before discovery.
             combine_tradeoffs: If True and multiple tradeoffs are provided, finds a region
                                that satisfies ANY of them (Union/OR logic). Only for PRIM.
+            threshold: (PRIM Only) Minimum box density (purity). Higher values increase Density 
+                       but may decrease Coverage. Default: 0.8.
+            mass_min: Minimum support (fraction of data) for the box.
+                      - For PRIM: Higher values increase Coverage but may decrease Density.
+                      - For CART: Minimum samples per leaf. Higher values enforce simpler rules 
+                        (higher Coverage), lower values allow specific rules (higher Density).
+                        Default: None (algorithm default).
             
         Returns:
             List[Box]: Structured box objects with limits and performance metrics.
@@ -1467,7 +1525,12 @@ class PatternAnalysis:
         from ..analysis.discovery import Box, BoxEvaluator
         from ..analysis.feature_importance import FeatureImportanceAnalyzer
         
-        # 1. Normalize input names
+        # 1. Resolve parameters to analyze
+        analyzer_fi = FeatureImportanceAnalyzer(self.sys_def)
+        if parameters is None:
+            parameters = analyzer_fi.get_parameter_columns(self.experiments_df)
+        
+        # 2. Normalize input names
         all_tradeoffs = self.get_tradeoffs()
         if tradeoff_names is None:
             tradeoff_names = [t.name for t in all_tradeoffs]
@@ -1485,12 +1548,19 @@ class PatternAnalysis:
                 else:
                     tradeoff_labels.append("unknown")
 
-        # Dataset bounds
-        agg_results = self.experiments_df.agg(['min', 'max'])
+        # Dataset bounds (restricted to analyzed parameters)
+        valid_params = [p for p in parameters if p in self.experiments_df.columns]
+        target_df = self.experiments_df[valid_params]
+            
+        agg_results = target_df.select_dtypes(include=[np.number]).agg(['min', 'max'])
         min_max_dict = agg_results.to_dict()
-        # print(f"Dataset bounds: {min_max_dict}")
 
-        # 2. Handle PRIM (Iterative)
+        # Update kwargs with the explicit controls
+        kwargs['threshold'] = threshold
+        if mass_min is not None:
+            kwargs['mass_min'] = mass_min
+
+        # 3. Handle PRIM (Iterative)
         if method == 'prim':
             all_boxes = []
             
@@ -1516,6 +1586,7 @@ class PatternAnalysis:
                     boxes = self._discover_single_prim(
                         name, parameters=parameters, standardize=standardize, **kwargs
                     )
+                    print(min_max_dict)
                     for box in boxes:
                         box.target_tradeoff_labels = label
                         box.dataset_bounds = min_max_dict
@@ -1524,16 +1595,12 @@ class PatternAnalysis:
             
             return all_boxes
 
-        # 3. Handle CART (Global + Filter)
+        # 4. Handle CART (Global + Filter)
         # For CART, we run global discovery on all unique label combinations
         # and then filter the resulting boxes to only those matching target tradeoffs.
         
         if self.train_indices is None:
             self.split_data()
-            
-        analyzer = FeatureImportanceAnalyzer(self.sys_def)
-        if parameters is None:
-            parameters = analyzer.get_parameter_columns(self.experiments_df)
             
         X_train = self.experiments_df.iloc[self.train_indices][parameters]
         X_test = self.experiments_df.iloc[self.test_indices][parameters]
@@ -1768,7 +1835,7 @@ class PatternAnalysis:
                 return False
         return True
 
-    def get_weighted_feature_ranking(self, scores_df: pd.DataFrame, weights: Optional[Dict[str, float]] = None) -> List[str]:
+    def get_weighted_feature_ranking(self, scores_df: pd.DataFrame, weights: Optional[Dict[str, float]] = None, tolerance: float = 0.0) -> List[str]:
         """
         Aggregates multi-outcome importance scores into a single ranked list of features.
         
@@ -1776,6 +1843,7 @@ class PatternAnalysis:
             scores_df: The matrix of scores (Rows=Features, Cols=Outcomes).
             weights: Optional dictionary mapping outcome names to weights. 
                      If None, all outcomes are weighted equally.
+            tolerance: Minimum weighted score required to include a feature in the ranking.
                      
         Returns:
             List[str]: Feature names sorted by weighted importance (descending).
@@ -1801,8 +1869,11 @@ class PatternAnalysis:
         # multiply matrix by weight vector
         aggregated_scores = scores_df.dot(w_series)
         
-        # 3. Sort and Return
-        return aggregated_scores.sort_values(ascending=False).index.tolist()
+        # 3. Filter and Sort
+        # Keep only features with score > tolerance
+        filtered_scores = aggregated_scores[aggregated_scores > tolerance]
+        
+        return filtered_scores.sort_values(ascending=False).index.tolist()
 
     @staticmethod
     def select_top_k_parameters(scores_df: pd.DataFrame, k: int=None, threshold=0.2, index_order=None) -> List[str]:

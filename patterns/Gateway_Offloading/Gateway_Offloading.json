@@ -18,21 +18,15 @@
         "decisions": {
           "offloading_strategy": {
             "policies": {
-              "no-offloading": { "parameter_bindings": { "levers": { "r_gw": 0 } } },
-              "short-services-offloaded": { "parameter_bindings": { "levers": { "r_gw": 5 } } },
-              "long-services-offloaded": { "parameter_bindings": { "levers": { "r_gw": 10 } } }
+              "no-offloading": { "parameter_bindings": { "levers": { "S_gw": 0, "N_A": null, "N_B": null, "r_Z_A": null, "r_Z_B": null} } },
+              "short-services-offloaded": { "parameter_bindings": { "levers": { "S_gw": 5, "N_A": null, "N_B":null, "r_Z_A": null, "r_Z_B": null} } },
+              "long-services-offloaded": { "parameter_bindings": { "levers": { "S_gw": 10, "N_A": null, "N_B":null, "r_Z_A": null, "r_Z_B": null} } }
             }
           }
         }
       }
     },
-    "tradeoffs": [
-      {
-        "name": "performance-optimized",
-        "elements": { "response_time": "fast", "utilization": "average" },
-        "scheme": "discretization"
-      }
-    ]
+    "tradeoffs": []
   },
   "dataspace": {
     "source_file": "multi_N25.csv",

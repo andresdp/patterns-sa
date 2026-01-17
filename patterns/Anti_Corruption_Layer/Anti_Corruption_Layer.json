@@ -31,13 +31,7 @@
         }
       }
     },
-    "tradeoffs": [
-      {
-        "name": "performance-optimized",
-        "elements": { "response_time": "fast", "utilization": "average" },
-        "scheme": "discretization"
-      }
-    ]
+    "tradeoffs": [ ]
   },
   "dataspace": {
     "configuration_identification": {
@@ -46,7 +40,7 @@
       "configurations": [
         { 
           "name": "standard", 
-          "source_file": "multi_N25.csv",
+          "source_file": "multi_N25_p.csv",
           "pattern_policy_references": [{"component": "acl_pattern", "decision": "invocation_strategy", "policy": "standard"}] 
         }
       ]

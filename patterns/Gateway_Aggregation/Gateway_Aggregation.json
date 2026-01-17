@@ -29,13 +29,7 @@
         }
       }
     },
-    "tradeoffs": [
-      {
-        "name": "performance-optimized",
-        "elements": { "response_time": "fast", "utilization": "average" },
-        "scheme": "discretization"
-      }
-    ]
+    "tradeoffs": [ ]
   },
   "dataspace": {
     "configuration_identification": {
@@ -44,7 +38,7 @@
       "configurations": [
         { 
           "name": "standard", 
-          "source_file": "multi_N25.csv",
+          "source_file": "multi_N25_Sgw.csv",
           "pattern_policy_references": [{ "component": "gateway_aggregator_pattern", "decision": "aggregation_policy", "policy": "standard" }] 
         }
       ]
@@ -52,11 +46,7 @@
     "quality_objectives": [
       { "name": "response_time", "metric": "time", "maximize": false },
       { "name": "utilization", "metric": "percentage", "maximize": false }
-    ],
-    "column_renames": {
-      "R0": "response_time",
-      "Ugw": "utilization"
-    }
+    ]
   },
   "metadata": {
     "version": "3.0"

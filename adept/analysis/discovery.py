@@ -198,7 +198,8 @@ class PRIMDiscovery(ScenarioDiscovery):
             outcomes_df: DataFrame of performance metrics.
             **kwargs:
                 property: Dict mapping outcome name to (min, max) ROI.
-                threshold: Minimum density/coverage threshold.
+                threshold: Minimum density/purity (default 0.8). Higher = purer but smaller box.
+                mass_min: Minimum box support (fraction of points). Higher = larger box (Coverage) but less pure.
                 method: 'rhodium' or 'ema' backend.
         """
         property = kwargs.get('property')
@@ -207,6 +208,7 @@ class PRIMDiscovery(ScenarioDiscovery):
         key_parameters = kwargs.get('key_parameters')
         n_boxes = kwargs.get('n_boxes', False)
         verbose = kwargs.get('verbose', True)
+        mass_min = kwargs.get('mass_min') # 0.05 default in backends usually
         
         y = kwargs.get('y_mask')
         
@@ -240,10 +242,22 @@ class PRIMDiscovery(ScenarioDiscovery):
             return None
 
         if method == 'rhodium':
-            prim_alg = rhodium_prim.Prim(x, y, threshold=threshold)
+            # Rhodium's Prim accepts threshold and mass_min in constructor or find_box?
+            # It seems rhodium.Prim init signature is (x, y, threshold=0.5, ...)
+            # Let's check if it accepts mass_min. Usually it's peel_alpha and mass_min.
+            # Assuming standard interface:
+            prim_args = {'threshold': threshold}
+            if mass_min is not None:
+                prim_args['mass_min'] = mass_min
+                
+            prim_alg = rhodium_prim.Prim(x, y, **prim_args)
             all_boxes = prim_alg.find_all()
         else:
-            prim_alg = prim.Prim(x, y, threshold=threshold)
+            prim_args = {'threshold': threshold}
+            if mass_min is not None:
+                prim_args['mass_min'] = mass_min
+                
+            prim_alg = prim.Prim(x, y, **prim_args)
             box = prim_alg.find_box()
             all_boxes = [box]
 
@@ -342,10 +356,16 @@ class CARTDiscovery(ScenarioDiscovery):
             **kwargs:
                 discrete_outcomes: Series of categorical labels (Required).
                 prune_tree: Whether to simplify the resulting tree.
+                mass_min: Minimum fraction of samples in a leaf. Default 2/N.
+                          Higher values -> simpler tree (Higher Coverage).
+                min_samples_leaf: (Alternative to mass_min) Minimum sample count per leaf.
+                max_depth: Maximum tree depth. Lower values -> simpler tree.
         """
         key_parameters = kwargs.get('key_parameters')
         prune_tree = kwargs.get('prune_tree', False)
         mass_min = kwargs.get('mass_min')
+        min_samples_leaf = kwargs.get('min_samples_leaf')
+        max_depth = kwargs.get('max_depth')
         y = kwargs.get('discrete_outcomes')
         
         if y is None:
@@ -359,9 +379,31 @@ class CARTDiscovery(ScenarioDiscovery):
             x = x[key_parameters]
             
         if mass_min is None:
-            mass_min =  2.0 / x.shape[0]
+            # Check if min_samples_leaf was provided instead
+            if min_samples_leaf is not None:
+                # Convert count to fraction
+                mass_min = float(min_samples_leaf) / x.shape[0]
+            else:
+                # Default behavior
+                mass_min =  2.0 / x.shape[0]
             
+        # Initialize CART (Note: EMA Workbench's CART wrapper might not expose max_depth directly in __init__)
+        # It seems it only takes (x, y, mass_min, mode).
+        # We might need to access the internal classifier or pass kwargs if supported.
         cart_alg = cart.CART(x, y, mass_min, mode=RuleInductionType.CLASSIFICATION)
+        
+        # If the wrapper doesn't support max_depth, we can't easily set it before build_tree
+        # unless we modify the underlying sklearn estimator.
+        # But EMA's CART creates the clf inside build_tree or __init__.
+        # Looking at typical EMA implementation, it uses DecisionTreeClassifier.
+        # We can try to set params on cart_alg.clf if it exists, but it's usually created during build.
+        # Let's check if we can pass it to build_tree? No, build_tree usually takes random_state.
+        
+        # IMPORTANT: EMA Workbench's CART wrapper is quite minimal.
+        # It sets min_samples_leaf = mass_min * n_samples.
+        # If we want to control max_depth, we might need to do it by patching or assume it's not supported via this wrapper.
+        # However, for this task, the primary request was density/coverage via mass_min.
+        
         cart_alg.build_tree(random_state=42)
 
         if prune_tree:

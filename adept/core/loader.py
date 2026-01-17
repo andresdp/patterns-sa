@@ -4,6 +4,7 @@ import pandas as pd
 import os
 import glob
 import warnings
+import inspect
 from .models import SystemDefinition, DataSpace, BehavioralTrace
 from ..utils.linter import SystemLinter
 
@@ -240,12 +241,36 @@ class GenericDataLoader(DataLoader):
         """Internal helper to resolve file paths and perform renames/preprocessing."""
         df = None
         
+        # Helper to apply preprocessor with backward compatibility
+        def _apply_pp(dataframe, conf_name=None):
+            if not preprocessor:
+                return dataframe
+            
+            # Check if preprocessor accepts 'config_name'
+            sig = inspect.signature(preprocessor)
+            params = sig.parameters
+            # Look for 2nd arg or **kwargs
+            accepts_config = (len(params) >= 2) or any(p.kind == inspect.Parameter.VAR_KEYWORD for p in params.values())
+            
+            if accepts_config:
+                return preprocessor(dataframe, config_name=conf_name)
+            else:
+                return preprocessor(dataframe)
+
+        # --- MOMENT 1: Loading individual files ---
         if sys_def.dataspace.source_file:
             path = sys_def.dataspace.source_file
             if not os.path.isabs(path):
                 path = os.path.join(base_path, path)
             
+            print(f"Loading single source file: {path}")
             df = pd.read_csv(path)
+            print(f"Loaded {len(df)} rows.")
+            
+            # Apply hook immediately
+            if preprocessor:
+                print("Applying preprocessor hook to single file...")
+                df = _apply_pp(df, conf_name=None)
             
         elif sys_def.dataspace.configuration_identification.from_ == "file":
             dfs = []
@@ -257,20 +282,40 @@ class GenericDataLoader(DataLoader):
                     path = config.source_file
                     if not os.path.isabs(path):
                         path = os.path.join(base_path, path)
-                    temp_df = pd.read_csv(path)
-                    # Inject configuration name so mapping can work
-                    temp_df[sys_def.dataspace.configuration_identification.column or 'policy'] = config.name
-                    dfs.append(temp_df)
+                    
+                    print(f"Loading configuration file ({config.name}): {path}")
+                    try:
+                        temp_df = pd.read_csv(path)
+                        print(f"  -> Loaded {len(temp_df)} rows.")
+                        
+                        # Apply hook BEFORE merging
+                        if preprocessor:
+                            print(f"  -> Applying preprocessor to {config.name}...")
+                            temp_df = _apply_pp(temp_df, conf_name=config.name)
+
+                        # Inject configuration name so mapping can work
+                        # Note: We do this AFTER preprocessing in case the user wants to rename cols first,
+                        # but typically we want the ID there. 
+                        # However, if the preprocessor returns a new DF, we should ensure the ID persists.
+                        # Let's inject it AGAIN to be safe, or check.
+                        col_name = sys_def.dataspace.configuration_identification.column or 'policy'
+                        if col_name not in temp_df.columns:
+                             temp_df[col_name] = config.name
+                        
+                        dfs.append(temp_df)
+                    except FileNotFoundError:
+                        warnings.warn(f"File not found: {path}")
             
+            # --- MOMENT 2: Merging (Concatenation) ---
             if dfs:
                 df = pd.concat(dfs, ignore_index=True)
+                print(f"Merged {len(dfs)} files into dataframe with shape: {df.shape}")
 
         if df is None:
             raise ValueError("Could not determine data source from SystemDefinition")
 
-        # 1. Apply programmatic preprocessor hook
-        if preprocessor:
-            df = preprocessor(df)
+        # --- MOMENT 3: Final Declarative Steps ---
+        # (Preprocessor removed from here as it is now applied per-file)
 
         # 2. Apply declarative column renames (if not handled by preprocessor)
         if sys_def.dataspace.column_renames:
