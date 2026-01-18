@@ -31,16 +31,19 @@ class TestTradeoffEntity(unittest.TestCase):
         t = Tradeoff(name="target", elements={"Q1": "good"})
         
         # Run discovery using the Tradeoff object
-        result = self.manager.discover(
+        boxes = self.manager.discover(
             self.experiments_df,
             self.outcomes_df,
             outcome='Q1',
             tradeoff=t,
             discrete_outcomes_df=self.discrete_df
         )
-        self.assertIsNotNone(result)
-        # result[1] contains the limits. L1 should be high.
-        limits = result[1]
+        self.assertIsNotNone(boxes)
+        self.assertGreater(len(boxes), 0)
+        
+        # The first box contains the limits. L1 should be high.
+        best_box = boxes[0]
+        limits = best_box.limits
         self.assertIn('L1', limits)
         self.assertGreater(limits['L1']['min'], 0.2)
 

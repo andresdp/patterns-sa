@@ -1,53 +1,47 @@
-# patterns-sa
+# ADEPT Framework
 
-A toolkit to perform sensitivity analysis and explainability of architectural tradeoffs on patterns.
+<!-- ![ADEPT Logo](adept.png){width=50%} -->
+
+<img src="adept.png" alt="ADEPT Logo" style="display: block; margin: 0 auto; width: 40%;"/>
+
+
+ **ADEPT** (**A**rchitectural **D**esign **E**xploration and **P**attern **T**radeoffs) is a toolkit to perform sensitivity analysis, robustness quantification, and explainability of architectural tradeoffs.
 
 ## Overview
 
-**patterns-sa** is a Python-based framework for analyzing the performance and quality attributes of software architectural patterns. It provides a structured approach to evaluate architectural tradeoffs, discover scenarios, and explain analysis results.
+**ADEPT** is a Python-based framework for analyzing the performance and quality attributes of software architectural patterns. It provides a structured, data-driven approach to evaluate design decisions, discover "Operating Envelopes" via scenario discovery, and quantify robustness.
 
 ## Key Features
 
-- **Coordinator Pattern Architecture**: Centralized orchestration with specialized components
-- **Multiple Analysis Methods**: PRIM, CART, Pareto analysis, and more
-- **Tradeoff Exploration**: Systematic evaluation of architectural tradeoffs
-- **Scenario Discovery**: Identification of parameter regions driving specific outcomes
-- **Visualization Support**: Built-in plotting capabilities for analysis results
-- **Extensible Design**: Easy to add new analysis methods and visualization types
+- **Coordinator Pattern Architecture**: Centralized orchestration (`ArchSpaceCore`) with specialized managers.
+- **Robustness Quantification**: Metrics like STARR (Success Rate), REGRET (Risk), and Stability Radius.
+- **Scenario Discovery**: Algorithms (PRIM, CART) to find parameter regions that guarantee specific tradeoffs.
+- **Tradeoff Analysis**: Automated definition of performance regions using Discretization, Pareto Fronts, or Thresholds.
+- **Advanced Visualization**: Interactive plots for Quality Objective Spaces, Robustness Heatmaps, and Feature Importance.
 
-## Architecture
+## Project Structure
 
-```mermaid
-classDiagram
-    class ArchSpaceCore {
-        +load_data()
-        +validate()
-        +discretize()
-        +compute_robustness()
-        +discover_scenarios()
-        +explain()
-        +plot_distributions()
-        +show_quality_objective_space()
-    }
+The project is organized into a modular package structure:
 
-    class DataProcessor {
-        +define_tradeoffs()
-        +get_tradeoff_indices()
-    }
+### `adept/` (Core Framework)
+*   **`core/`**: The backbone of the system.
+    *   `coordinator.py`: The `ArchSpaceCore` orchestrator.
+    *   `session.py`: `PatternAnalysis`, the primary user-facing class for interactive sessions.
+    *   `models.py`: Pydantic data models (`SystemDefinition`, `Tradeoff`, `Box`).
+    *   `loader.py`: `GenericDataLoader` for declarative data ingestion.
+*   **`analysis/`**: Specialized analytical engines.
+    *   `discovery.py`: PRIM and CART algorithms (`ScenarioDiscoveryManager`).
+    *   `robustness.py`: Calculation of STARR, REGRET, and Stability Radius.
+    *   `discretization.py`: Segmentation of continuous outcomes into qualitative regions.
+    *   `feature_importance.py`: Random Forest-based sensitivity analysis.
+    *   `contingency.py`: Analysis of Policy vs. Tradeoff relationships.
+*   **`utils/`**: Shared utilities.
+    *   `validation.py` & `linter.py`: Data integrity checks.
+    *   `exceptions.py`: Custom error hierarchy.
 
-    class ScenarioDiscoveryManager {
-        +discover()
-    }
-
-    class VisualizationManager {
-        +plot_tradeoff_distribution()
-        +show_quality_objective_space()
-    }
-
-    ArchSpaceCore --> DataProcessor : delegates to
-    ArchSpaceCore --> ScenarioDiscoveryManager : delegates to
-    ArchSpaceCore --> VisualizationManager : delegates to
-```
+### `patterns/` (Usage Examples)
+Contains concrete case studies of architectural patterns. Each folder includes a `SystemDefinition` (JSON) and a Jupyter Notebook demonstrating the full analysis workflow.
+*   **Active Patterns**: `CQRS`, `Gateway_Aggregation`, `Gateway_Offloading`, `Anti_Corruption_Layer`, `Pipes_and_Filters`.
 
 ## Installation
 
@@ -57,69 +51,25 @@ pip install -r requirements.txt
 
 ## Quick Start
 
-```python
-from adept.core.coordinator import ArchSpaceCore
+To see the framework in action, please refer to the interactive notebooks in the `patterns/` directory.
 
-# Initialize the coordinator
-core = ArchSpaceCore()
+*   **Recommended Starting Point**: `patterns/Gateway_Offloading/analysis-go.ipynb`
 
-# Load and analyze data
-df = core.load_data("path/to/system.json")
-experiments_df, outcomes_df = core.load_detailed_data("path/to/system.json")
-
-# Discover scenarios
-results = core.discover_scenarios(experiments_df, outcomes_df, "latency", method="prim")
-
-# Visualize results
-fig = core.plot_distributions(outcomes_df, schemes)
-fig.show()
-```
-
-## Components
-
-### Core Components
-
-- **ArchSpaceCore**: Central orchestrator for the framework
-- **DataLoader**: Handles data ingestion from various sources
-- **DataProcessor**: Manages tradeoff definitions and discretization
-- **ScenarioDiscoveryManager**: Coordinates scenario discovery algorithms
-- **VisualizationManager**: Manages visualization strategies
-
-### Analysis Methods
-
-- **PRIM (Patient Rule Induction Method)**: Iterative parameter space exploration
-- **CART (Classification And Regression Trees)**: Tree-based scenario discovery
-- **Pareto Analysis**: Multi-objective optimization analysis
-- **Tradeoff Analysis**: Systematic evaluation of architectural tradeoffs
-
-### Visualization
-
-- **Tradeoff Distribution Plots**: Visualize outcome distributions
-- **Quality Objective Space**: 2D scatter plots with tradeoff overlays
-- **Scenario Visualization**: Display discovered parameter regions
-
-## Error Handling
-
-The framework includes comprehensive error handling with custom exceptions:
-
-- `ADEPTError`: Base exception class
-- `DataLoadingError`: Data loading failures
-- `ValidationError`: Data validation issues
-- `DiscoveryError`: Scenario discovery problems
-- `VisualizationError`: Visualization-related errors
+These notebooks demonstrate the standard workflow:
+1.  **Load**: Ingest simulation data using a JSON definition.
+2.  **Define**: Map raw metrics to architectural tradeoffs (e.g., "Fast & Cheap").
+3.  **Analyze**: Compute feature importance and contingency tables.
+4.  **Discover**: Find robust operating envelopes using PRIM.
+5.  **Visualize**: Generate robustness heatmaps and objective space scatters.
 
 ## Documentation
 
-For detailed usage and architecture information, see:
+For deep dives into the design and usage:
 
-- `docs/design_summary.md` - Overall design overview
-- `docs/design_rationale_phase1.md` - Phase 1 design decisions
-- `docs/design_rationale_phase2.md` - Phase 2 enhancements
-- `docs/usage.md` - Usage examples and patterns
-
-## Contributing
-
-Contributions are welcome! Please see the existing design patterns and follow the established architecture when adding new features.
+- `docs/software_architecture.md` - High-level component diagram.
+- `docs/analysis_journey.md` - The logical flow of an ADEPT session.
+- `docs/scenario_discovery_metrics.md` - Explanation of Density and Coverage.
+- `docs/legacy_vs_adept_comparison.md` - Migration guide for v2 users.
 
 ## License
 

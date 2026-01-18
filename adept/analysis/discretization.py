@@ -189,11 +189,12 @@ class DataProcessor:
                 opt_min = float(compliant_df[col].min())
                 opt_max = float(compliant_df[col].max())
                 
-                bins = [-float('inf'), opt_min, opt_max, float('inf')]
+                # Add tiny buffer to ensure points on the boundary fall inside
+                buffer = 1e-9
+                bins = [-float('inf'), opt_min - buffer, opt_max + buffer, float('inf')]
                 labels = ["out_low", "epsilon-pareto-optimal", "out_high"]
                 
                 # Apply per-column discretization to discrete_df
-                # Note: This is a projection-based discretization
                 discrete_df[col] = pd.cut(df[col], bins=bins, labels=labels, include_lowest=True)
                 
                 q_bins = [

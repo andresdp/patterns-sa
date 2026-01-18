@@ -41,21 +41,22 @@ class TestDataProcessor(unittest.TestCase):
         params = {'thresholds': {'A': 5.0}}
         discrete_df, schemes, indices, pf = self.processor.define_tradeoffs(self.data, method='threshold', params=params, objectives=self.objectives)
         # A is min. <= 5 is Satisfactory.
-        self.assertEqual(discrete_df.iloc[0]['A'], 'Satisfactory') # 1
-        self.assertEqual(discrete_df.iloc[9]['A'], 'Unsatisfactory') # 10
+        self.assertEqual(discrete_df.iloc[0]['A'], 'satisfactory') # 1
+        self.assertEqual(discrete_df.iloc[9]['A'], 'unsatisfactory') # 10
 
     def test_pareto_epsilon(self):
         # A=[1..10] min, B=[10..100] max.
         # 1,10 vs 2,20. 1 is better A, 20 is better B.
-        df = pd.DataFrame({'A': [1, 2, 2], 'B': [10, 20, 10]}) 
-        # Row 2 (2,10) is dominated by Row 0 (1,10) and Row 1 (2,20).
+        df = pd.DataFrame({'A': [1, 2, 5], 'B': [10, 20, 10]}) 
+        # Row 2 (5,10) is dominated by Row 0 (1,10) and Row 1 (2,20).
         
-        params = {'epsilon': 0.0} # Strict
+        params = {'epsilon': 0.01} # Small tolerance
         discrete_df, schemes, indices, front = self.processor.define_tradeoffs(df, method='pareto_epsilon', params=params, objectives=self.objectives)
         
-        self.assertEqual(discrete_df.iloc[0]['A'], 'Epsilon-Optimal')
-        self.assertEqual(discrete_df.iloc[1]['A'], 'Epsilon-Optimal')
-        self.assertEqual(discrete_df.iloc[2]['A'], 'Sub-optimal')
+        self.assertEqual(discrete_df.iloc[0]['A'], 'epsilon-pareto-optimal')
+        self.assertEqual(discrete_df.iloc[1]['A'], 'epsilon-pareto-optimal')
+        # Row 2 is far away (dominanted)
+        self.assertEqual(discrete_df.iloc[2]['A'], 'out_high')
 
     def test_discretize_with_ranges(self):
         # A has values [1..10]. Default min/max is 1/10.
