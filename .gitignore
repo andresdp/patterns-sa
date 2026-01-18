@@ -8,3 +8,5 @@ conductor/
 .gemini/
 .github/
 .vscode/
+AGENTS.md
+DEPENDENCIES.md
