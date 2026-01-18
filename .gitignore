@@ -5,3 +5,6 @@ __pycache__/
 *.py[cod]
 *.class
 conductor/
+.gemini/
+.github/
+.vscode/
