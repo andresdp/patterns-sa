@@ -59,6 +59,15 @@ class PatternAnalysis:
         self.raw_df, self.experiments_df, self.outcomes_df = \
             self.coordinator.load_detailed_data(self.json_path, validate_integrity=validate_integrity, preprocessor=preprocessor)
 
+        # 3. Handle Missing Values (NaN)
+        for name, df in [("Experiments", self.experiments_df), ("Outcomes", self.outcomes_df)]:
+            if df is not None and df.isnull().values.any():
+                nan_count = df.isnull().sum().sum()
+                nan_cols = df.columns[df.isnull().any()].tolist()
+                print(f"Warning: {name} data contains {nan_count} NaN values in columns: {nan_cols}. Filling numeric NaNs with 0.0.")
+                numeric_cols = df.select_dtypes(include=[np.number]).columns
+                df[numeric_cols] = df[numeric_cols].fillna(0.0)
+
     def _ensure_outcome_stats(self) -> None:
         """Computes statistics (mean/std) for outcomes to support standardized metrics."""
         if self.outcome_stats is not None:

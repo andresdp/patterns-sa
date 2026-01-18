@@ -3,51 +3,76 @@
     "name": "Pipes and Filters System",
     "description": "A system that processes a stream of data in stages using the Pipes and Filters pattern.",
     "components": {
-      "pipeline": {
+      "pipesandfilters_pattern": {
         "name": "Pipes and Filters",
         "description": "A component that processes a stream of data in stages, where each stage (filter) performs a specific transformation.",
         "parameters": {
-            "N_A": { "type": "integer", "description": "Number of users for data path A." },
-            "N_B": { "type": "integer", "description": "Number of users for data path B." }
+            "N_A": { "data_type": "integer", "type": "lever", "level": "system", "description": "Number of users for data path A." },
+            "N_B": { "data_type": "integer", "type": "lever", "level": "system", "description": "Number of users for data path B." },
+            "r_Z_A": { "data_type": "float", "type": "uncertainty", "level": "system", "description": "Response time for data path A." },
+            "r_Z_B": { "data_type": "float", "type": "uncertainty", "level": "system", "description": "Response time for data path B." },
+            "c_A_T1": { "data_type": "float", "type": "uncertainty", "level": "system", "description": "Throughput for data path A." },
+            "c_A_T2": { "data_type": "float", "type": "uncertainty", "level": "system", "description": "Throughput for data path B." },
+            "c_A_T3": { "data_type": "float", "type": "uncertainty", "level": "system", "description": "Throughput for data path B." },
+            "c_B_T1": { "data_type": "float", "type": "uncertainty", "level": "system", "description": "Throughput for data path B." },
+            "c_B_T2": { "data_type": "float", "type": "uncertainty", "level": "system", "description": "Throughput for data path B." },
+            "c_B_T4": { "data_type": "float", "type": "uncertainty", "level": "system", "description": "Throughput for data path B." },
+            "r_A_T1": { "data_type": "float", "type": "uncertainty", "level": "system", "description": "Response time for data path A." },
+            "r_A_T2": { "data_type": "float", "type": "uncertainty", "level": "system", "description": "Response time for data path A." },
+            "r_A_T3": { "data_type": "float", "type": "uncertainty", "level": "system", "description": "Response time for data path A." },
+            "r_B_T1": { "data_type": "float", "type": "uncertainty", "level": "system", "description": "Response time for data path B." },
+            "r_B_T2": { "data_type": "float", "type": "uncertainty", "level": "system", "description": "Response time for data path B." },
+            "r_B_T4": { "data_type": "float", "type": "uncertainty", "level": "system", "description": "Response time for data path B." },
+            "c_T1": { "data_type": "float", "type": "lever", "level": "system", "description": "Throughput for data path A." },
+            "c_T2": { "data_type": "float", "type": "lever", "level": "system", "description": "Throughput for data path A." },
+            "c_T3": { "data_type": "float", "type": "lever", "level": "system", "description": "Throughput for data path A." },
+            "c_T4": { "data_type": "float", "type": "lever", "level": "system", "description": "Throughput for data path A." }
         },
         "decisions": {
           "pipeline_structure": {
             "description": "The structure of the pipeline, either with joint or separated filters.",
             "policies": {
-              "separated": { "description": "Filters for different data paths are separate." },
-              "joint1": { "description": "Filters are shared between data paths (config 1)." },
-              "joint2": { "description": "Filters are shared between data paths (config 2)." }
+              "separated": {
+                "parameter_bindings": {},
+                "description": "Filters for different data paths are separate." 
+              },
+              "joint1": { 
+                "parameter_bindings": {},
+                "description": "Filters are shared between data paths (config 1)." 
+              },
+              "joint2": { 
+                "parameter_bindings": {},
+                "description": "Filters are shared between data paths (config 2)." 
+              }
             }
           }
         }
       }
-    }
+    },
+    "tradeoffs": []
   },
   "dataspace": {
-    "policy_identification": {
+    "configuration_identification": {
       "from": "file",
-      "policies": [
+      "column": "policy",
+      "configurations": [
         {
-          "name": "separated-system",
-          "description": "System with separated pipelines.",
-          "source_file": "separated/dataset.csv",
-          "component_policies": { "pipeline": "separated" }
+          "name": "separated",
+          "source_file": "separated/Core1_N50.csv",
+          "pattern_policy_references": [{ "component": "pipesandfilters_pattern", "decision": "pipeline_structure", "policy": "separated" }]
         },
         {
-          "name": "joint1-system",
-          "description": "System with a joint pipeline (config 1).",
-          "source_file": "joint/dataset_1.csv",
-          "component_policies": { "pipeline": "joint1" }
+          "name": "joint1",
+          "source_file": "joint/Core1_N50.csv",
+          "pattern_policy_references": [{ "component": "pipesandfilters_pattern", "decision": "pipeline_structure", "policy": "joint1" }]
         },
         {
-          "name": "joint2-system",
-          "description": "System with a joint pipeline (config 2).",
-          "source_file": "joint/dataset_2.csv",
-          "component_policies": { "pipeline": "joint2" }
+          "name": "joint2",
+          "source_file": "joint/Core2_N50.csv",
+          "pattern_policy_references": [{ "component": "pipesandfilters_pattern", "decision": "pipeline_structure", "policy": "joint2" }]
         }
       ]
     },
-    "column_renames": { "R0": "response_time", "X0": "throughput" },
     "quality_objectives": [
       {
         "name": "response_time",
