@@ -2,7 +2,11 @@
 
 <!-- ![ADEPT Logo](adept.png){width=50%} -->
 
-<img src="adept.png" alt="ADEPT Logo" style="display:block;margin-left:auto;margin-right:auto; width: 40%;"/>
+<!-- <img src="adept.png" alt="ADEPT Logo" style="display:block;margin-left:auto;margin-right:auto; width: 40%;"/> -->
+
+<p align="center">
+  <img src="adept.png" alt="ADEPT Logo" width="40%">
+</p>
 
 
  **ADEPT** (**A**rchitectural **D**esign **E**xploration and **P**attern **T**radeoffs) is a toolkit to perform sensitivity analysis, robustness quantification, and explainability of architectural tradeoffs.
