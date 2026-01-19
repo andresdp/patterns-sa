@@ -1,34 +1,34 @@
-method,policy,target,fast-low,fast-average,fast-high,average-low,average-average,average-high,slow-low,slow-average,slow-high
-test set,long-services-offloaded,,0.0,0.0,1.0,0.0,0.0,0.0,0.0,0.0,0.0
-test set,no-offloading,,0.7,0.0,0.0,0.3,0.0,0.0,0.0,0.0,0.0
-test set,short-services-offloaded,,0.0,0.7777777777777778,0.1111111111111111,0.0,0.1111111111111111,0.0,0.0,0.0,0.0
-prim,long-services-offloaded,fast-low,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0
-prim,long-services-offloaded,fast-average,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0
-prim,long-services-offloaded,fast-high,0.0,0.0,1.0,0.0,0.0,0.0,0.0,0.0,0.0
-prim,long-services-offloaded,average-low,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0
-prim,long-services-offloaded,average-average,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0
-prim,no-offloading,fast-low,0.875,0.0,0.0,0.125,0.0,0.0,0.0,0.0,0.0
-prim,no-offloading,fast-average,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0
-prim,no-offloading,fast-high,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0
-prim,no-offloading,average-low,0.7,0.0,0.0,0.3,0.0,0.0,0.0,0.0,0.0
-prim,no-offloading,average-average,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0
-prim,short-services-offloaded,fast-low,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0
-prim,short-services-offloaded,fast-average,0.0,0.8571428571428571,0.14285714285714285,0.0,0.0,0.0,0.0,0.0,0.0
-prim,short-services-offloaded,fast-high,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0
-prim,short-services-offloaded,average-low,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0
-prim,short-services-offloaded,average-average,0.0,0.6666666666666666,0.0,0.0,0.3333333333333333,0.0,0.0,0.0,0.0
-cart,long-services-offloaded,fast-high,0.0,0.0,1.0,0.0,0.0,0.0,0.0,0.0,0.0
-cart,long-services-offloaded,fast-low,0.0,0.0,1.0,0.0,0.0,0.0,0.0,0.0,0.0
-cart,long-services-offloaded,fast-average,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0
-cart,long-services-offloaded,average-low,0.0,0.0,1.0,0.0,0.0,0.0,0.0,0.0,0.0
-cart,long-services-offloaded,average-average,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0
-cart,no-offloading,fast-high,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0
-cart,no-offloading,fast-low,1.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0
-cart,no-offloading,fast-average,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0
-cart,no-offloading,average-low,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0
-cart,no-offloading,average-average,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0
-cart,short-services-offloaded,fast-high,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0
-cart,short-services-offloaded,fast-low,0.0,0.6666666666666666,0.3333333333333333,0.0,0.0,0.0,0.0,0.0,0.0
-cart,short-services-offloaded,fast-average,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0
-cart,short-services-offloaded,average-low,0.0,1.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0
-cart,short-services-offloaded,average-average,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0
+method,policy,target,fast-high,fast-average,fast-low,average-high,average-average,average-low,slow-high,slow-average,slow-low
+test set,long-services-offloaded,,"1,0","0,0","0,0","0,0","0,0","0,0","0,0","0,0","0,0"
+test set,no-offloading,,"0,0","0,0","0,7","0,0","0,0","0,3","0,0","0,0","0,0"
+test set,short-services-offloaded,,"0,1111111111111111","0,7777777777777778","0,0","0,0","0,1111111111111111","0,0","0,0","0,0","0,0"
+prim,long-services-offloaded,fast-high,"1,0","0,0","0,0","0,0","0,0","0,0","0,0","0,0","0,0"
+prim,long-services-offloaded,fast-average,"0,0","0,0","0,0","0,0","0,0","0,0","0,0","0,0","0,0"
+prim,long-services-offloaded,fast-low,"0,0","0,0","0,0","0,0","0,0","0,0","0,0","0,0","0,0"
+prim,long-services-offloaded,average-average,"0,0","0,0","0,0","0,0","0,0","0,0","0,0","0,0","0,0"
+prim,long-services-offloaded,average-low,"0,0","0,0","0,0","0,0","0,0","0,0","0,0","0,0","0,0"
+prim,no-offloading,fast-high,"0,0","0,0","0,0","0,0","0,0","0,0","0,0","0,0","0,0"
+prim,no-offloading,fast-average,"0,0","0,0","0,0","0,0","0,0","0,0","0,0","0,0","0,0"
+prim,no-offloading,fast-low,"0,0","0,0","0,875","0,0","0,0","0,125","0,0","0,0","0,0"
+prim,no-offloading,average-average,"0,0","0,0","0,0","0,0","0,0","0,0","0,0","0,0","0,0"
+prim,no-offloading,average-low,"0,0","0,0","0,7","0,0","0,0","0,3","0,0","0,0","0,0"
+prim,short-services-offloaded,fast-high,"0,0","0,0","0,0","0,0","0,0","0,0","0,0","0,0","0,0"
+prim,short-services-offloaded,fast-average,"0,14285714285714285","0,8571428571428571","0,0","0,0","0,0","0,0","0,0","0,0","0,0"
+prim,short-services-offloaded,fast-low,"0,0","0,0","0,0","0,0","0,0","0,0","0,0","0,0","0,0"
+prim,short-services-offloaded,average-average,"0,0","0,6666666666666666","0,0","0,0","0,3333333333333333","0,0","0,0","0,0","0,0"
+prim,short-services-offloaded,average-low,"0,0","0,0","0,0","0,0","0,0","0,0","0,0","0,0","0,0"
+cart,long-services-offloaded,fast-high,"1,0","0,0","0,0","0,0","0,0","0,0","0,0","0,0","0,0"
+cart,long-services-offloaded,fast-average,"0,0","0,0","0,0","0,0","0,0","0,0","0,0","0,0","0,0"
+cart,long-services-offloaded,fast-low,"1,0","0,0","0,0","0,0","0,0","0,0","0,0","0,0","0,0"
+cart,long-services-offloaded,average-average,"0,0","0,0","0,0","0,0","0,0","0,0","0,0","0,0","0,0"
+cart,long-services-offloaded,average-low,"1,0","0,0","0,0","0,0","0,0","0,0","0,0","0,0","0,0"
+cart,no-offloading,fast-high,"0,0","0,0","0,0","0,0","0,0","0,0","0,0","0,0","0,0"
+cart,no-offloading,fast-average,"0,0","0,0","0,0","0,0","0,0","0,0","0,0","0,0","0,0"
+cart,no-offloading,fast-low,"0,0","0,0","1,0","0,0","0,0","0,0","0,0","0,0","0,0"
+cart,no-offloading,average-average,"0,0","0,0","0,0","0,0","0,0","0,0","0,0","0,0","0,0"
+cart,no-offloading,average-low,"0,0","0,0","0,0","0,0","0,0","0,0","0,0","0,0","0,0"
+cart,short-services-offloaded,fast-high,"0,0","0,0","0,0","0,0","0,0","0,0","0,0","0,0","0,0"
+cart,short-services-offloaded,fast-average,"0,0","0,0","0,0","0,0","0,0","0,0","0,0","0,0","0,0"
+cart,short-services-offloaded,fast-low,"0,3333333333333333","0,6666666666666666","0,0","0,0","0,0","0,0","0,0","0,0","0,0"
+cart,short-services-offloaded,average-average,"0,0","0,0","0,0","0,0","0,0","0,0","0,0","0,0","0,0"
+cart,short-services-offloaded,average-low,"0,0","1,0","0,0","0,0","0,0","0,0","0,0","0,0","0,0"

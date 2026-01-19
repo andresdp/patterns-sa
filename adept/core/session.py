@@ -4,6 +4,9 @@ import numpy as np
 import matplotlib.pyplot as plt
 from .coordinator import ArchSpaceCore
 from .models import SystemDefinition, DiscretizationScheme, Tradeoff
+
+from ..utils import sort_tradeoff_labels, get_tradeoff_sort_key
+
 import seaborn as sns
 
 class PatternAnalysis:
@@ -2356,13 +2359,17 @@ class PatternAnalysis:
         base_matrix['target'] = '' # No target here
         base_matrix.reset_index(inplace=True) # 'policy´ is the old index
 
+        prim_all_impacts_df = prim_all_impacts_df.sort_values(by='target', key=lambda col: col.map(get_tradeoff_sort_key))
         prim_all_impacts_df = prim_all_impacts_df.sort_values(by='policy')
+        cart_all_impacts_df = cart_all_impacts_df.sort_values(by='target', key=lambda col: col.map(get_tradeoff_sort_key))
         cart_all_impacts_df = cart_all_impacts_df.sort_values(by='policy')
+        base_matrix = base_matrix.sort_values(by='target', key=lambda col: col.map(get_tradeoff_sort_key))
         base_matrix = base_matrix.sort_values(by='policy')
 
         combined_df = pd.concat([base_matrix, prim_all_impacts_df, cart_all_impacts_df], ignore_index=True)
         header = ['method', 'policy', 'target']
-        columns = header + [c for c in combined_df.columns if c not in header]
+        tradeoff_columns = [c for c in combined_df.columns if c not in header]
+        columns = header + sort_tradeoff_labels(tradeoff_columns)
         combined_df = combined_df[columns]
         
         return combined_df
