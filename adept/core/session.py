@@ -957,7 +957,7 @@ class PatternAnalysis:
         # 3. Build Report
         report_data = []
         for policy in policies:
-            row = {'Policy': policy}
+            row = {'policy': policy}
             for t_name in tradeoff_names:
                 try:
                     res = self.compute_robustness(policy, t_name, metric=metric, subset=subset, **kwargs)
@@ -967,7 +967,7 @@ class PatternAnalysis:
                     row[t_name] = np.nan
             report_data.append(row)
             
-        return pd.DataFrame(report_data).set_index('Policy')
+        return pd.DataFrame(report_data).set_index('policy')
 
     def get_aggregate_robustness_stats(
         self,
@@ -2345,6 +2345,8 @@ class PatternAnalysis:
         
         prim_all_impacts_df = self._compute_impacts(prim_boxes, 'prim') # These are usually computed on the test set
         cart_all_impacts_df = self._compute_impacts(cart_boxes, 'cart') # These are usually computed on the test set
+        prim_all_impacts_df.reset_index(inplace=True) # 'policy´ is the old index
+        cart_all_impacts_df.reset_index(inplace=True) # 'policy´ is the old index
 
         if baseline is not None:
             base_matrix = baseline.copy()
@@ -2352,9 +2354,15 @@ class PatternAnalysis:
             base_matrix = self.get_robustness_report(metric=metric, subset='test')
         base_matrix['method'] = method
         base_matrix['target'] = '' # No target here
+        base_matrix.reset_index(inplace=True) # 'policy´ is the old index
+
+        prim_all_impacts_df = prim_all_impacts_df.sort_values(by='policy')
+        cart_all_impacts_df = cart_all_impacts_df.sort_values(by='policy')
+        base_matrix = base_matrix.sort_values(by='policy')
 
         combined_df = pd.concat([base_matrix, prim_all_impacts_df, cart_all_impacts_df], ignore_index=True)
-        columns = ['method', 'target'] + [c for c in combined_df.columns if c not in ['method', 'target']]
+        header = ['method', 'policy', 'target']
+        columns = header + [c for c in combined_df.columns if c not in header]
         combined_df = combined_df[columns]
         
         return combined_df
