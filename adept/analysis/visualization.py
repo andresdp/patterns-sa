@@ -5,7 +5,7 @@ import matplotlib.patches as patches
 import seaborn as sns
 import pandas as pd
 import numpy as np
-from typing import List, Optional, Dict, Tuple, Any
+from typing import List, Optional, Dict, Tuple, Any, Union
 from ..core.models import DiscretizationScheme, Tradeoff, QualityBin
 import sankeyflow as sf
 from sklearn.manifold import MDS
@@ -21,29 +21,7 @@ def show_tradeoff_distribution(
     bins: int = 30
 ) -> plt.Figure:
     """
-    Plots the distribution of outcomes with an overlay of tradeoff regions/bins.
-    
-    This function generates a vertical stack of histograms (one per quality objective) 
-    showing the overall distribution of the population, with the option to highlight 
-    a specific architectural tradeoff.
-
-    Args:
-        outcomes_df (pd.DataFrame): [Mandatory] Continuous outcome data. 
-            Must contain columns matching the objective names in 'schemes'.
-        schemes (List[DiscretizationScheme]): [Mandatory] Definitions of bins and 
-            labels for each objective.
-        tradeoff (Optional[Tradeoff]): [Optional] A tradeoff object for context. 
-            If provided, its name and description will be used in the plot title.
-        highlight_indices (Optional[np.ndarray]): [Optional] Array of row indices 
-            from 'outcomes_df' that satisfy the target tradeoff. These will be 
-            rendered as an overlaid histogram in a distinct color (orange).
-        figsize (Tuple[int, int]): [Optional] Size of each individual objective 
-            subplot. Defaults to (10, 6).
-        title (Optional[str]): [Optional] Title of the plot. If not provided, a default title will be generated.
-        bins (int): [Optional] Number of bins to use for histograms. Defaults to 30.
-        
-    Returns:
-        matplotlib.figure.Figure: The generated figure object.
+    Plots the distribution of outcomes with an overlay of tradeoff regions/bins. 
     """
     
     n_plots = len(schemes)
@@ -60,15 +38,10 @@ def show_tradeoff_distribution(
             continue
             
         data = outcomes_df[col_name]
-        
-        # Calculate explicit bin edges based on the overall data range
-        # This ensures that both the overall and subset histograms align perfectly
         bin_edges = np.histogram_bin_edges(data.dropna(), bins=bins)
 
-        # 1. Overall Distribution (Blue)
         sns.histplot(data, bins=bin_edges, kde=True, ax=ax, color='skyblue', label='Overall', alpha=0.4)
         
-        # 2. Highlight Subset (Orange)
         if highlight_indices is not None and len(highlight_indices) > 0:
             valid_indices = highlight_indices[highlight_indices < len(data)]
             subset_data = data.iloc[valid_indices]
@@ -76,7 +49,6 @@ def show_tradeoff_distribution(
                 sns.histplot(subset_data, bins=bin_edges, kde=False, ax=ax, color='orange', label='Target Tradeoff', alpha=0.8)
                 ax.legend()
 
-        # 3. Overlay Bin Boundaries and Labels
         boundaries = set()
         for b in scheme.bins:
             min_val = b.min_value if np.isfinite(b.min_value) else data.min()
@@ -90,18 +62,15 @@ def show_tradeoff_distribution(
                         ha='center', va='top', fontsize=9, color='red', fontweight='bold',
                         bbox=dict(facecolor='white', alpha=0.7, edgecolor='none'))
 
-        # print("BOUNDARIES",boundaries)
         for b in boundaries:
             if data.min() <= b <= data.max():
                 ax.axvline(b, color='red', linestyle='--', alpha=0.8)
         
-        # ax.set_title(f"Distribution of {col_name}")
         ax.set_xlabel(col_name)
         ax.set_ylabel("Frequency")
 
     title = f"Outcome Distributions" if title is None else title
     if tradeoff:
-        # title += f"\n({tradeoff.name}: {tradeoff.description})"
         title += f" / Target Tradeoff: {tradeoff.name}"
     fig.suptitle(title, fontsize=14)
     
@@ -135,14 +104,12 @@ def show_quality_objective_space(
     alpha = kwargs.get('alpha', 0.3)
     s = kwargs.get('s', 20)
     
-    # Determine mode
     coloring_by_policy = policy_series is not None
     
     if coloring_by_policy:
         color_points = False
         draw_rectangles = True
 
-    # 1. Plot Background (all points)
     if coloring_by_policy and show_overall:
         sns.scatterplot(
             data=outcomes_df, x=x_metric, y=y_metric, 
@@ -158,7 +125,6 @@ def show_quality_objective_space(
             s=s
         )
     
-    # 2. Plot Policies (if enabled)
     if coloring_by_policy:
         plot_data = outcomes_df.copy()
         plot_data['__policy__'] = policy_series
@@ -174,14 +140,12 @@ def show_quality_objective_space(
                 legend='full'
             )
 
-    # 3. Draw Segmentation Boundaries and Interval Labels
     x_scheme = next((s for s in schemes if s.objective_name == x_metric), None)
     y_scheme = next((s for s in schemes if s.objective_name == y_metric), None)
     
     _apply_axis_segmentation(ax, x_scheme, outcomes_df[x_metric], orientation='x')
     _apply_axis_segmentation(ax, y_scheme, outcomes_df[y_metric], orientation='y')
 
-    # 4. Highlight Specific Tradeoffs
     if highlight_indices_map:
         colors = sns.color_palette("bright", n_colors=len(highlight_indices_map))
         
@@ -220,7 +184,6 @@ def show_quality_objective_space(
     else:
         ax.set_title(title, pad=30)
     
-    # 5. Add Annotation Text (Inset)
     if annotation_text:
         pos_x, pos_y, ha, va = _get_best_annotation_position(outcomes_df, x_metric, y_metric, annotation_loc)
         props = dict(boxstyle='round', facecolor='white', alpha=0.85, edgecolor='gray')
@@ -228,15 +191,12 @@ def show_quality_objective_space(
                 verticalalignment=va, horizontalalignment=ha, multialignment='left',
                 bbox=props, zorder=15, family='monospace')
 
-    # Handle Legend
-    # Move legend to the bottom, horizontal layout
     ax.legend(loc='upper center', bbox_to_anchor=(0.5, -0.15), ncol=3, borderaxespad=0.)
     
     plt.tight_layout()
     return fig
 
 def _get_best_annotation_position(df, x_col, y_col, manual_loc='auto'):
-    """Finds the corner with lowest point density for annotation placement."""
     if manual_loc != 'auto':
         mapping = {
             'upper left': (0.02, 0.98, 'left', 'top'),
@@ -246,7 +206,6 @@ def _get_best_annotation_position(df, x_col, y_col, manual_loc='auto'):
         }
         return mapping.get(manual_loc, (0.02, 0.98, 'left', 'top'))
 
-    # Calculate quadrant densities
     x_mid = df[x_col].median()
     y_mid = df[y_col].median()
     
@@ -258,7 +217,6 @@ def _get_best_annotation_position(df, x_col, y_col, manual_loc='auto'):
     counts = {'upper left': q_ul, 'upper right': q_ur, 'lower left': q_ll, 'lower right': q_lr}
     best_corner = min(counts, key=counts.get)
     
-    # Return coordinates and alignments
     return _get_best_annotation_position(df, x_col, y_col, best_corner)
 
 def show_contingency_heatmap(
@@ -266,22 +224,11 @@ def show_contingency_heatmap(
     figsize: Tuple[int, int] = (10, 8),
     title: str = "Policy vs. Tradeoff Contingency"
 ) -> plt.Figure:
-    """
-    Plots a heatmap of the policy-tradeoff contingency table.
-    
-    Args:
-        contingency_table: DataFrame with percentages (0-1) or counts.
-        figsize: Figure size.
-        title: Plot title.
-        
-    Returns:
-        matplotlib.figure.Figure
-    """
     fig, ax = plt.subplots(figsize=figsize)
     sns.heatmap(
         contingency_table, 
         annot=True, 
-        fmt=".1f", # Assuming percentages like 15.5
+        fmt=".1f", 
         cmap="YlGnBu", 
         ax=ax,
         cbar_kws={'label': 'Percentage / Frequency'}
@@ -300,21 +247,6 @@ def show_policy_tradeoff_sankey(
     figsize: Tuple[int, int] = (12, 8),
     title: str = "Policy -> Tradeoff Flow"
 ) -> plt.Figure:
-    """
-    Plots a Sankey diagram showing flow from Policies to Tradeoffs.
-    
-    Args:
-        contingency_table: DataFrame with percentages or counts.
-                           Index: Source nodes (Policies).
-                           Columns: Target nodes (Tradeoffs).
-        figsize: Figure size.
-        title: Plot title.
-        
-    Returns:
-        matplotlib.figure.Figure
-    """
-    # 1. Prepare data for SankeyFlow
-    # It expects: flows list of (source, target, value)
     flows = []
     
     for policy_name in contingency_table.index:
@@ -323,13 +255,12 @@ def show_policy_tradeoff_sankey(
             if val > 0:
                 flows.append((policy_name, tradeoff_name, val))
                 
-    # 2. Plot
     plt.figure(figsize=figsize)
     s = sf.Sankey(
         flows=flows, 
         aspect_ratio=4/3, 
         nodelabels=True, 
-        link_color="source" # Or "target", "none"
+        link_color="source"
     )
     s.draw()
     plt.title(title)
@@ -342,17 +273,6 @@ def show_importance_heatmap(
     figsize: Tuple[int, int] = (10, 8),
     title: str = "Feature Importance Scores"
 ) -> plt.Figure:
-    """
-    Plots a heatmap of feature importance scores.
-    
-    Args:
-        scores_df: DataFrame with importance scores (Rows=Features, Cols=Outcomes).
-        figsize: Figure size.
-        title: Plot title.
-        
-    Returns:
-        matplotlib.figure.Figure
-    """
     fig, ax = plt.subplots(figsize=figsize)
     sns.heatmap(
         scores_df, 
@@ -373,7 +293,6 @@ def show_importance_heatmap(
 
 
 def _apply_axis_segmentation(ax: plt.Axes, scheme: Optional[DiscretizationScheme], data: pd.Series, orientation: str = 'x'):
-    """Helper to apply segmentation lines and labels to a specific axis."""
     if not scheme:
         return
         
@@ -385,17 +304,18 @@ def _apply_axis_segmentation(ax: plt.Axes, scheme: Optional[DiscretizationScheme
         if np.isfinite(b.min_value): bounds.add(b.min_value)
         if np.isfinite(b.max_value): bounds.add(b.max_value)
         
-        # Calculate label position
         val_min = b.min_value if np.isfinite(b.min_value) else data.min()
         val_max = b.max_value if np.isfinite(b.max_value) else data.max()
         mid = (val_min + val_max) / 2
         
         if orientation == 'x':
-            ax.text(mid, ax.get_ylim()[1] + (ax.get_ylim()[1] - ax.get_ylim()[0]) * 0.02, 
-                    b.label, color=line_color, fontsize=9, fontweight='bold', ha='center', va='bottom')
+            # Position above the top spine
+            ax.text(mid, 1.02, b.label, transform=ax.get_xaxis_transform(), 
+                    color=line_color, fontsize=9, fontweight='bold', ha='center', va='bottom')
         else:
-            ax.text(ax.get_xlim()[1] + (ax.get_xlim()[1] - ax.get_xlim()[0]) * 0.02, mid, 
-                    b.label, color=line_color, fontsize=9, fontweight='bold', ha='left', va='center', rotation=90)
+            # Position to the right of the right spine
+            ax.text(1.02, mid, b.label, transform=ax.get_yaxis_transform(), 
+                    color=line_color, fontsize=9, fontweight='bold', ha='left', va='center', rotation=90)
             
     for val in bounds:
         if orientation == 'x':
@@ -417,25 +337,8 @@ def show_stability_radius_plot(
     figsize: Tuple[int, int] = (14, 6),
     max_points: int = 2000
 ) -> plt.Figure:
-    """
-    Visualizes the stability radius in both parameter and objective space.
-    
-    Args:
-        experiments_df: Filtered parameters for the policy.
-        outcomes_df: Filtered outcomes for the policy.
-        target_mask: Success/Failure mask.
-        parameter_cols: Names of parameters used for distance.
-        radius_info: Output from compute_stability_radius.
-        objective_cols: Pair of outcomes to plot on right panel.
-        schemes: Discretization schemes for outcome axes.
-        target_tradeoff: The specific Tradeoff object being analyzed.
-        policy_name: Name of the policy for labeling.
-        figsize: Figure size.
-        max_points: Max points to plot using MDS (downsampling threshold).
-    """
     import matplotlib.patches as patches
     
-    # 1. Downsampling for performance
     n_points = len(experiments_df)
     if n_points > max_points:
         indices = np.random.choice(n_points, max_points, replace=False)
@@ -447,12 +350,10 @@ def show_stability_radius_plot(
         out_sub = outcomes_df
         mask_sub = target_mask
 
-    # 2. MDS Projection of Parameter Space
     X = exp_sub[parameter_cols].select_dtypes(include=[np.number])
     scaler = MinMaxScaler()
     X_norm = scaler.fit_transform(X)
     
-    # Add Centroid to projection
     if 'normalized_baseline' in radius_info['details']:
         centroid_norm = np.array(radius_info['details']['normalized_baseline']).reshape(1, -1)
     else:
@@ -466,20 +367,16 @@ def show_stability_radius_plot(
     points_2d = X_2d[:-1]
     centroid_2d = X_2d[-1]
 
-    # 3. Setup Plot
     fig, (ax1, ax2) = plt.subplots(1, 2, figsize=figsize)
     
     if policy_name:
         fig.suptitle(f"Stability Analysis for Policy: {policy_name}", fontsize=16, fontweight='bold', y=1.05)
     
-    # Left Panel: Parameter Space
     colors = ['green' if v else 'red' for v in mask_sub]
     ax1.scatter(points_2d[:, 0], points_2d[:, 1], c=colors, alpha=0.5, s=25, edgecolors='none')
     
-    # Plot Centroid (Nominal Solution) in Black
     ax1.scatter(centroid_2d[0], centroid_2d[1], c='black', marker='*', s=200, label='Nominal (Centroid)', edgecolors='white', zorder=5)
     
-    # Draw visual stability radius in 2D
     failures_2d = points_2d[~mask_sub.values]
     if len(failures_2d) > 0:
         dists_2d = np.linalg.norm(failures_2d - centroid_2d, axis=1)
@@ -490,25 +387,20 @@ def show_stability_radius_plot(
     ax1.set_title(f"Parameter Space Projection (MDS)\nRadius ({radius_info['details']['distance_metric']}): {radius_info['value']:.3f}")
     ax1.legend(loc='lower left', fontsize='small')
 
-    # Right Panel: Objective Space
     x_obj, y_obj = objective_cols
     ax2.scatter(out_sub[x_obj], out_sub[y_obj], c=colors, alpha=0.6, s=30)
     
-    # Plot Outcome Centroid (Nominal Outcome)
     out_centroid_x = out_sub[x_obj].mean()
     out_centroid_y = out_sub[y_obj].mean()
     ax2.scatter(out_centroid_x, out_centroid_y, c='black', marker='*', s=200, label='Nominal Outcome', edgecolors='white', zorder=5)
     
-    # Highlight Target Region
     if target_tradeoff:
-        # Find bounds for x and y
         x_label = target_tradeoff.elements.get(x_obj)
         y_label = target_tradeoff.elements.get(y_obj)
         
         x_bounds = (-np.inf, np.inf)
         y_bounds = (-np.inf, np.inf)
         
-        # Helper to get bounds from scheme
         def get_bounds(obj, label):
             scheme = next((s for s in schemes if s.objective_name == obj), None)
             if scheme:
@@ -520,8 +412,6 @@ def show_stability_radius_plot(
         if x_label: x_bounds = get_bounds(x_obj, x_label)
         if y_label: y_bounds = get_bounds(y_obj, y_label)
         
-        # Draw Rectangle (handle infs for plotting)
-        # We need plot limits to handle inf
         x_lims = ax2.get_xlim()
         y_lims = ax2.get_ylim()
         
@@ -537,7 +427,6 @@ def show_stability_radius_plot(
                                  linewidth=1, edgecolor='green', facecolor='green', alpha=0.1, zorder=0)
         ax2.add_patch(rect)
 
-    # Add axis segmentation
     scheme_x = next((s for s in schemes if s.objective_name == x_obj), None)
     scheme_y = next((s for s in schemes if s.objective_name == y_obj), None)
     _apply_axis_segmentation(ax2, scheme_x, outcomes_df[x_obj], orientation='x')
@@ -556,15 +445,6 @@ def show_robustness_heatmap(
     figsize: Tuple[int, int] = (12, 10),
     title: Optional[str] = None
 ) -> plt.Figure:
-    """
-    Plots a heatmap of the policy vs. tradeoff robustness matrix.
-    
-    Args:
-        matrix: DataFrame from compute_policy_robustness_matrix or get_robustness_report.
-        metric: 'starr' or 'regret'.
-        figsize: Figure size.
-        title: Optional plot title.
-    """
     fig, ax = plt.subplots(figsize=figsize)
     _apply_robustness_heatmap(ax, matrix, metric, title)
     plt.tight_layout()
@@ -578,15 +458,11 @@ def show_robustness_comparison_heatmap(
     figsize: Tuple[int, int] = (14, 12),
     title: Optional[str] = None
 ) -> plt.Figure:
-    """
-    Plots two stacked heatmaps comparing baseline robustness vs. improved (box-constrained) robustness.
-    """
     fig, (ax1, ax2) = plt.subplots(2, 1, figsize=figsize, sharex=True)
     
     _apply_robustness_heatmap(ax1, baseline_matrix, metric, "Baseline Robustness (Overall)")
     _apply_robustness_heatmap(ax2, improved_matrix, metric, "Improved Robustness (Under Box Constraints)")
     
-    # Hide X-label for the top plot to keep it clean (since sharex=True)
     ax1.set_xlabel("")
     
     if title:
@@ -597,7 +473,6 @@ def show_robustness_comparison_heatmap(
 
 
 def _apply_robustness_heatmap(ax, matrix, metric, title):
-    """Internal helper to draw a robustness heatmap on a specific axis."""
     metric_clean = metric.lower()
     if metric_clean in ['starr', 'density']:
         cmap = "YlGn"
@@ -618,3 +493,232 @@ def _apply_robustness_heatmap(ax, matrix, metric, title):
     ax.set_ylabel("Policy / Configuration")
     ax.set_xticklabels(ax.get_xticklabels(), rotation=90, ha='right')
     ax.set_yticklabels(ax.get_yticklabels(), rotation=0, horizontalalignment='right')
+
+def show_robustness_uplift(
+    uplift_df: pd.DataFrame,
+    metric: str = 'starr',
+    figsize: Tuple[int, int] = (10, 8),
+    highlight_policies: Optional[Union[List[str], bool]] = None,
+    show_global: bool = True,
+    highlight_alpha: float = 0.9,
+    background_alpha: float = 0.2,
+    marker: str = 'o',
+    title: Optional[str] = None
+) -> plt.Figure:
+    """
+    Plots robustness improvement vectors (Baseline -> Boxed) per policy.
+    
+    X-axis: Robustness Value (e.g. STARR)
+    Y-axis: Coverage (0.0 - 1.0)
+    """
+    fig, ax = plt.subplots(figsize=figsize)
+    
+    df = uplift_df.copy()
+    
+    df = df[df['Baseline'] != 0]
+    
+    if df.empty:
+        plt.close(fig)
+        return fig
+
+    has_global = 'GLOBAL' in df.index
+    global_row = None
+    if has_global:
+        global_row = df.loc['GLOBAL']
+        if not show_global:
+            df = df.drop('GLOBAL')
+            has_global = False
+
+    if highlight_policies is True or highlight_policies is None:
+        highlight_list = [idx for idx in df.index if idx != 'GLOBAL']
+    elif isinstance(highlight_policies, list):
+        highlight_list = highlight_policies
+    else:
+        highlight_list = []
+        
+    highlight_mask = df.index.isin(highlight_list)
+    highlight_df = df[highlight_mask]
+    background_df = df[~highlight_mask]
+
+    if not background_df.empty:
+        for idx, row in background_df.iterrows():
+            if idx == 'GLOBAL': continue 
+            
+            start_x, start_y = row['Baseline'], 1.0
+            end_x, end_y = row['Boxed'], row['Coverage']
+            
+            ax.scatter([start_x, end_x], [start_y, end_y], 
+                       color='lightgray', s=30, marker=marker, alpha=background_alpha, zorder=1)
+            
+            ax.annotate(
+                "",
+                xy=(end_x, end_y), xycoords='data',
+                xytext=(start_x, start_y), textcoords='data',
+                arrowprops=dict(arrowstyle="->", color='lightgray', alpha=background_alpha, lw=1, shrinkA=3, shrinkB=3),
+                zorder=1
+            )
+
+    if not highlight_df.empty:
+        regular_highlights = highlight_df.drop('GLOBAL', errors='ignore')
+        colors = sns.color_palette("bright", n_colors=max(1, len(regular_highlights)))
+        
+        color_idx = 0
+        for i, (policy, row) in enumerate(highlight_df.iterrows()):
+            if policy == 'GLOBAL':
+                color = 'black'
+                z_order_base = 15
+                lw = 3
+            else:
+                color = colors[color_idx % len(colors)]
+                color_idx += 1
+                z_order_base = 10
+                lw = 2
+            
+            start_x, start_y = row['Baseline'], 1.0
+            end_x, end_y = row['Boxed'], row['Coverage']
+            
+            ax.scatter([start_x, end_x], [start_y, end_y], 
+                       color=color, s=60, marker=marker, alpha=highlight_alpha, zorder=z_order_base, 
+                       label=policy)
+            
+            ax.annotate(
+                "",
+                xy=(end_x, end_y), xycoords='data',
+                xytext=(start_x, start_y), textcoords='data',
+                arrowprops=dict(arrowstyle="->", color=color, alpha=highlight_alpha, lw=lw, shrinkA=5, shrinkB=5),
+                zorder=z_order_base - 1
+            )
+
+    if show_global and has_global and 'GLOBAL' not in highlight_list:
+        row = global_row
+        start_x, start_y = row['Baseline'], 1.0
+        end_x, end_y = row['Boxed'], row['Coverage']
+        
+        ax.scatter([start_x, end_x], [start_y, end_y], 
+                   color='black', s=40, marker=marker, alpha=background_alpha, zorder=5, label='GLOBAL')
+        ax.annotate(
+            "",
+            xy=(end_x, end_y), xycoords='data',
+            xytext=(start_x, start_y), textcoords='data',
+            arrowprops=dict(arrowstyle="->", color='black', alpha=background_alpha, lw=1.5, shrinkA=4, shrinkB=4),
+            zorder=4
+        )
+
+    ax.set_xlabel(f"Robustness Metric ({metric.upper()})")
+    ax.set_ylabel("Coverage (Fraction of Scenarios)")
+    ax.set_ylim(0, 1.05)
+    ax.set_xlim(0, 1.05)
+    
+    # Baseline Line (Removed label from legend)
+
+    if title:
+        ax.set_title(title)
+    else:
+        ax.set_title(f"Robustness Uplift Analysis: {metric.upper()} vs Coverage")
+        
+    if ax.get_legend_handles_labels()[0]:
+        handles, labels = ax.get_legend_handles_labels()
+        unique = [(h, l) for i, (h, l) in enumerate(zip(handles, labels)) if l not in labels[:i]]
+        ax.legend(*zip(*unique), title="Policies", bbox_to_anchor=(1.05, 1), loc='upper left')
+    
+    plt.tight_layout()
+    return fig
+
+def show_multiple_robustness_uplifts(
+    uplift_datasets: Dict[str, pd.DataFrame],
+    metric: str = 'starr',
+    figsize: Tuple[int, int] = (12, 10),
+    highlight_policies: Optional[Union[List[str], bool]] = None,
+    alpha: float = 0.8,
+    title: Optional[str] = None
+) -> plt.Figure:
+    """
+    Plots robustness uplifts for multiple boxes/tradeoffs on the same chart.
+    
+    Distinct markers are used for each Box/Dataset.
+    Consistent colors are used for each Policy.
+    
+    Args:
+        uplift_datasets: Dict mapping Label (e.g. Box Name) -> Uplift DataFrame.
+        metric: Robustness metric name.
+        figsize: Figure size.
+        highlight_policies: List of policies to include. If True/None, includes all (except Global).
+        alpha: Opacity of plot elements.
+        title: Plot title.
+    """
+    fig, ax = plt.subplots(figsize=figsize)
+    
+    markers = ['o', 'D', 's', '^', 'v', 'P', 'X', '*', 'h', 'p']
+    
+    all_policies = set()
+    for df in uplift_datasets.values():
+        valid_rows = df[(df.index != 'GLOBAL') & (df['Baseline'] != 0)]
+        all_policies.update(valid_rows.index.tolist())
+        
+    if not all_policies:
+        plt.close(fig)
+        return fig
+        
+    if isinstance(highlight_policies, list):
+        target_policies = sorted([p for p in all_policies if p in highlight_policies])
+    else:
+        target_policies = sorted(list(all_policies))
+        
+    if not target_policies:
+        plt.close(fig)
+        return fig
+
+    colors = sns.color_palette("bright", n_colors=len(target_policies))
+    policy_color_map = dict(zip(target_policies, colors))
+
+    for i, (box_name, df) in enumerate(uplift_datasets.items()):
+        marker = markers[i % len(markers)]
+        
+        mask = (df.index.isin(target_policies)) & (df['Baseline'] != 0)
+        df_filtered = df[mask]
+        
+        for policy, row in df_filtered.iterrows():
+            if policy == 'GLOBAL': continue
+            
+            color = policy_color_map[policy]
+            label = f"{policy} ({box_name})"
+            
+            start_x, start_y = row['Baseline'], 1.0
+            end_x, end_y = row['Boxed'], row['Coverage']
+            
+            # Draw Points (Same marker for both start and end)
+            ax.scatter([start_x, end_x], [start_y, end_y], 
+                       color=color, marker=marker, s=60, alpha=alpha, zorder=10, label=label)
+            
+            # Draw Arrow
+            ax.annotate(
+                "",
+                xy=(end_x, end_y), xycoords='data',
+                xytext=(start_x, start_y), textcoords='data',
+                arrowprops=dict(arrowstyle="->", color=color, alpha=alpha, lw=1.5, shrinkA=5, shrinkB=5),
+                zorder=9
+            )
+
+    ax.set_xlabel(f"Robustness Metric ({metric.upper()})")
+    ax.set_ylabel("Coverage (Fraction of Scenarios)")
+    ax.set_ylim(0, 1.05)
+    ax.axhline(1.0, color='gray', linestyle='--', alpha=0.3)
+
+    if title:
+        ax.set_title(title)
+    else:
+        ax.set_title(f"Comparative Robustness Uplift ({len(uplift_datasets)} Boxes)")
+
+    # Legend handling: deduplicate labels and move outside plot area
+    handles, labels = ax.get_legend_handles_labels()
+    if handles:
+        by_label = dict(zip(labels, handles))
+        # Place legend to the right of the plot
+        ax.legend(by_label.values(), by_label.keys(), 
+                  title="Policy (Tradeoff)", 
+                  bbox_to_anchor=(1.02, 1), 
+                  loc='upper left',
+                  borderaxespad=0.)
+
+    plt.tight_layout()
+    return fig

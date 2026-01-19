@@ -45,7 +45,7 @@
     },
     "quality_objectives": [
       { "name": "response_time", "metric": "time", "maximize": false },
-      { "name": "throughput", "metric": "percentage", "maximize": false }
+      { "name": "utilization", "metric": "percentage", "maximize": false }
     ]
   },
   "metadata": {

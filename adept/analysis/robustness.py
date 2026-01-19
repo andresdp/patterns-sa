@@ -210,3 +210,136 @@ class RobustnessAnalyzer:
                 'nearest_failure_parameters': nearest_fail_params
             }
         }
+
+    @classmethod
+    def analyze_robustness_uplift(
+        cls,
+        experiments_df: pd.DataFrame,
+        outcomes_df: pd.DataFrame,
+        is_target_mask: pd.Series,
+        box_mask: pd.Series,
+        design_vars: List[str],
+        metric: str = 'starr',
+        boundaries: Optional[Dict[str, Dict[str, float]]] = None,
+        stats: Optional[Dict[str, Any]] = None
+    ) -> pd.DataFrame:
+        """
+        Computes robustness uplift (improvement) per policy when applying box constraints.
+
+        Args:
+            experiments_df: Design parameters.
+            outcomes_df: Quality outcomes.
+            is_target_mask: Boolean mask of satisfying scenarios (Baseline).
+            box_mask: Boolean mask of scenarios inside the discovered box.
+            design_vars: List of columns defining the policy/configuration.
+            metric: 'starr' or 'regret'.
+            boundaries: (Required for Regret) Tradeoff boundaries.
+            stats: (Optional for Regret) Normalization stats.
+
+        Returns:
+            DataFrame indexed by policy signature with columns:
+            ['Baseline', 'Boxed', 'Uplift', 'Coverage', 'Count']
+        """
+        # Create policy signatures (just values, no prefixes)
+        if not design_vars:
+            policies = pd.Series(["Global"] * len(experiments_df), index=experiments_df.index)
+        else:
+            policies = experiments_df[design_vars].apply(
+                lambda row: ", ".join([str(v) for v in row.values]), axis=1
+            )
+
+        results = []
+        unique_policies = policies.unique()
+
+        for policy in unique_policies:
+            # Indices for this policy
+            idx_policy = policies[policies == policy].index
+            
+            # Subsets
+            mask_p = is_target_mask.loc[idx_policy]
+            box_p = box_mask.loc[idx_policy]
+            out_p = outcomes_df.loc[idx_policy]
+            
+            # 1. Baseline Metric
+            if metric == 'starr':
+                base_val = cls.compute_starr(mask_p)['value']
+            elif metric == 'regret':
+                base_val = cls.compute_regret(out_p, mask_p, boundaries, stats)['value']
+            else:
+                raise ValueError(f"Unsupported metric for uplift: {metric}")
+
+            # 2. Boxed Metric (only consider points inside the box)
+            idx_box = idx_policy[box_p] # Points in policy AND in box
+            
+            if len(idx_box) == 0:
+                boxed_val = np.nan
+                coverage = 0.0
+            else:
+                mask_p_box = is_target_mask.loc[idx_box]
+                out_p_box = outcomes_df.loc[idx_box]
+                
+                if metric == 'starr':
+                    boxed_val = cls.compute_starr(mask_p_box)['value']
+                elif metric == 'regret':
+                    boxed_val = cls.compute_regret(out_p_box, mask_p_box, boundaries, stats)['value']
+                
+                # Coverage = Fraction of policy scenarios retained by the box
+                coverage = len(idx_box) / len(idx_policy)
+
+            # 3. Uplift
+            if np.isnan(boxed_val):
+                uplift = np.nan
+            else:
+                if metric == 'starr':
+                    # Higher is better: Boxed - Baseline
+                    uplift = boxed_val - base_val
+                elif metric == 'regret':
+                    # Lower is better: Baseline - Boxed
+                    uplift = base_val - boxed_val
+
+            results.append({
+                'Policy': policy,
+                'Baseline': base_val,
+                'Boxed': boxed_val,
+                'Uplift': uplift,
+                'Coverage': coverage,
+                'Count': len(idx_box) # Now represents scenarios AFTER box
+            })
+
+        # Add Global Aggregate
+        if metric == 'starr':
+            glob_base = cls.compute_starr(is_target_mask)['value']
+            # Boxed global
+            mask_box_all = is_target_mask[box_mask]
+            if len(mask_box_all) > 0:
+                glob_boxed = cls.compute_starr(mask_box_all)['value']
+            else:
+                glob_boxed = np.nan
+        elif metric == 'regret':
+            glob_base = cls.compute_regret(outcomes_df, is_target_mask, boundaries, stats)['value']
+            mask_box_all = is_target_mask[box_mask]
+            out_box_all = outcomes_df[box_mask]
+            if len(mask_box_all) > 0:
+                glob_boxed = cls.compute_regret(out_box_all, mask_box_all, boundaries, stats)['value']
+            else:
+                glob_boxed = np.nan
+        
+        glob_cov = box_mask.sum() / len(box_mask)
+        if np.isnan(glob_boxed):
+            glob_uplift = np.nan
+        else:
+            glob_uplift = (glob_boxed - glob_base) if metric == 'starr' else (glob_base - glob_boxed)
+
+        results.append({
+            'Policy': 'GLOBAL',
+            'Baseline': glob_base,
+            'Boxed': glob_boxed,
+            'Uplift': glob_uplift,
+            'Coverage': glob_cov,
+            'Count': int(box_mask.sum())
+        })
+
+        df = pd.DataFrame(results).set_index('Policy')
+        # Fill NaNs with 0.0 for metrics
+        df[['Boxed', 'Uplift']] = df[['Boxed', 'Uplift']].fillna(0.0)
+        return df

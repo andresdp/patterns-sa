@@ -47,68 +47,6 @@ class FeatureImportanceAnalyzer:
                      
         return list(set(valid_cols))
 
-    def create_stratified_split(
-        self, 
-        experiments_df: pd.DataFrame, 
-        tradeoff_indices_map: Dict[str, np.ndarray], 
-        test_size: float = 0.2, 
-        random_state: int = 42
-    ) -> Tuple[np.ndarray, np.ndarray]:
-        """
-        Splits the data indices into train and test sets, stratifying based on tradeoff membership.
-        
-        Args:
-            experiments_df: The dataframe defining the index.
-            tradeoff_indices_map: Map of {tradeoff_name: [indices]}.
-            test_size: Fraction of data to use for testing.
-            
-        Returns:
-            (train_indices, test_indices)
-        """
-        # Create a stratification label for each row
-        # 0 = No Tradeoff
-        # 1..N = Tradeoff Index
-        # -1 = Multiple Tradeoffs
-        
-        n_rows = len(experiments_df)
-        labels = np.zeros(n_rows, dtype=int) # Default 0 (Non-compliant)
-        
-        # We assign integers to tradeoffs
-        tradeoff_names = list(tradeoff_indices_map.keys())
-        
-        for i, name in enumerate(tradeoff_names):
-            idx = tradeoff_indices_map[name]
-            # If current label is 0, set to i+1
-            # If current label is > 0, set to -1 (Multiple)
-            # If current label is -1, stay -1
-            
-            # Vectorized update
-            current_vals = labels[idx]
-            
-            # Mask for where it is 0
-            is_zero = current_vals == 0
-            labels[idx[is_zero]] = i + 1
-            
-            # Mask for where it is > 0 (already assigned)
-            is_assigned = current_vals > 0
-            labels[idx[is_assigned]] = -1
-            
-        # Perform split on indices
-        indices = np.arange(n_rows)
-        
-        # Check if we have enough samples in each stratum
-        # If a class has < 2 members, stratify will fail.
-        # We fall back to random split if stratification is impossible.
-        from collections import Counter
-        counts = Counter(labels)
-        if any(c < 2 for c in counts.values()):
-            print("Warning: Some strata have too few samples. Falling back to non-stratified split.")
-            train_idx, test_idx = train_test_split(indices, test_size=test_size, random_state=random_state)
-        else:
-            train_idx, test_idx = train_test_split(indices, test_size=test_size, stratify=labels, random_state=random_state)
-            
-        return train_idx, test_idx
-
     def preprocess_features(
         self, 
         df: pd.DataFrame, 

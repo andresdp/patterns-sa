@@ -108,6 +108,26 @@ class VisualizationManager:
             return show_robustness_comparison_heatmap(baseline_matrix, improved_matrix, metric=metric, **kwargs)
         except Exception as e:
             raise VisualizationError(f"Failed to plot robustness comparison: {str(e)}")
+
+    def show_robustness_uplift(self, uplift_df: pd.DataFrame, metric: str = 'starr', highlight_policies: Optional[List[str]] = None, **kwargs) -> plt.Figure:
+        """
+        Plots a scatter chart of Baseline vs. Uplift per policy.
+        """
+        try:
+            from .visualization import show_robustness_uplift
+            return show_robustness_uplift(uplift_df, metric=metric, highlight_policies=highlight_policies, **kwargs)
+        except Exception as e:
+            raise VisualizationError(f"Failed to plot robustness uplift: {str(e)}")
+
+    def show_multiple_robustness_uplifts(self, uplift_datasets: Dict[str, pd.DataFrame], metric: str = 'starr', highlight_policies: Optional[List[str]] = None, **kwargs) -> plt.Figure:
+        """
+        Plots robustness uplifts for multiple boxes/tradeoffs on the same chart.
+        """
+        try:
+            from .visualization import show_multiple_robustness_uplifts
+            return show_multiple_robustness_uplifts(uplift_datasets, metric=metric, highlight_policies=highlight_policies, **kwargs)
+        except Exception as e:
+            raise VisualizationError(f"Failed to plot multiple robustness uplifts: {str(e)}")
     
     def _validate_plot_inputs(self, outcomes_df: pd.DataFrame, schemes: List[Dict]) -> None:
         """Validates common input parameters for plotting methods."""

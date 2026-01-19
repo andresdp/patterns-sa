@@ -4,6 +4,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from .coordinator import ArchSpaceCore
 from .models import SystemDefinition, DiscretizationScheme, Tradeoff
+import seaborn as sns
 
 class PatternAnalysis:
     """Encapsulates the state and workflow for analyzing a single pattern configuration. 
@@ -664,7 +665,15 @@ class PatternAnalysis:
         from ..analysis.feature_importance import FeatureImportanceAnalyzer
         
         # 1. Prepare Data Subsets
-        indices = self._filter_indices_for_subset(range(len(self.raw_df)), subset)
+        # Fix: Get actual global indices for the subset to align with policy_map
+        if subset == 'all':
+            subset_indices = self.experiments_df.index
+        elif subset == 'train' and self.train_indices is not None:
+            subset_indices = self.train_indices
+        elif subset == 'test' and self.test_indices is not None:
+            subset_indices = self.test_indices
+        else:
+            raise ValueError(f"Invalid subset '{subset}' or data not split.")
         
         # Filter for Policy
         config_col = self.sys_def.dataspace.configuration_identification.column
@@ -682,8 +691,8 @@ class PatternAnalysis:
             
         policy_mask = (policy_map[policy_col] == policy_name)
         
-        # Intersection of subset and policy
-        final_indices = [idx for idx in indices if policy_mask.iloc[idx]]
+        # Intersection of subset and policy using global indices
+        final_indices = [idx for idx in subset_indices if policy_mask.iloc[idx]]
         
         if not final_indices:
             return {'metric': metric, 'value': 0.0, 'details': 'No data for policy/subset'}
@@ -738,6 +747,159 @@ class PatternAnalysis:
             )
         else:
             raise ValueError(f"Unknown robustness metric: {metric}")
+
+    def analyze_robustness_uplift(
+        self,
+        box: Any,
+        tradeoff_name: str,
+        metric: str = 'starr',
+        subset: str = 'all'
+    ) -> pd.DataFrame:
+        """
+        Computes the robustness uplift (Baseline vs Boxed) per policy.
+
+        Args:
+            box: A Box object (e.g., from discover_scenarios) or a dict with limits.
+            tradeoff_name: The target tradeoff defining 'Success'.
+            metric: 'starr' or 'regret'.
+            subset: 'all', 'train', or 'test'.
+
+        Returns:
+            pd.DataFrame: Columns [Policy, Baseline, Boxed, Uplift, Coverage, Count].
+        """
+        from ..analysis.robustness import RobustnessAnalyzer
+        from ..analysis.contingency import ContingencyAnalyzer
+
+        # 1. Prepare Data
+        X, Y, discrete = self._get_subset_data(subset)
+        
+        # 2. Identify Policies
+        config_col = self.sys_def.dataspace.configuration_identification.column
+        if not config_col:
+            raise RuntimeError("Configuration column not defined.")
+        
+        # We need the exact column(s) that define the policy.
+        # Usually, this is just the config_col in X.
+        design_vars = [config_col]
+
+        # 3. Create Target Mask (Baseline Success)
+        tradeoff = self.get_tradeoff(tradeoff_name)
+        if not tradeoff:
+            raise ValueError(f"Tradeoff '{tradeoff_name}' not found.")
+            
+        is_target_mask = pd.Series(True, index=discrete.index)
+        for obj, label in tradeoff.elements.items():
+            if obj in discrete.columns:
+                is_target_mask &= (discrete[obj] == label)
+
+        # 4. Create Box Mask (Inside Box)
+        # If 'box' is a Box object, use box.limits. If dict, use it directly.
+        limits = getattr(box, 'limits', box)
+        if not isinstance(limits, dict):
+             raise ValueError("Invalid box object provided. Must have 'limits' attribute or be a dict.")
+
+        box_mask = pd.Series(True, index=X.index)
+        for param, bounds in limits.items():
+            if param in X.columns:
+                box_mask &= (X[param] >= bounds['min']) & (X[param] <= bounds['max'])
+
+        # 5. Prepare Regret Args (if needed)
+        boundaries = None
+        stats = None
+        if metric == 'regret':
+            self._ensure_outcome_stats()
+            stats = self.outcome_stats
+            boundaries = {}
+            for obj, label in tradeoff.elements.items():
+                scheme = next((s for s in self.schemes if s.objective_name == obj), None)
+                if scheme:
+                    q_bin = next((b for b in scheme.bins if b.label == label), None)
+                    if q_bin:
+                        boundaries[obj] = {'min': q_bin.min_value, 'max': q_bin.max_value}
+
+        # 6. Compute
+        return RobustnessAnalyzer.analyze_robustness_uplift(
+            experiments_df=X,
+            outcomes_df=Y,
+            is_target_mask=is_target_mask,
+            box_mask=box_mask,
+            design_vars=design_vars,
+            metric=metric,
+            boundaries=boundaries,
+            stats=stats
+        )
+
+    def show_robustness_uplift(
+        self,
+        uplift_df: pd.DataFrame,
+        metric: str = 'starr',
+        highlight_policies: Optional[Union[List[str], bool]] = None,
+        title: Optional[str] = None,
+        figsize: Tuple[int, int] = (10, 8),
+        show_global: bool = True,
+        highlight_alpha: float = 0.9,
+        background_alpha: float = 0.2,
+        marker: str = 'o',
+        **kwargs
+    ) -> plt.Figure:
+        """
+        Visualizes the results of analyze_robustness_uplift.
+        
+        Plots vectors per policy: Baseline (Coverage=1.0) -> Boxed (Coverage=Actual).
+        X-axis: Robustness Metric
+        Y-axis: Coverage
+        
+        Args:
+            uplift_df: DataFrame from analyze_robustness_uplift.
+            metric: Metric name.
+            highlight_policies: List of policies to emphasize (colored arrows) OR True to highlight all.
+                                The GLOBAL policy is handled via show_global.
+            show_global: Whether to include the 'GLOBAL' aggregate.
+            highlight_alpha: Opacity for highlighted policies.
+            background_alpha: Opacity for non-highlighted policies (gray).
+            marker: Symbol for the points (e.g., 'o', 'D', '*').
+        """
+        return self.coordinator.visualization_manager.show_robustness_uplift(
+            uplift_df, 
+            metric=metric, 
+            highlight_policies=highlight_policies, 
+            title=title, 
+            figsize=figsize,
+            show_global=show_global,
+            highlight_alpha=highlight_alpha,
+            background_alpha=background_alpha,
+            marker=marker,
+            **kwargs
+        )
+
+    def show_multiple_robustness_uplifts(
+        self,
+        uplift_datasets: Dict[str, pd.DataFrame],
+        metric: str = 'starr',
+        highlight_policies: Optional[Union[List[str], bool]] = None,
+        title: Optional[str] = None,
+        figsize: Tuple[int, int] = (12, 10),
+        alpha: float = 0.8,
+        **kwargs
+    ) -> plt.Figure:
+        """
+        Plots robustness uplifts for multiple boxes/tradeoffs on the same chart.
+        
+        Args:
+            uplift_datasets: Dict mapping Label (e.g. Box Name) -> Uplift DataFrame.
+            metric: Metric name.
+            highlight_policies: List of policies to include.
+            alpha: Opacity.
+        """
+        return self.coordinator.visualization_manager.show_multiple_robustness_uplifts(
+            uplift_datasets, 
+            metric=metric, 
+            highlight_policies=highlight_policies, 
+            title=title, 
+            figsize=figsize,
+            alpha=alpha,
+            **kwargs
+        )
 
     def get_robustness_report(
         self, 
@@ -806,6 +968,221 @@ class PatternAnalysis:
             report_data.append(row)
             
         return pd.DataFrame(report_data).set_index('Policy')
+
+    def get_aggregate_robustness_stats(
+        self,
+        boxes: List[Any],
+        metric: str = 'starr',
+        subset: str = 'all'
+    ) -> pd.DataFrame:
+        """
+        Consolidates robustness uplift across multiple discovered boxes/tradeoffs.
+        
+        Assumes each box targets a specific tradeoff (box.target_tradeoff).
+        Computes the 'GLOBAL' uplift for each box and aggregates the results.
+        
+        Args:
+            boxes: List of Box objects (from discover_scenarios).
+            metric: 'starr' or 'regret'.
+            subset: 'all', 'train', or 'test'.
+            
+        Returns:
+            pd.DataFrame: Rows=Tradeoffs, Columns=[Baseline, Boxed, Uplift, Coverage].
+                          Includes an 'AVERAGE' row at the bottom.
+        """
+        results = []
+        
+        for box in boxes:
+            t_name = box.target_tradeoff
+            if not t_name:
+                continue
+                
+            try:
+                # Analyze Uplift for this box against its target
+                uplift_df = self.analyze_robustness_uplift(
+                    box=box, 
+                    tradeoff_name=t_name, 
+                    metric=metric, 
+                    subset=subset
+                )
+                
+                # Extract GLOBAL row
+                if 'GLOBAL' in uplift_df.index:
+                    glob = uplift_df.loc['GLOBAL']
+                    results.append({
+                        'Tradeoff': t_name,
+                        'Baseline': glob['Baseline'],
+                        'Boxed': glob['Boxed'],
+                        'Uplift': glob['Uplift'],
+                        'Coverage': glob['Coverage'],
+                        'Count': glob['Count']
+                    })
+            except Exception as e:
+                print(f"Warning: Failed to aggregate stats for box targeting '{t_name}': {e}")
+
+        if not results:
+            return pd.DataFrame()
+            
+        df = pd.DataFrame(results).set_index('Tradeoff')
+        
+        # Calculate Summary Stats
+        summary = df.mean().to_dict()
+        summary_std = df.std().to_dict()
+        
+        # Add AVERAGE row
+        df.loc['AVERAGE'] = summary
+        df.loc['STD_DEV'] = summary_std
+        
+        return df
+
+    def get_tradeoff_impact_matrix(
+        self,
+        boxes: List[Any],
+        policy_name: Optional[str] = None,
+        subset: str = 'all'
+    ) -> pd.DataFrame:
+        """
+        Computes a matrix of Boxed Densities for all tradeoffs when specific boxes are applied.
+        
+        Rows: The Tradeoff targeted by the Box.
+        Columns: The Tradeoff being measured (Collateral impact).
+        Values: The absolute density (0.0 - 1.0) of the column tradeoff within the box.
+        
+        Args:
+            boxes: List of Box objects.
+            policy_name: Specific policy to analyze. If None, uses Global data.
+            subset: 'all', 'train', or 'test'.
+            
+        Returns:
+            pd.DataFrame: A square-ish matrix of densities.
+        """
+        from ..analysis.contingency import ContingencyAnalyzer
+        
+        # 1. Prepare Data
+        X, _, discrete = self._get_subset_data(subset)
+        
+        # 2. Filter by Policy (if requested)
+        if policy_name:
+            config_col = self.sys_def.dataspace.configuration_identification.column
+            if not config_col:
+                raise RuntimeError("Configuration column not defined.")
+            
+            analyzer_cont = ContingencyAnalyzer(self.sys_def)
+            policy_map = analyzer_cont.get_decision_policy_map(self.experiments_df, config_col)
+            
+            # Find matching indices
+            policy_col = None
+            for col in policy_map.columns:
+                if (policy_map[col] == policy_name).any():
+                    policy_col = col
+                    break
+            
+            if policy_col:
+                # Get global indices matching policy
+                global_mask = (policy_map[policy_col] == policy_name)
+                # Intersect with subset indices
+                subset_indices = self._filter_indices_for_subset(np.where(global_mask)[0], subset)
+                
+                if len(subset_indices) == 0:
+                    raise ValueError(f"No data found for policy '{policy_name}' in subset '{subset}'")
+                
+                X = X.iloc[subset_indices]
+                discrete = discrete.iloc[subset_indices]
+            else:
+                raise ValueError(f"Policy '{policy_name}' not found.")
+
+        # 3. Precompute Tradeoff Masks
+        all_tradeoffs = self.get_tradeoffs()
+        tradeoff_masks = {}
+        
+        for t in all_tradeoffs:
+            # Create mask: True if row satisfies tradeoff t
+            mask = pd.Series(True, index=discrete.index)
+            for obj, label in t.elements.items():
+                if obj in discrete.columns:
+                    mask &= (discrete[obj] == label)
+            tradeoff_masks[t.name] = mask
+
+        # 4. Iterate Boxes (Rows)
+        rows = []
+        row_indices = []
+        
+        for box in boxes:
+            target_name = box.target_tradeoff
+            if not target_name:
+                continue
+                
+            row_indices.append(target_name)
+            
+            # Apply Box Limits to X
+            limits = getattr(box, 'limits', box)
+            box_mask = pd.Series(True, index=X.index)
+            for param, bounds in limits.items():
+                if param in X.columns:
+                    box_mask &= (X[param] >= bounds['min']) & (X[param] <= bounds['max'])
+            
+            # 5. Compute Boxed Density for ALL Tradeoffs (Cols)
+            row_values = {}
+            boxed_count = box_mask.sum()
+            
+            for t in all_tradeoffs:
+                if boxed_count == 0:
+                    boxed_density = 0.0
+                else:
+                    # Intersection of Box AND Tradeoff
+                    success_in_box = (tradeoff_masks[t.name] & box_mask).sum()
+                    boxed_density = success_in_box / boxed_count
+                
+                row_values[t.name] = boxed_density
+            
+            rows.append(row_values)
+            
+        if not rows:
+            return pd.DataFrame()
+            
+        return pd.DataFrame(rows, index=row_indices)
+
+    def show_tradeoff_impact_heatmap(
+        self,
+        impact_matrix: pd.DataFrame,
+        title: Optional[str] = None,
+        figsize: Tuple[int, int] = (10, 8),
+        cmap: str = 'YlGnBu',
+        **kwargs
+    ) -> plt.Figure:
+        """
+        Visualizes the Tradeoff Impact Matrix as a heatmap.
+        
+        Args:
+            impact_matrix: DataFrame computed by get_tradeoff_impact_matrix.
+            title: Optional plot title.
+            figsize: Figure size.
+            cmap: Colormap (default 'YlGnBu' for sequential density).
+        """
+        if impact_matrix.empty:
+            raise ValueError("Impact matrix is empty.")
+            
+        # 2. Plot
+        fig, ax = plt.subplots(figsize=figsize)
+        
+        sns.heatmap(
+            impact_matrix, 
+            annot=True, 
+            fmt=".2f", 
+            vmin=0.0,
+            vmax=1.0,
+            cmap=cmap, 
+            ax=ax,
+            cbar_kws={'label': 'Boxed Density (Success Rate)'}
+        )
+        
+        full_title = title or "Tradeoff Impact Matrix"
+        ax.set_title(full_title, pad=20)
+        ax.set_ylabel("Applied Box (Target Tradeoff)")
+        ax.set_xlabel("Impacted Tradeoff")
+        
+        plt.tight_layout()
+        return fig
 
     def get_policy_robustness_ranking(
         self, 
@@ -933,11 +1310,21 @@ class PatternAnalysis:
             raise ValueError(f"Policy '{policy_name}' not found.")
             
         policy_mask = (policy_map[policy_col] == policy_name)
-        indices = self._filter_indices_for_subset(range(len(self.raw_df)), subset)
-        final_mask = policy_mask.iloc[indices]
         
-        exp_subset = X_full[final_mask]
-        out_subset = Y_full[final_mask]
+        # Fix: Filter the global policy_mask to match the subset indices
+        if subset == 'all':
+            subset_indices = self.experiments_df.index
+        elif subset == 'train':
+            subset_indices = self.train_indices
+        else:
+            subset_indices = self.test_indices
+            
+        # Select the policy_mask values corresponding to the subset rows
+        final_mask = policy_mask.iloc[subset_indices]
+        
+        # Apply mask (boolean indexing works because both are aligned/length of subset)
+        exp_subset = X_full[final_mask.values]
+        out_subset = Y_full[final_mask.values]
         
         # 3. Determine target mask (Success/Failure)
         tradeoff = self.get_tradeoff(tradeoff_name)
@@ -1321,7 +1708,7 @@ class PatternAnalysis:
 
     # --- Feature Scoring ---
 
-    def split_data(self, test_size: float = 0.2, random_state: int = 42, remove_outliers: bool = False, z_threshold: float = 3.0) -> None:
+    def split_data(self, test_size: float = 0.2, random_state: int = 42, remove_outliers: bool = False, z_threshold: float = 3.0, verbose: bool = True) -> None:
         """
         Splits data into train/test sets, stratifying by tradeoff membership.
         Indices are stored in self.train_indices and self.test_indices.
@@ -1331,8 +1718,9 @@ class PatternAnalysis:
             random_state: Seed for the random number generator.
             remove_outliers: If True, removes rows where any numeric outcome has a Z-score > z_threshold.
             z_threshold: Threshold for outlier detection (default 3.0).
+            verbose: If True (default), prints detailed tradeoff distribution statistics.
         """
-        from ..analysis.feature_importance import FeatureImportanceAnalyzer
+        from sklearn.model_selection import train_test_split
         
         if self.experiments_df is None or not self.tradeoff_indices:
             raise RuntimeError("Data must be loaded and tradeoffs defined before splitting.")
@@ -1354,40 +1742,78 @@ class PatternAnalysis:
                 valid_indices = valid_indices[mask]
                 
                 dropped_count = len(self.experiments_df) - len(valid_indices)
-                if dropped_count > 0:
+                if dropped_count > 0 and verbose:
                     print(f"Outlier removal: Dropped {dropped_count} rows based on outcome Z-scores > {z_threshold}.")
 
-        # 2. Prepare Subset Data
-        # We work on the valid subset to perform stratification
-        subset_df = self.experiments_df.iloc[valid_indices]
+        # 2. Prepare Stratification Labels on the Valid Subset
+        # We need a single label vector for sklearn's stratify.
+        # Strategy:
+        # 0 = No Tradeoff (Baseline)
+        # 1..N = Specific Tradeoff
+        # -1 = Multiple Tradeoffs (Overlap)
         
-        # Map global tradeoff indices to the new subset space
-        # Create a lookup array: global_index -> subset_index (or -1 if invalid)
-        mapping_array = np.full(len(self.experiments_df), -1)
-        mapping_array[valid_indices] = np.arange(len(valid_indices))
+        n_valid = len(valid_indices)
+        labels = np.zeros(n_valid, dtype=int)
         
-        subset_tradeoff_indices = {}
-        for name, global_idxs in self.tradeoff_indices.items():
-            # Get corresponding local indices
-            local_idxs = mapping_array[global_idxs]
-            # Filter out those that were removed (-1)
-            subset_tradeoff_indices[name] = local_idxs[local_idxs != -1]
+        # Map global indices to local position in valid_indices
+        global_to_local = {idx: i for i, idx in enumerate(valid_indices)}
+        
+        for i, (t_name, global_idxs) in enumerate(self.tradeoff_indices.items()):
+            # Filter indices that are present in the valid set
+            valid_t_idxs = [global_to_local[idx] for idx in global_idxs if idx in global_to_local]
+            
+            if not valid_t_idxs:
+                continue
+                
+            local_idxs = np.array(valid_t_idxs)
+            
+            # Vectorized update of labels
+            current_vals = labels[local_idxs]
+            
+            # If current is 0, assign this tradeoff ID (i+1)
+            is_zero = current_vals == 0
+            labels[local_idxs[is_zero]] = i + 1
+            
+            # If current is > 0 (already assigned), mark as Overlap (-1)
+            is_assigned = current_vals > 0
+            labels[local_idxs[is_assigned]] = -1
 
-        # 3. Perform Stratified Split on Subset
-        analyzer = FeatureImportanceAnalyzer(self.sys_def)
-        train_local, test_local = analyzer.create_stratified_split(
-            subset_df,
-            subset_tradeoff_indices,
-            test_size=test_size,
+        # 3. Perform Split
+        # Check for small classes
+        from collections import Counter
+        counts = Counter(labels)
+        if any(c < 2 for c in counts.values()):
+            if verbose:
+                print("Warning: Some stratification classes have < 2 samples. Falling back to random split.")
+            stratify = None
+        else:
+            stratify = labels
+
+        train_local, test_local = train_test_split(
+            np.arange(n_valid), 
+            test_size=test_size, 
+            stratify=stratify, 
             random_state=random_state
         )
         
         # 4. Map back to Global Indices
-        # self.train_indices must point to rows in the original self.experiments_df
         self.train_indices = valid_indices[train_local]
         self.test_indices = valid_indices[test_local]
         
-        print(f"Data split: {len(self.train_indices)} train, {len(self.test_indices)} test.")
+        # 5. Print Split Statistics
+        if verbose:
+            print(f"Data split: {len(self.train_indices)} train, {len(self.test_indices)} test.")
+            
+            # Helper to count tradeoffs in a set of indices
+            def print_tradeoff_counts(name, indices):
+                print(f"\n--- {name} Set Tradeoff Counts ---")
+                idx_set = set(indices)
+                for t_name, t_indices in self.tradeoff_indices.items():
+                    count = sum(1 for i in t_indices if i in idx_set)
+                    print(f"  {t_name}: {count}")
+                    
+            print_tradeoff_counts("Train", self.train_indices)
+            print_tradeoff_counts("Test", self.test_indices)
 
     def compute_feature_scores(
         self, 
@@ -1627,7 +2053,7 @@ class PatternAnalysis:
         # Preprocessing
         current_stats = None
         if standardize:
-             X_train, _, stats = analyzer.preprocess_features(X_train, standardize=True)
+             X_train, _, stats = analyzer_fi.preprocess_features(X_train, standardize=True)
              current_stats = stats
              X_test_arr = stats['scaler'].transform(X_test[stats['numeric_cols']])
              X_test = pd.DataFrame(X_test_arr, index=X_test.index, columns=stats['numeric_cols'])
@@ -1896,5 +2322,39 @@ class PatternAnalysis:
             selected_indices = selected_indices[:k]
         return selected_indices
 
+    def _compute_impacts(self, boxes: List[Any], method: str, subset: str='test') -> pd.DataFrame:
 
-    
+        all_impacts_df = []
+        for policy_name in self.get_policies().keys():
+            impact_df = self.get_tradeoff_impact_matrix(
+                boxes=boxes, 
+                policy_name=policy_name, # Optional: analyze a specific policy
+                subset=subset                  # 'all', 'train', or 'test'
+            )
+            impact_df['policy'] = policy_name
+            all_impacts_df.append(impact_df)
+
+        all_impacts_df = pd.concat(all_impacts_df)
+        all_impacts_df.index.name = 'target'
+        all_impacts_df = all_impacts_df.reset_index().set_index('policy')
+        all_impacts_df['method'] = method
+        
+        return all_impacts_df
+
+    def get_robustness_results(self, prim_boxes: List[Any], cart_boxes: List[Any], baseline: pd.DataFrame = None, method: str='test set', metric: str='starr'):
+        
+        prim_all_impacts_df = self._compute_impacts(prim_boxes, 'prim') # These are usually computed on the test set
+        cart_all_impacts_df = self._compute_impacts(cart_boxes, 'cart') # These are usually computed on the test set
+
+        if baseline is not None:
+            base_matrix = baseline.copy()
+        else:
+            base_matrix = self.get_robustness_report(metric=metric, subset='test')
+        base_matrix['method'] = method
+        base_matrix['target'] = '' # No target here
+
+        combined_df = pd.concat([base_matrix, prim_all_impacts_df, cart_all_impacts_df], ignore_index=True)
+        columns = ['method', 'target'] + [c for c in combined_df.columns if c not in ['method', 'target']]
+        combined_df = combined_df[columns]
+        
+        return combined_df
