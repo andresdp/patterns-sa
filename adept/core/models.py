@@ -270,6 +270,14 @@ class Box(BaseModel):
                     elif value == -np.inf:
                         actual_limits[param]['min'] = self.dataset_bounds[param]['min']
         return actual_limits
+    
+    # @property
+    def is_empty(self) -> bool:
+        if self.metrics.get('targets_in_box', 0) < 1:
+            return True
+        if len(self.limits.keys()) == 0:
+            return True
+        return False
 
 
 class Tradeoff(BaseModel):
