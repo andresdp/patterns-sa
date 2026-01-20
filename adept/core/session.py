@@ -1889,7 +1889,8 @@ class PatternAnalysis:
                 idx_set = set(indices)
                 for t_name, t_indices in self.tradeoff_indices.items():
                     count = sum(1 for i in t_indices if i in idx_set)
-                    print(f"  {t_name}: {count}")
+                    percentage = count / len(idx_set)
+                    print(f"  {t_name}: {count}" + f" ({percentage:.2%})")
                     
             print_tradeoff_counts("Train", self.train_indices)
             print_tradeoff_counts("Test", self.test_indices)
