@@ -1145,6 +1145,82 @@ class PatternAnalysis:
             
         return pd.DataFrame(rows, index=row_indices)
 
+    def get_tradeoff_coverage_matrix(
+        self,
+        boxes: List[Any],
+        subset: str = 'all'
+    ) -> pd.DataFrame:
+        """
+        Computes a matrix of Coverages for all tradeoffs when specific boxes are applied.
+        
+        Coverage = (Points in Box AND Satisfying Tradeoff) / (Total Points Satisfying Tradeoff)
+        
+        Rows: The Tradeoff targeted by the Box.
+        Columns: The Tradeoff being measured.
+        
+        Args:
+            boxes: List of Box objects.
+            subset: 'all', 'train', or 'test'.
+            
+        Returns:
+            pd.DataFrame: A square-ish matrix of coverages (0.0 - 1.0).
+        """
+        # 1. Prepare Data
+        X, _, discrete = self._get_subset_data(subset)
+        
+        # 2. Precompute Tradeoff Masks & Totals (Denominators)
+        all_tradeoffs = self.get_tradeoffs()
+        tradeoff_masks = {}
+        tradeoff_totals = {}
+        
+        for t in all_tradeoffs:
+            # Create mask: True if row satisfies tradeoff t
+            mask = pd.Series(True, index=discrete.index)
+            for obj, label in t.elements.items():
+                if obj in discrete.columns:
+                    mask &= (discrete[obj] == label)
+            tradeoff_masks[t.name] = mask
+            tradeoff_totals[t.name] = mask.sum()
+
+        # 3. Iterate Boxes (Rows)
+        rows = []
+        row_indices = []
+        
+        for box in boxes:
+            target_name = box.target_tradeoff
+            if not target_name:
+                continue
+                
+            row_indices.append(target_name)
+            
+            # Apply Box Limits to X
+            limits = getattr(box, 'limits', box)
+            box_mask = pd.Series(True, index=X.index)
+            for param, bounds in limits.items():
+                if param in X.columns:
+                    box_mask &= (X[param] >= bounds['min']) & (X[param] <= bounds['max'])
+            
+            # 4. Compute Coverage for ALL Tradeoffs (Cols)
+            row_values = {}
+            
+            for t in all_tradeoffs:
+                total_t = tradeoff_totals[t.name]
+                if total_t == 0:
+                    coverage = 0.0
+                else:
+                    # Intersection of Box AND Tradeoff
+                    success_in_box = (tradeoff_masks[t.name] & box_mask).sum()
+                    coverage = success_in_box / total_t
+                
+                row_values[t.name] = coverage
+            
+            rows.append(row_values)
+            
+        if not rows:
+            return pd.DataFrame()
+            
+        return pd.DataFrame(rows, index=row_indices)
+
     def show_tradeoff_impact_heatmap(
         self,
         impact_matrix: pd.DataFrame,
