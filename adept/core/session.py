@@ -1763,7 +1763,15 @@ class PatternAnalysis:
         self.clear_tradeoffs()
         
         if method == 'discretization':
-            return self.create_discretization_tradeoffs(**kwargs)
+            labels_dict = kwargs.pop('labels', {})
+            n_bins = kwargs.pop('n_bins', 3)
+            # Try to adapt n_bins to the number of labels included in the (first of the) objectives
+            if len(labels_dict) > 0:
+                objective_bins = list(labels_dict.values())
+                n_values = len(objective_bins[0]) if len(objective_bins) > 0 else 0
+                n_bins = n_values if n_values > 0 else n_bins
+            print(f"Creating discretization tradeoffs with {n_bins} bins.")
+            return self.create_discretization_tradeoffs(labels=labels_dict, n_bins=n_bins, **kwargs)
             
         elif method == 'clustering':
             return self.create_clustering_tradeoffs(**kwargs)
