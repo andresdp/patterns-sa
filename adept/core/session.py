@@ -1237,7 +1237,7 @@ class PatternAnalysis:
         - Precision (Density): Weighted avg of (Intersection / Box_Count).
         - Recall (Coverage): Weighted avg of (Intersection / Target_Count).
         - F1 Score: Weighted avg of harmonic mean(Precision, Recall).
-        - Lift: Weighted avg of (Precision / Baseline_Density).
+        - Lift: Weighted avg of (Precision - Baseline_Density).
         - Complexity: Avg number of restricted parameters across FOUND boxes only.
         - Success Rate: (Number of Tradeoffs with a Box) / (Total Defined Tradeoffs).
         
@@ -1346,7 +1346,8 @@ class PatternAnalysis:
                     f1 = 0.0
 
                 # Lift
-                lift = prec / baseline_density if baseline_density > 0 else 1.0
+                # lift = prec / baseline_density if baseline_density > 0 else 1.0
+                lift = prec - baseline_density
                     
                 vals_prec.append(prec)
                 vals_rec.append(rec)
@@ -1358,7 +1359,8 @@ class PatternAnalysis:
                 vals_prec.append(0.0)
                 vals_rec.append(0.0)
                 vals_f1.append(0.0)
-                vals_lift.append(0.0)
+                # Missed tradeoff has 0 precision, so lift = 0 - baseline
+                vals_lift.append(-baseline_density)
 
         # 4. Compute Weighted Averages and Std Devs
         # Convert to numpy arrays for vectorized math

@@ -1,0 +1,10 @@
+method,policy,target,pareto-efficient-sub-optimal,pareto-efficient-pareto-efficient,sub-optimal-pareto-efficient,sub-optimal-sub-optimal
+test set,joint1,,"0,0","0,0","0,0","1,0"
+test set,joint2,,"0,0","0,0","0,0","1,0"
+test set,separated,,"0,0","0,0","0,0","1,0"
+prim,joint1,sub-optimal-sub-optimal,"0,0","0,0","0,0","1,0"
+prim,joint2,sub-optimal-sub-optimal,"0,0","0,0","0,0","0,0"
+prim,separated,sub-optimal-sub-optimal,"0,0","0,0","0,0","1,0"
+cart,joint1,sub-optimal-sub-optimal,"0,0","0,0","0,0","1,0"
+cart,joint2,sub-optimal-sub-optimal,"0,0","0,0","0,0","1,0"
+cart,separated,sub-optimal-sub-optimal,"0,0","0,0","0,0","1,0"
