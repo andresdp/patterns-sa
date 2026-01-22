@@ -1221,6 +1221,189 @@ class PatternAnalysis:
             
         return pd.DataFrame(rows, index=row_indices)
 
+    def get_algorithm_performance_scores(
+        self,
+        boxes: List[Any],
+        subset: str = 'all',
+        weights: Optional[Union[Dict[str, float], str]] = None,
+        return_std: bool = False
+    ) -> Dict[str, float]:
+        """
+        Computes Global Average metrics (Macro-Averaged) for an algorithm's output.
+        
+        Evaluates the set of boxes against the defined tradeoffs.
+        
+        Metrics:
+        - Precision (Density): Weighted avg of (Intersection / Box_Count).
+        - Recall (Coverage): Weighted avg of (Intersection / Target_Count).
+        - F1 Score: Weighted avg of harmonic mean(Precision, Recall).
+        - Lift: Weighted avg of (Precision / Baseline_Density).
+        - Complexity: Avg number of restricted parameters across FOUND boxes only.
+        - Success Rate: (Number of Tradeoffs with a Box) / (Total Defined Tradeoffs).
+        
+        If a Tradeoff has no corresponding box in 'boxes', it contributes 0.0 to
+        Precision, Recall, F1, and Lift, but its weight is still included in the 
+        average denominator.
+        
+        Args:
+            boxes: List of Box objects found by the algorithm.
+            subset: 'all', 'train', or 'test'.
+            weights: Weighting strategy. 
+                     - None (default): Equal weighting (1.0 per tradeoff).
+                     - 'frequency': Weight by number of points in the tradeoff region.
+                     - Dict[str, float]: Manual weights {tradeoff_name: weight}.
+            return_std: If True, includes standard deviation for metrics.
+            
+        Returns:
+            Dict[str, float]: Dictionary of average scores (and std devs if requested).
+        """
+        # 1. Prepare Data
+        X, _, discrete = self._get_subset_data(subset)
+        
+        # 2. Map Boxes to Tradeoffs
+        # If multiple boxes target the same tradeoff, we take the first one
+        box_map = {}
+        for box in boxes:
+            t_name = getattr(box, 'target_tradeoff', None)
+            if t_name and t_name not in box_map:
+                box_map[t_name] = box
+        
+        # 3. Iterate ALL Tradeoffs
+        # Lists to store values for std dev calculation
+        vals_prec = []
+        vals_rec = []
+        vals_f1 = []
+        vals_lift = []
+        vals_complexity = [] # Only for found boxes
+        vals_weights = []
+        
+        all_tradeoffs = self.get_tradeoffs()
+        if not all_tradeoffs:
+            return {'precision': 0.0, 'recall': 0.0, 'f1': 0.0, 'lift': 0.0, 'complexity': 0.0, 'success_rate': 0.0}
+
+        total_points = len(discrete)
+
+        # Pre-calculate counts if frequency weighting is requested
+        tradeoff_counts = {}
+        if weights == 'frequency':
+            for t in all_tradeoffs:
+                t_mask = pd.Series(True, index=discrete.index)
+                for obj, label in t.elements.items():
+                    if obj in discrete.columns:
+                        t_mask &= (discrete[obj] == label)
+                tradeoff_counts[t.name] = t_mask.sum()
+
+        for t in all_tradeoffs:
+            # Determine Weight
+            if isinstance(weights, dict):
+                weight = weights.get(t.name, 1.0)
+            elif weights == 'frequency':
+                weight = tradeoff_counts.get(t.name, 0.0)
+            else:
+                weight = 1.0
+            
+            vals_weights.append(weight)
+            
+            # Ground Truth Mask for Tradeoff T
+            t_mask = pd.Series(True, index=discrete.index)
+            for obj, label in t.elements.items():
+                if obj in discrete.columns:
+                    t_mask &= (discrete[obj] == label)
+            
+            target_count = t_mask.sum()
+            baseline_density = target_count / total_points if total_points > 0 else 0.0
+            
+            # Check if we have a box
+            box = box_map.get(t.name)
+            
+            if box:
+                # Calculate Complexity
+                limits = getattr(box, 'limits', box)
+                if isinstance(limits, dict):
+                    vals_complexity.append(len(limits))
+                
+                # Calculate Metrics
+                # Box Mask
+                b_mask = pd.Series(True, index=X.index)
+                if isinstance(limits, dict):
+                    for param, bounds in limits.items():
+                        if param in X.columns:
+                            b_mask &= (X[param] >= bounds['min']) & (X[param] <= bounds['max'])
+                
+                box_count = b_mask.sum()
+                intersection = (t_mask & b_mask).sum()
+                
+                # Precision (Density)
+                prec = intersection / box_count if box_count > 0 else 0.0
+                
+                # Recall (Coverage)
+                rec = intersection / target_count if target_count > 0 else 0.0
+                
+                # F1
+                if (prec + rec) > 0:
+                    f1 = 2 * (prec * rec) / (prec + rec)
+                else:
+                    f1 = 0.0
+
+                # Lift
+                lift = prec / baseline_density if baseline_density > 0 else 1.0
+                    
+                vals_prec.append(prec)
+                vals_rec.append(rec)
+                vals_f1.append(f1)
+                vals_lift.append(lift)
+                
+            else:
+                # Algorithm failed to find this tradeoff
+                vals_prec.append(0.0)
+                vals_rec.append(0.0)
+                vals_f1.append(0.0)
+                vals_lift.append(0.0)
+
+        # 4. Compute Weighted Averages and Std Devs
+        # Convert to numpy arrays for vectorized math
+        a_prec = np.array(vals_prec)
+        a_rec = np.array(vals_rec)
+        a_f1 = np.array(vals_f1)
+        a_lift = np.array(vals_lift)
+        a_weights = np.array(vals_weights)
+        
+        total_weight = np.sum(a_weights)
+        
+        if total_weight == 0:
+             return {'precision': 0.0, 'recall': 0.0, 'f1': 0.0, 'lift': 0.0, 'complexity': 0.0, 'success_rate': 0.0}
+
+        avg_prec = np.average(a_prec, weights=a_weights)
+        avg_rec = np.average(a_rec, weights=a_weights)
+        avg_f1 = np.average(a_f1, weights=a_weights)
+        avg_lift = np.average(a_lift, weights=a_weights)
+        
+        avg_comp = np.mean(vals_complexity) if vals_complexity else 0.0
+        success_rate = len(vals_complexity) / len(all_tradeoffs)
+
+        results = {
+            'precision': avg_prec,
+            'recall': avg_rec,
+            'f1': avg_f1,
+            'lift': avg_lift,
+            'complexity': avg_comp,
+            'success_rate': success_rate
+        }
+        
+        if return_std:
+            # Helper for weighted std
+            def weighted_std(values, weights, mean):
+                variance = np.average((values - mean)**2, weights=weights)
+                return np.sqrt(variance)
+            
+            results['precision_std'] = weighted_std(a_prec, a_weights, avg_prec)
+            results['recall_std'] = weighted_std(a_rec, a_weights, avg_rec)
+            results['f1_std'] = weighted_std(a_f1, a_weights, avg_f1)
+            results['lift_std'] = weighted_std(a_lift, a_weights, avg_lift)
+            results['complexity_std'] = np.std(vals_complexity) if vals_complexity else 0.0
+
+        return results
+
     def show_tradeoff_impact_heatmap(
         self,
         impact_matrix: pd.DataFrame,
