@@ -109,17 +109,27 @@ class BoxEvaluator:
             pd.DataFrame: Rows=Policies, Cols=Tradeoffs, Values=Metric.
         """
         policies = sorted(policy_series.dropna().unique())
-        results = {t.name: [] for t in tradeoffs}
+        column_data = {}
         
         metric = metric.lower()
         
         for i, tradeoff in enumerate(tradeoffs):
+            # Ensure unique column key
+            col_key = tradeoff.name
+            if col_key in column_data:
+                idx = 1
+                while f"{col_key}_{idx}" in column_data:
+                    idx += 1
+                col_key = f"{col_key}_{idx}"
+            
+            column_data[col_key] = []
+            
             box = boxes[i]
             
             # If no box for this tradeoff, mark entire column as None
             if box is None:
                 for _ in policies:
-                    results[tradeoff.name].append(None)
+                    column_data[col_key].append(None)
                 continue
                 
             # Pre-calculate boundaries for REGRET if needed
@@ -166,9 +176,9 @@ class BoxEvaluator:
                     else:
                         val = None
                 
-                results[tradeoff.name].append(val)
+                column_data[col_key].append(val)
                 
-        return pd.DataFrame(results, index=policies)
+        return pd.DataFrame(column_data, index=policies)
 
 
 class ScenarioDiscovery(ABC):

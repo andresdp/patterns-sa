@@ -1,0 +1,173 @@
+[
+    {
+        "name": "Box for XS-XS",
+        "limits": {
+            "r_DB_read": {
+                "min": 0.1428571428571428,
+                "max": 0.23809523809523805
+            }
+        },
+        "dataset_bounds": {
+            "r_Z_write": {
+                "min": 0.001,
+                "max": 0.005
+            },
+            "r_DB_read": {
+                "min": 0.1428571428571428,
+                "max": 0.3333333333333333
+            }
+        },
+        "metrics": {
+            "density": 0.48739495798319327,
+            "coverage": 0.4461538461538462,
+            "population_prevalence": 0.5078534031413613,
+            "lift": -0.020458445158168026,
+            "samples_in_box": 119.0,
+            "targets_in_box": 58.0
+        },
+        "target_tradeoff": "XS-XS",
+        "target_tradeoff_labels": "XS,XS",
+        "method": "prim",
+        "population_prevalence": 0.5078534031413613
+    },
+    {
+        "name": "Box for XS-S",
+        "limits": {
+            "r_Z_write": {
+                "min": 0.00266714082503555,
+                "max": 0.004653679653679601
+            },
+            "r_DB_read": {
+                "min": 0.23809523809523805,
+                "max": 0.3333333333333333
+            }
+        },
+        "dataset_bounds": {
+            "r_Z_write": {
+                "min": 0.001,
+                "max": 0.005
+            },
+            "r_DB_read": {
+                "min": 0.1428571428571428,
+                "max": 0.3333333333333333
+            }
+        },
+        "metrics": {
+            "density": 0.3181818181818182,
+            "coverage": 0.875,
+            "population_prevalence": 0.031413612565445025,
+            "lift": 0.2867682056163732,
+            "samples_in_box": 22.0,
+            "targets_in_box": 7.0
+        },
+        "target_tradeoff": "XS-S",
+        "target_tradeoff_labels": "XS,S",
+        "method": "prim",
+        "population_prevalence": 0.031413612565445025
+    },
+    {
+        "name": "Box for XS-M",
+        "limits": {
+            "r_Z_write": {
+                "min": 0.001,
+                "max": 0.0020204081632653
+            },
+            "r_DB_read": {
+                "min": 0.23809523809523805,
+                "max": 0.3333333333333333
+            }
+        },
+        "dataset_bounds": {
+            "r_Z_write": {
+                "min": 0.001,
+                "max": 0.005
+            },
+            "r_DB_read": {
+                "min": 0.1428571428571428,
+                "max": 0.3333333333333333
+            }
+        },
+        "metrics": {
+            "density": 0.4482758620689655,
+            "coverage": 0.39,
+            "population_prevalence": 0.39267015706806285,
+            "lift": 0.05560570500090267,
+            "samples_in_box": 87.0,
+            "targets_in_box": 39.0
+        },
+        "target_tradeoff": "XS-M",
+        "target_tradeoff_labels": "XS,M",
+        "method": "prim",
+        "population_prevalence": 0.39267015706806285
+    },
+    {
+        "name": "Box for XS-L",
+        "limits": {
+            "r_Z_write": {
+                "min": 0.0016261237440507,
+                "max": 0.00281746031746025
+            },
+            "r_DB_read": {
+                "min": 0.1428571428571428,
+                "max": 0.23809523809523805
+            }
+        },
+        "dataset_bounds": {
+            "r_Z_write": {
+                "min": 0.001,
+                "max": 0.005
+            },
+            "r_DB_read": {
+                "min": 0.1428571428571428,
+                "max": 0.3333333333333333
+            }
+        },
+        "metrics": {
+            "density": 0.28205128205128205,
+            "coverage": 1.0,
+            "population_prevalence": 0.03926701570680628,
+            "lift": 0.24278426634447575,
+            "samples_in_box": 39.0,
+            "targets_in_box": 11.0
+        },
+        "target_tradeoff": "XS-L",
+        "target_tradeoff_labels": "XS,L",
+        "method": "prim",
+        "population_prevalence": 0.03926701570680628
+    },
+    {
+        "name": "Box for S-S",
+        "limits": {
+            "r_Z_write": {
+                "min": 0.0032795698924731,
+                "max": 0.005
+            },
+            "r_DB_read": {
+                "min": 0.1428571428571428,
+                "max": 0.23809523809523805
+            }
+        },
+        "dataset_bounds": {
+            "r_Z_write": {
+                "min": 0.001,
+                "max": 0.005
+            },
+            "r_DB_read": {
+                "min": 0.1428571428571428,
+                "max": 0.3333333333333333
+            }
+        },
+        "metrics": {
+            "density": 0.2727272727272727,
+            "coverage": 0.42857142857142855,
+            "population_prevalence": 0.028795811518324606,
+            "lift": 0.2439314612089481,
+            "samples_in_box": 11.0,
+            "targets_in_box": 3.0
+        },
+        "target_tradeoff": "S-S",
+        "target_tradeoff_labels": "S,S",
+        "method": "prim",
+        "population_prevalence": 0.028795811518324606
+    }
+]

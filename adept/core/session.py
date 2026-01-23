@@ -1276,6 +1276,8 @@ class PatternAnalysis:
         vals_lift = []
         vals_complexity = [] # Only for found boxes
         vals_weights = []
+        vals_can_improve = [] # Flag for valid lift context
+        vals_box_found = []   # Flag for success rate calculation
         
         all_tradeoffs = self.get_tradeoffs()
         if not all_tradeoffs:
@@ -1313,10 +1315,15 @@ class PatternAnalysis:
             target_count = t_mask.sum()
             baseline_density = target_count / total_points if total_points > 0 else 0.0
             
+            # Valid context for improvement: baseline is not 0 (impossible) or 1 (perfect)
+            can_improve = (baseline_density > 1e-9) and (baseline_density < 1.0 - 1e-9)
+            vals_can_improve.append(can_improve)
+            
             # Check if we have a box
             box = box_map.get(t.name)
             
             if box:
+                vals_box_found.append(True)
                 # Calculate Complexity
                 limits = getattr(box, 'limits', box)
                 if isinstance(limits, dict):
@@ -1355,6 +1362,7 @@ class PatternAnalysis:
                 vals_lift.append(lift)
                 
             else:
+                vals_box_found.append(False)
                 # Algorithm failed to find this tradeoff
                 vals_prec.append(0.0)
                 vals_rec.append(0.0)
@@ -1369,6 +1377,8 @@ class PatternAnalysis:
         a_f1 = np.array(vals_f1)
         a_lift = np.array(vals_lift)
         a_weights = np.array(vals_weights)
+        a_can_improve = np.array(vals_can_improve, dtype=bool)
+        a_found = np.array(vals_box_found, dtype=bool)
         
         total_weight = np.sum(a_weights)
         
@@ -1378,10 +1388,25 @@ class PatternAnalysis:
         avg_prec = np.average(a_prec, weights=a_weights)
         avg_rec = np.average(a_rec, weights=a_weights)
         avg_f1 = np.average(a_f1, weights=a_weights)
-        avg_lift = np.average(a_lift, weights=a_weights)
+        
+        # Lift & Success Rate: Only consider cases where improvement was possible
+        if np.any(a_can_improve):
+            # Lift
+            valid_lifts = a_lift[a_can_improve]
+            valid_weights = a_weights[a_can_improve]
+            if np.sum(valid_weights) > 0:
+                avg_lift = np.average(valid_lifts, weights=valid_weights)
+            else:
+                avg_lift = np.mean(valid_lifts)
+
+            # Success Rate: Fraction of improvable cases where a box was actually found
+            # Note: We don't weight success rate, it's a raw count metric usually.
+            success_rate = np.sum(a_found & a_can_improve) / np.sum(a_can_improve)
+        else:
+            avg_lift = 0.0
+            success_rate = 0.0
         
         avg_comp = np.mean(vals_complexity) if vals_complexity else 0.0
-        success_rate = len(vals_complexity) / len(all_tradeoffs)
 
         results = {
             'precision': avg_prec,
@@ -1401,7 +1426,17 @@ class PatternAnalysis:
             results['precision_std'] = weighted_std(a_prec, a_weights, avg_prec)
             results['recall_std'] = weighted_std(a_rec, a_weights, avg_rec)
             results['f1_std'] = weighted_std(a_f1, a_weights, avg_f1)
-            results['lift_std'] = weighted_std(a_lift, a_weights, avg_lift)
+            
+            if np.any(a_can_improve):
+                valid_lifts = a_lift[a_can_improve]
+                valid_weights = a_weights[a_can_improve]
+                if np.sum(valid_weights) > 0:
+                    results['lift_std'] = weighted_std(valid_lifts, valid_weights, avg_lift)
+                else:
+                    results['lift_std'] = np.std(valid_lifts)
+            else:
+                results['lift_std'] = 0.0
+                
             results['complexity_std'] = np.std(vals_complexity) if vals_complexity else 0.0
 
         return results
@@ -1919,6 +1954,58 @@ class PatternAnalysis:
             
         # 3. Generate Combinatorial Tradeoffs (skipping re-definition)
         return self.create_discretization_tradeoffs(labels=labels_map, objectives=objectives, skip_definition=True)
+
+    def rename_outcome_labels(self, objective: str, mapping: Dict[str, str]) -> None:
+        """
+        Renames the labels for a specific objective in the discrete dataset, 
+        tradeoff definitions, and schemes.
+        
+        Useful for post-processing automatic labels (e.g., 'cluster_0' -> 'High Performance').
+        
+        Args:
+            objective: Name of the quality objective (e.g. 'response_time').
+            mapping: Dictionary mapping old labels to new labels.
+        """
+        if self.discrete_df is None:
+            raise RuntimeError("Tradeoffs not defined.")
+            
+        if objective not in self.discrete_df.columns:
+            raise ValueError(f"Objective '{objective}' not found in discrete data.")
+
+        # 1. Update Data
+        self.discrete_df[objective] = self.discrete_df[objective].replace(mapping)
+        
+        # 2. Update Schemes
+        scheme = next((s for s in self.schemes if s.objective_name == objective), None)
+        if scheme:
+            for bin_def in scheme.bins:
+                if bin_def.label in mapping:
+                    bin_def.label = mapping[bin_def.label]
+                    
+        # 3. Update Tradeoffs
+        for t in self.sys_def.system.tradeoffs:
+            if objective in t.elements:
+                old_val = t.elements[objective]
+                if old_val in mapping:
+                    new_val = mapping[old_val]
+                    # Update element
+                    t.elements[objective] = new_val
+                    
+                    # Update Name/Label (Simple string substitution)
+                    # We only substitute exact matches to avoid partial string issues
+                    if t.name:
+                        t.name = t.name.replace(str(old_val), str(new_val))
+                    if t.label:
+                        t.label = t.label.replace(str(old_val), str(new_val))
+                        
+        # 4. Rebuild Tradeoff Indices
+        # We can't easily patch the dict keys, so we rebuild from current discrete_df
+        # This mirrors logic in coordinator.define_tradeoffs
+        groups = self.discrete_df.groupby(list(self.discrete_df.columns))
+        self.tradeoff_indices = {
+            ",".join(map(str, k)) if isinstance(k, tuple) else str(k): v 
+            for k, v in groups.indices.items()
+        }
 
     def create_tradeoffs(self, method: str = 'discretization', **kwargs) -> Tuple[List[Tradeoff], List[DiscretizationScheme]]:
         """
@@ -2628,13 +2715,13 @@ class PatternAnalysis:
         base_matrix['method'] = method
         base_matrix['target'] = '' # No target here
         base_matrix.reset_index(inplace=True) # 'policy´ is the old index
-
-        prim_all_impacts_df = prim_all_impacts_df.sort_values(by='target', key=lambda col: col.map(get_tradeoff_sort_key))
+      
         prim_all_impacts_df = prim_all_impacts_df.sort_values(by='policy')
-        cart_all_impacts_df = cart_all_impacts_df.sort_values(by='target', key=lambda col: col.map(get_tradeoff_sort_key))
+        prim_all_impacts_df = prim_all_impacts_df.sort_values(by='target', key=lambda col: col.map(get_tradeoff_sort_key))
         cart_all_impacts_df = cart_all_impacts_df.sort_values(by='policy')
-        base_matrix = base_matrix.sort_values(by='target', key=lambda col: col.map(get_tradeoff_sort_key))
+        cart_all_impacts_df = cart_all_impacts_df.sort_values(by='target', key=lambda col: col.map(get_tradeoff_sort_key))
         base_matrix = base_matrix.sort_values(by='policy')
+        base_matrix = base_matrix.sort_values(by='target', key=lambda col: col.map(get_tradeoff_sort_key))
 
         combined_df = pd.concat([base_matrix, prim_all_impacts_df, cart_all_impacts_df], ignore_index=True)
         header = ['method', 'policy', 'target']

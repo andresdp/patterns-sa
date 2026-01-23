@@ -1,0 +1,76 @@
+[
+    {
+        "name": "Box for XS-M",
+        "limits": {
+            "N_A": {
+                "min": 12.58695652173913,
+                "max": Infinity
+            }
+        },
+        "dataset_bounds": {
+            "N_A": {
+                "min": 0.0,
+                "max": 25.0
+            },
+            "p_SS1toRef_A": {
+                "min": 0.0999999999999999,
+                "max": 0.9
+            },
+            "p_SS1toRef_B": {
+                "min": 0.0999999999999999,
+                "max": 0.9
+            }
+        },
+        "metrics": {
+            "density": 0.9111111111111111,
+            "coverage": 0.6307692307692307,
+            "population_prevalence": 0.5579710144927537,
+            "lift": 0.35314009661835744,
+            "samples_in_box": 45.0,
+            "targets_in_box": 41.0
+        },
+        "target_tradeoff": "XS-M",
+        "target_tradeoff_labels": "XS,M",
+        "method": "cart",
+        "population_prevalence": 0.5579710144927537
+    },
+    {
+        "name": "Box for XS-L",
+        "limits": {
+            "N_A": {
+                "min": 12.58695652173913,
+                "max": 14.4986691475883
+            },
+            "p_SS1toRef_A": {
+                "min": 0.5500756627429659,
+                "max": Infinity
+            }
+        },
+        "dataset_bounds": {
+            "N_A": {
+                "min": 0.0,
+                "max": 25.0
+            },
+            "p_SS1toRef_A": {
+                "min": 0.0999999999999999,
+                "max": 0.9
+            },
+            "p_SS1toRef_B": {
+                "min": 0.0999999999999999,
+                "max": 0.9
+            }
+        },
+        "metrics": {
+            "density": 0.25,
+            "coverage": 0.041666666666666664,
+            "population_prevalence": 0.35507246376811596,
+            "lift": -0.10507246376811596,
+            "samples_in_box": 4.0,
+            "targets_in_box": 1.0
+        },
+        "target_tradeoff": "XS-L",
+        "target_tradeoff_labels": "XS,L",
+        "method": "cart",
+        "population_prevalence": 0.35507246376811596
+    }
+]

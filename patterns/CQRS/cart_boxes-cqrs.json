@@ -1,0 +1,33 @@
+[
+    {
+        "name": "Box for XS-M",
+        "limits": {
+            "r_DB_read": {
+                "min": 0.23810269780740093,
+                "max": Infinity
+            }
+        },
+        "dataset_bounds": {
+            "r_Z_write": {
+                "min": 0.001,
+                "max": 0.005
+            },
+            "r_DB_read": {
+                "min": 0.1428571428571428,
+                "max": 0.3333333333333333
+            }
+        },
+        "metrics": {
+            "density": 0.40145985401459855,
+            "coverage": 0.55,
+            "population_prevalence": 0.39267015706806285,
+            "lift": 0.008789696946535697,
+            "samples_in_box": 137.0,
+            "targets_in_box": 55.0
+        },
+        "target_tradeoff": "XS-M",
+        "target_tradeoff_labels": "XS,M",
+        "method": "cart",
+        "population_prevalence": 0.39267015706806285
+    }
+]
