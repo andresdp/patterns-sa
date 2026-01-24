@@ -2,17 +2,17 @@
     {
         "name": "Box for XS-XS",
         "limits": {
+            "r_A_gw": {
+                "min": 0.1333597455355477,
+                "max": Infinity
+            },
             "N_B": {
                 "min": 12.195652173913043,
                 "max": 20.4966336165875
-            },
-            "r_B_gw": {
-                "min": 0.1333597455355477,
-                "max": Infinity
             }
         },
         "dataset_bounds": {
-            "r_B_gw": {
+            "r_A_gw": {
                 "min": 0.05,
                 "max": 0.2
             },
@@ -37,17 +37,17 @@
     {
         "name": "Box for S-XS",
         "limits": {
+            "r_A_gw": {
+                "min": 0.1333597455355477,
+                "max": Infinity
+            },
             "N_B": {
                 "min": 20.496633624182177,
                 "max": 23.496530844269486
-            },
-            "r_B_gw": {
-                "min": 0.1333597455355477,
-                "max": Infinity
             }
         },
         "dataset_bounds": {
-            "r_B_gw": {
+            "r_A_gw": {
                 "min": 0.05,
                 "max": 0.2
             },

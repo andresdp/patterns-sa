@@ -2,7 +2,7 @@
     {
         "name": "Box for XS-XS",
         "limits": {
-            "r_B_gw": {
+            "r_A_gw": {
                 "min": 0.1333333333333333,
                 "max": 0.2
             },
@@ -12,7 +12,7 @@
             }
         },
         "dataset_bounds": {
-            "r_B_gw": {
+            "r_A_gw": {
                 "min": 0.05,
                 "max": 0.2
             },
@@ -37,7 +37,7 @@
     {
         "name": "Box for S-XS",
         "limits": {
-            "r_B_gw": {
+            "r_A_gw": {
                 "min": 0.1333333333333333,
                 "max": 0.2
             },
@@ -47,7 +47,7 @@
             }
         },
         "dataset_bounds": {
-            "r_B_gw": {
+            "r_A_gw": {
                 "min": 0.05,
                 "max": 0.2
             },
@@ -72,7 +72,7 @@
     {
         "name": "Box for S-L",
         "limits": {
-            "r_B_gw": {
+            "r_A_gw": {
                 "min": 0.0583333333333333,
                 "max": 0.1333333333333333
             },
@@ -82,7 +82,7 @@
             }
         },
         "dataset_bounds": {
-            "r_B_gw": {
+            "r_A_gw": {
                 "min": 0.05,
                 "max": 0.2
             },
@@ -107,7 +107,7 @@
     {
         "name": "Box for M-XS",
         "limits": {
-            "r_B_gw": {
+            "r_A_gw": {
                 "min": 0.1333333333333333,
                 "max": 0.2
             },
@@ -117,7 +117,7 @@
             }
         },
         "dataset_bounds": {
-            "r_B_gw": {
+            "r_A_gw": {
                 "min": 0.05,
                 "max": 0.2
             },
@@ -142,7 +142,7 @@
     {
         "name": "Box for M-M",
         "limits": {
-            "r_B_gw": {
+            "r_A_gw": {
                 "min": 0.0583333333333333,
                 "max": 0.1333333333333333
             },
@@ -152,7 +152,7 @@
             }
         },
         "dataset_bounds": {
-            "r_B_gw": {
+            "r_A_gw": {
                 "min": 0.05,
                 "max": 0.2
             },
@@ -177,13 +177,13 @@
     {
         "name": "Box for L-L",
         "limits": {
-            "r_B_gw": {
+            "r_A_gw": {
                 "min": 0.05,
                 "max": 0.0583333333333333
             }
         },
         "dataset_bounds": {
-            "r_B_gw": {
+            "r_A_gw": {
                 "min": 0.05,
                 "max": 0.2
             },

@@ -12,8 +12,8 @@
                 "min": 0.0,
                 "max": 25.0
             },
-            "p_SS1toRef_A": {
-                "min": 0.0999999999999999,
+            "p_SS1toACL_B": {
+                "min": 0.1,
                 "max": 0.9
             },
             "p_SS1toRef_B": {
@@ -37,13 +37,13 @@
     {
         "name": "Box for XS-L",
         "limits": {
+            "p_SS1toACL_B": {
+                "min": 0.5500756627429659,
+                "max": Infinity
+            },
             "N_A": {
                 "min": 12.58695652173913,
                 "max": 14.4986691475883
-            },
-            "p_SS1toRef_A": {
-                "min": 0.5500756627429659,
-                "max": Infinity
             }
         },
         "dataset_bounds": {
@@ -51,8 +51,8 @@
                 "min": 0.0,
                 "max": 25.0
             },
-            "p_SS1toRef_A": {
-                "min": 0.0999999999999999,
+            "p_SS1toACL_B": {
+                "min": 0.1,
                 "max": 0.9
             },
             "p_SS1toRef_B": {

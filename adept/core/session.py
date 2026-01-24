@@ -1241,9 +1241,14 @@ class PatternAnalysis:
         - Complexity: Avg number of restricted parameters across FOUND boxes only.
         - Success Rate: (Number of Tradeoffs with a Box) / (Total Defined Tradeoffs).
         
-        If a Tradeoff has no corresponding box in 'boxes', it contributes 0.0 to
-        Precision, Recall, F1, and Lift, but its weight is still included in the 
-        average denominator.
+        If a Tradeoff has no corresponding box (or an empty box), it contributes:
+        - Precision: 0.0
+        - Recall: 0.0
+        - Lift: -Baseline_Density
+        - Success Rate: Counted as a Failure (0).
+        
+        Note: Tradeoffs with 0% or 100% baseline density are excluded from Lift 
+        and Success Rate calculations as improvement is impossible.
         
         Args:
             boxes: List of Box objects found by the algorithm.
@@ -1279,7 +1284,9 @@ class PatternAnalysis:
         vals_can_improve = [] # Flag for valid lift context
         vals_box_found = []   # Flag for success rate calculation
         
-        all_tradeoffs = self.get_tradeoffs()
+        # Only consider tradeoffs that actually exist in the data (non-empty)
+        # Empty regions (0 points) are structurally impossible to improve and shouldn't count as misses.
+        all_tradeoffs = self.get_tradeoffs(non_empty=True, subset=subset)
         if not all_tradeoffs:
             return {'precision': 0.0, 'recall': 0.0, 'f1': 0.0, 'lift': 0.0, 'complexity': 0.0, 'success_rate': 0.0}
 
@@ -1295,6 +1302,7 @@ class PatternAnalysis:
                         t_mask &= (discrete[obj] == label)
                 tradeoff_counts[t.name] = t_mask.sum()
 
+        print(len(all_tradeoffs), "tradeoffs to evaluate.", len(box_map.keys()), len(boxes))
         for t in all_tradeoffs:
             # Determine Weight
             if isinstance(weights, dict):
@@ -1314,20 +1322,18 @@ class PatternAnalysis:
             
             target_count = t_mask.sum()
             baseline_density = target_count / total_points if total_points > 0 else 0.0
-            
+            # print("Baseline:", t.name, baseline_density)
+
             # Valid context for improvement: baseline is not 0 (impossible) or 1 (perfect)
-            can_improve = (baseline_density > 1e-9) and (baseline_density < 1.0 - 1e-9)
+            can_improve = (baseline_density > 0.0) and (baseline_density < 1.0)
             vals_can_improve.append(can_improve)
             
             # Check if we have a box
             box = box_map.get(t.name)
             
             if box:
-                vals_box_found.append(True)
                 # Calculate Complexity
                 limits = getattr(box, 'limits', box)
-                if isinstance(limits, dict):
-                    vals_complexity.append(len(limits))
                 
                 # Calculate Metrics
                 # Box Mask
@@ -1338,28 +1344,40 @@ class PatternAnalysis:
                             b_mask &= (X[param] >= bounds['min']) & (X[param] <= bounds['max'])
                 
                 box_count = b_mask.sum()
-                intersection = (t_mask & b_mask).sum()
                 
-                # Precision (Density)
-                prec = intersection / box_count if box_count > 0 else 0.0
-                
-                # Recall (Coverage)
-                rec = intersection / target_count if target_count > 0 else 0.0
-                
-                # F1
-                if (prec + rec) > 0:
-                    f1 = 2 * (prec * rec) / (prec + rec)
-                else:
-                    f1 = 0.0
-
-                # Lift
-                # lift = prec / baseline_density if baseline_density > 0 else 1.0
-                lift = prec - baseline_density
+                if box_count > 0:
+                    vals_box_found.append(True)
+                    if isinstance(limits, dict):
+                        vals_complexity.append(len(limits))
                     
-                vals_prec.append(prec)
-                vals_rec.append(rec)
-                vals_f1.append(f1)
-                vals_lift.append(lift)
+                    intersection = (t_mask & b_mask).sum()
+                    
+                    # Precision (Density)
+                    prec = intersection / box_count
+                    
+                    # Recall (Coverage)
+                    rec = intersection / target_count if target_count > 0 else 0.0
+                    
+                    # F1
+                    if (prec + rec) > 0:
+                        f1 = 2 * (prec * rec) / (prec + rec)
+                    else:
+                        f1 = 0.0
+
+                    # Lift
+                    lift = prec - baseline_density
+                        
+                    vals_prec.append(prec)
+                    vals_rec.append(rec)
+                    vals_f1.append(f1)
+                    vals_lift.append(lift)
+                else:
+                    # Treat empty box as a miss
+                    vals_box_found.append(False)
+                    vals_prec.append(0.0)
+                    vals_rec.append(0.0)
+                    vals_f1.append(0.0)
+                    vals_lift.append(-baseline_density)
                 
             else:
                 vals_box_found.append(False)
@@ -1393,6 +1411,7 @@ class PatternAnalysis:
         if np.any(a_can_improve):
             # Lift
             valid_lifts = a_lift[a_can_improve]
+            # print("Valid lifts:", valid_lifts)
             valid_weights = a_weights[a_can_improve]
             if np.sum(valid_weights) > 0:
                 avg_lift = np.average(valid_lifts, weights=valid_weights)
@@ -1725,10 +1744,31 @@ class PatternAnalysis:
         if not self.sys_def: return []
         return self.sys_def.dataspace.quality_objectives
 
-    def get_tradeoffs(self) -> List[Tradeoff]:
-        """Returns the list of defined tradeoffs."""
+    def get_tradeoffs(self, non_empty: bool = False, subset: str = 'all') -> List[Tradeoff]:
+        """
+        Returns the list of defined tradeoffs.
+        
+        Args:
+            non_empty: If True, only returns tradeoffs that have at least one data point 
+                       in the specified subset.
+            subset: 'all' (default), 'train', or 'test'. Used only if non_empty=True.
+        """
         if not self.sys_def: return []
-        return self.sys_def.system.tradeoffs
+        
+        all_tradeoffs = self.sys_def.system.tradeoffs
+        
+        if not non_empty:
+            return all_tradeoffs
+            
+        # Filter based on current data subset
+        valid_tradeoffs = []
+        for t in all_tradeoffs:
+            indices = self.get_indices_for_tradeoff(t)
+            subset_indices = self._filter_indices_for_subset(indices, subset)
+            if len(subset_indices) > 0:
+                valid_tradeoffs.append(t)
+                
+        return valid_tradeoffs
 
     def get_tradeoff(self, name: str) -> Tradeoff | None:
         """Returns the tradeoff with the given name, or None if not found."""
