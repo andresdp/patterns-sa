@@ -378,6 +378,54 @@ class PatternAnalysis:
             **kwargs
         )
 
+    def show_box_diagnostics(
+        self, 
+        box: Any, 
+        subset: str = 'all', 
+        show_diagonal: bool = True,
+        box_eps: float = 0.02,
+        **kwargs
+    ) -> plt.Figure:
+        """
+        Visualizes detailed diagnostics for a discovered box.
+        
+        Panels:
+        1. Constraints: Horizontal bars showing parameter restrictions.
+        2. Metrics: Text summary of Density, Coverage, Lift.
+        3. Pair Plot: Scatter matrix of restricted parameters (Red=Success, Blue=Failure).
+        
+        Args:
+            box: The discovered Box object.
+            subset: 'all', 'train', or 'test'.
+            show_diagonal: Whether to show frequency plots on the diagonal.
+            box_eps: Epsilon factor to pad the box rectangles in pair plots.
+            **kwargs: Additional plotting arguments (figsize, s, alpha, bins, etc.)
+        """
+        X, _, discrete = self._get_subset_data(subset)
+        
+        # Determine Target Mask (Ground Truth for Pair Plot colors)
+        tradeoff_name = getattr(box, 'target_tradeoff', None)
+        if tradeoff_name:
+            tradeoff = self.get_tradeoff(tradeoff_name)
+            if tradeoff:
+                mask = pd.Series(True, index=discrete.index)
+                for obj, label in tradeoff.elements.items():
+                    if obj in discrete.columns:
+                        mask &= (discrete[obj] == label)
+            else:
+                print(f"Warning: Tradeoff '{tradeoff_name}' not found. Scatter colors (Success/Failure) may be inaccurate (defaulting to all Success).")
+                mask = pd.Series(True, index=discrete.index)
+        else:
+             # If no target, we can't define Success/Failure easily.
+             mask = pd.Series(True, index=discrete.index)
+             
+        return self.coordinator.show_box_diagnostics(
+            box, X, mask, 
+            show_diagonal=show_diagonal, 
+            box_eps=box_eps, 
+            **kwargs
+        )
+
     def get_policy_contingency_matrix(self, decision_key: str, normalization_mode: str = 'population', subset: str = 'all') -> pd.DataFrame:
         """
         Computes the contingency matrix of Policies vs Tradeoffs.

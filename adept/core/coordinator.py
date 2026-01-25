@@ -244,5 +244,22 @@ class ArchSpaceCore:
         """Visualizes a comparison of robustness matrices."""
         return self.visualization_manager.show_robustness_comparison_heatmap(baseline_matrix, improved_matrix, metric=metric, **kwargs)
 
+    def show_box_diagnostics(
+        self, 
+        box: Any, 
+        experiments_df: pd.DataFrame, 
+        outcome_mask: pd.Series, 
+        show_diagonal: bool = True,
+        box_eps: float = 0.02,
+        **kwargs
+    ) -> plt.Figure:
+        """Visualizes detailed diagnostics for a discovered box (bars, metrics, scatter)."""
+        return self.visualization_manager.show_box_diagnostics(
+            box, experiments_df, outcome_mask, 
+            show_diagonal=show_diagonal, 
+            box_eps=box_eps, 
+            **kwargs
+        )
+
 
 __all__ = ["ArchSpaceCore", "VisualizationManager"]

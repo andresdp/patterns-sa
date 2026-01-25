@@ -128,6 +128,29 @@ class VisualizationManager:
             return show_multiple_robustness_uplifts(uplift_datasets, metric=metric, highlight_policies=highlight_policies, **kwargs)
         except Exception as e:
             raise VisualizationError(f"Failed to plot multiple robustness uplifts: {str(e)}")
+
+    def show_box_diagnostics(
+        self, 
+        box: Any, 
+        experiments_df: pd.DataFrame, 
+        outcome_mask: pd.Series, 
+        show_diagonal: bool = True,
+        box_eps: float = 0.02,
+        **kwargs
+    ) -> plt.Figure:
+        """
+        Visualizes a discovered box with restrictions, metrics, and scatter plots.
+        """
+        try:
+            from .visualization import show_box_diagnostics
+            return show_box_diagnostics(
+                box, experiments_df, outcome_mask, 
+                show_diagonal=show_diagonal, 
+                box_eps=box_eps, 
+                **kwargs
+            )
+        except Exception as e:
+            raise VisualizationError(f"Failed to plot box diagnostics: {str(e)}")
     
     def _validate_plot_inputs(self, outcomes_df: pd.DataFrame, schemes: List[Dict]) -> None:
         """Validates common input parameters for plotting methods."""

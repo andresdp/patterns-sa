@@ -10,6 +10,7 @@ from ..core.models import DiscretizationScheme, Tradeoff, QualityBin
 import sankeyflow as sf
 from sklearn.manifold import MDS
 from sklearn.preprocessing import MinMaxScaler
+import matplotlib.gridspec as gridspec
 
 def show_tradeoff_distribution(
     outcomes_df: pd.DataFrame, 
@@ -506,7 +507,7 @@ def show_robustness_uplift(
     title: Optional[str] = None
 ) -> plt.Figure:
     """
-    Plots robustness improvement vectors (Baseline -> Boxed) per policy.
+    Plots robustness improvement vectors (Baseline -> Boxed) per policy. 
     
     X-axis: Robustness Value (e.g. STARR)
     Y-axis: Coverage (0.0 - 1.0)
@@ -721,4 +722,288 @@ def show_multiple_robustness_uplifts(
                   borderaxespad=0.)
 
     plt.tight_layout()
+    return fig
+
+def show_box_diagnostics(
+    box: Any, 
+    experiments_df: pd.DataFrame, 
+    outcome_mask: pd.Series,
+    figsize: Tuple[int, int] = (16, 12),
+    title: Optional[str] = None,
+    max_scatter_points: int = 1000,
+    bins: int = 10,
+    s: int = 40,
+    alpha: float = 0.6,
+    show_diagonal: bool = True,
+    box_eps: float = 0.02,
+    box_color: str = '#55a868'
+) -> plt.Figure:
+    """
+    Visualizes a discovered box with three panels:
+    1. Parameter Restrictions (Horizontal Stacked Bars) - Top Left
+    2. Box Performance Metrics (Text) - Top Right
+    3. Pair Plot of Restricted Parameters (Scatter) - Bottom
+    """
+    from matplotlib.ticker import MaxNLocator
+    
+    # 1. Setup Grid
+    fig = plt.figure(figsize=figsize)
+    gs = gridspec.GridSpec(2, 2, height_ratios=[1, 2], width_ratios=[2, 1], hspace=0.3)
+    
+    ax_bars = fig.add_subplot(gs[0, 0])
+    ax_text = fig.add_subplot(gs[0, 1])
+    ax_pairs = fig.add_subplot(gs[1, :])
+    
+    # 2. Draw Stacked Bars (Restrictions)
+    limits = getattr(box, 'limits', box)
+    dataset_bounds = getattr(box, 'dataset_bounds', {}) or {}
+    
+    if isinstance(limits, dict):
+        params = []
+        for p, lims in limits.items():
+            if p in experiments_df.columns:
+                d_min = experiments_df[p].min()
+                d_max = experiments_df[p].max()
+                d_range = d_max - d_min if d_max > d_min else 1.0
+                
+                # Resolve infinite bounds using dataset_bounds
+                l_min = lims['min']
+                l_max = lims['max']
+                
+                if l_min == -np.inf and p in dataset_bounds:
+                    l_min = dataset_bounds[p]['min']
+                if l_max == np.inf and p in dataset_bounds:
+                    l_max = dataset_bounds[p]['max']
+                
+                b_min = max(l_min, d_min)
+                b_max = min(l_max, d_max)
+                b_range = b_max - b_min
+                
+                tightness = 1.0 - (b_range / d_range)
+                params.append({
+                    'name': p, 'min': b_min, 'max': b_max, 
+                    'd_min': d_min, 'd_max': d_max, 
+                    'tightness': tightness,
+                    'd_range': d_range
+                })
+        
+        params.sort(key=lambda x: x['tightness'], reverse=True)
+        bar_height = 0.5
+        
+        ax_bars.clear()
+        for i, p in enumerate(params):
+            y = i
+            # Full Range (0 to 1)
+            ax_bars.broken_barh([(0, 1)], (y - bar_height/2, bar_height), facecolor='#f0f0f0', edgecolor='gray')
+            
+            # Normalized Restricted Range
+            d_range = p['d_range']
+            if d_range > 0:
+                norm_min = (p['min'] - p['d_min']) / d_range
+                norm_max = (p['max'] - p['d_min']) / d_range
+                width = norm_max - norm_min
+                ax_bars.broken_barh([(norm_min, width)], (y - bar_height/2, bar_height), facecolor=box_color, alpha=0.8)
+                
+                # Annotate Bounds (Absolute Values) - Slightly shifted to avoid collision with names
+                ax_bars.text(norm_min, y, f"{p['min']:.2f} ", ha='right', va='center', fontsize=9)
+                ax_bars.text(norm_max, y, f" {p['max']:.2f}", ha='left', va='center', fontsize=9)
+            
+            # Param Name - Moved further left (x=-0.05) to be outside plot area
+            ax_bars.text(-0.05, y, f"{p['name']}", ha='right', va='center', fontsize=10, transform=ax_bars.get_yaxis_transform())
+
+        ax_bars.set_yticks([])
+        ax_bars.set_xticks([0, 1])
+        ax_bars.set_xticklabels(['Min', 'Max'])
+        ax_bars.set_title("Normalized Restrictions (Full Bar = Dataset Range)", fontsize=10)
+        ax_bars.set_ylim(-1, len(params))
+        ax_bars.invert_yaxis() 
+
+    # 3. Draw Metrics (Text)
+    ax_text.axis('off')
+    metrics = getattr(box, 'metrics', {})
+    
+    text_content = f"Box Analysis: {getattr(box, 'name', 'Unnamed Box')}\n"
+    text_content += "-" * 30 + "\n\n"
+    
+    if metrics:
+        text_content += f"Density (Precision): {metrics.get('density', 0):.2f}\n"
+        text_content += f"Coverage (Recall):   {metrics.get('coverage', 0):.2f}\n"
+        
+        lift = metrics.get('lift')
+        if lift:
+             text_content += f"Lift:                {lift:.2f}\n"
+             
+        mass = metrics.get('mass')
+        if mass:
+             text_content += f"Mass (Support):      {mass:.2f}\n"
+    else:
+        text_content += "No pre-calculated metrics available."
+        
+    ax_text.text(0.1, 0.9, text_content, transform=ax_text.transAxes, 
+                 fontsize=10, family='monospace', va='top')
+                 
+    # 4. Pair Plot
+    top_params_info = params[:5] if 'params' in locals() and params else []
+    top_params = [p['name'] for p in top_params_info]
+    
+    if top_params:
+        plot_df = experiments_df[top_params].copy()
+        if len(plot_df) > max_scatter_points:
+            plot_df = plot_df.sample(max_scatter_points, random_state=42)
+            mask_subset = outcome_mask.loc[plot_df.index]
+        else:
+            mask_subset = outcome_mask.loc[plot_df.index]
+            
+        plot_df['Status'] = mask_subset.map({True: 'Success', False: 'Failure'})
+        ax_pairs.axis('off')
+        
+        n_params = len(top_params)
+        
+        if n_params == 1:
+            # Special 1D case: Strip plot with fictitious Y-axis
+            ax_sub = fig.add_subplot(gs[1, :])
+            col_var = top_params[0]
+            
+            # Create synthetic Y for strip plot
+            y_vals = np.random.normal(0, 0.05, size=len(plot_df))
+            
+            sns.scatterplot(
+                x=plot_df[col_var], y=y_vals, hue=plot_df['Status'],
+                palette={'Success': 'red', 'Failure': 'blue'},
+                ax=ax_sub, s=s, alpha=alpha, legend=False
+            )
+            
+            # Draw Box Limits
+            if box and isinstance(limits, dict):
+                # Use resolved bounds from top_params_info
+                p_x = top_params_info[0]
+                if p_x:
+                    # Apply epsilon to x
+                    eps_x = p_x['d_range'] * box_eps
+                    
+                    # Fictitious height for the box logic (covering most of the strip)
+                    y_min, y_max = -0.2, 0.2 
+                    
+                    rect = patches.Rectangle(
+                        (p_x['min'] - eps_x, y_min), 
+                        (p_x['max'] - p_x['min']) + 2*eps_x, 
+                        (y_max - y_min),
+                        linewidth=2, edgecolor=box_color, facecolor='none', linestyle='--'
+                    )
+                    ax_sub.add_patch(rect)
+            
+            ax_sub.set_ylim(-0.3, 0.3)
+            ax_sub.set_yticks([])
+            ax_sub.set_ylabel("Fictitious Axis (1D)", fontsize=9, color='gray')
+            ax_sub.set_xlabel(col_var, fontsize=9)
+            
+        else:
+            # 2D+ Pair Plot
+            grid_size = n_params if show_diagonal else n_params - 1
+            
+            if grid_size > 0:
+                gs_inner = gridspec.GridSpecFromSubplotSpec(grid_size, grid_size, subplot_spec=gs[1, :], wspace=0.1, hspace=0.1)
+                
+                for i in range(n_params):
+                    for j in range(n_params):
+                        if j > i: continue 
+                        if not show_diagonal and i == j: continue
+                        
+                        # Calculate grid position
+                        grid_i = i if show_diagonal else i - 1
+                        grid_j = j
+                        
+                        ax_sub = fig.add_subplot(gs_inner[grid_i, grid_j])
+                        
+                        row_var = top_params[i]
+                        col_var = top_params[j]
+                        
+                        if i == j:
+                            # Diagonal: Univariate distribution
+                            sns.histplot(
+                                data=plot_df, x=col_var, hue='Status', 
+                                palette={'Success': 'red', 'Failure': 'blue'},
+                                ax=ax_sub, element='step', common_norm=False, legend=False,
+                                bins=bins
+                            )
+                            if box and isinstance(limits, dict):
+                                lims = limits.get(col_var)
+                                if lims:
+                                    ax_sub.axvspan(lims['min'], lims['max'], color='gray', alpha=0.2, zorder=0)
+                                    ax_sub.axvline(lims['min'], color='black', linestyle='--', lw=1)
+                                    ax_sub.axvline(lims['max'], color='black', linestyle='--', lw=1)
+                        else:
+                                                    # Off-diagonal: Bivariate scatter
+                                                    sns.scatterplot(
+                                                        data=plot_df, x=col_var, y=row_var, hue='Status', 
+                                                        palette={'Success': 'red', 'Failure': 'blue'},
+                                                        ax=ax_sub, s=s, alpha=alpha, legend=False
+                                                    )
+                                                    
+                                                    # Draw Box Limits using clamped bounds from params info
+                                                    p_x = next((p for p in top_params_info if p['name'] == col_var), None)
+                                                    p_y = next((p for p in top_params_info if p['name'] == row_var), None)
+                                                    
+                                                    if p_x and p_y:
+                                                         eps_x = p_x['d_range'] * box_eps
+                                                         eps_y = p_y['d_range'] * box_eps
+                                                         
+                                                         x_min, x_max = p_x['min'], p_x['max']
+                                                         y_min, y_max = p_y['min'], p_y['max']
+                                                         
+                                                         rect = patches.Rectangle(
+                                                            (x_min - eps_x, y_min - eps_y), 
+                                                            (x_max - x_min) + 2*eps_x, 
+                                                            (y_max - y_min) + 2*eps_y,
+                                                            linewidth=2, edgecolor=box_color, facecolor='none', linestyle='--'
+                                                        )
+                                                         ax_sub.add_patch(rect)
+                                                    else:
+                                                         print(f"Warning: Could not determine visualization bounds for pair {col_var}, {row_var}")
+                                                
+                                                # Ticks: Equally spaced                        ax_sub.xaxis.set_major_locator(MaxNLocator(nbins=4))
+                        ax_sub.yaxis.set_major_locator(MaxNLocator(nbins=4))
+
+                        # Labels only on outer edges
+                        is_bottom_edge = (grid_i == grid_size - 1)
+                        is_left_edge = (grid_j == 0)
+                        
+                        if is_bottom_edge:
+                            ax_sub.set_xlabel(col_var, fontsize=9)
+                        else:
+                            ax_sub.set_xlabel("")
+                            ax_sub.set_xticklabels([])
+                            
+                        if is_left_edge:
+                            ax_sub.set_ylabel(row_var, fontsize=9)
+                        else:
+                            ax_sub.set_ylabel("")
+                            ax_sub.set_yticklabels([])
+                        
+        # Add Pair Plot Legend
+        from matplotlib.lines import Line2D
+        
+        t_name = getattr(box, 'target_tradeoff', 'Target')
+        label_success = f"Satisfies target={t_name}" if t_name else "Satisfies Target"
+        label_failure = "Other Solutions"
+        
+        legend_elements = [
+            Line2D([0], [0], marker='o', color='w', label=label_success, markerfacecolor='red', markersize=10),
+            Line2D([0], [0], marker='o', color='w', label=label_failure, markerfacecolor='blue', markersize=10)
+        ]
+        if box and isinstance(limits, dict):
+             legend_elements.append(patches.Patch(facecolor='none', edgecolor=box_color, linestyle='--', linewidth=2, label='Box Limits'))
+
+        # Place legend at the very bottom of the figure, clearly separated from axis labels
+        fig.legend(handles=legend_elements, loc='lower center', bbox_to_anchor=(0.5, 0.0), 
+                   ncol=3, fontsize=10, frameon=False)
+        
+        # Increase bottom margin significantly to accommodate the legend
+        plt.subplots_adjust(bottom=0.2)
+    
+    if title:
+        fig.suptitle(title, fontsize=16)
+    else:
+        fig.suptitle(f"Scenario Discovery Diagnostics: {getattr(box, 'name', 'Box')}", fontsize=16)
+        
     return fig

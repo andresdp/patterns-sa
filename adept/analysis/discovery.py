@@ -298,13 +298,6 @@ class PRIMDiscovery(ScenarioDiscovery):
             # The current implementation returns (box1, df, prim_alg) tuple in original code.
             # To be backward compatible but return Box objects, we might need to wrap it.
             # But the user asked to "return the Box objects".
-            # The original code returned: return box1, df.to_dict(orient='index'), prim_alg
-            # I will modify it to return a list of Box objects or a single Box object?
-            # The interface says "Any".
-            # Let's keep the return signature but ensure the Box object is created if we were returning objects.
-            # Wait, the previous code returned TUPLES. 
-            # "When returning results ... I'd like to return the Box objects"
-            # I should change the return type to List[Box].
             
             metrics = {
                 "density": box1.peeling_trajectory.iloc[box1._cur_box]['density'],
