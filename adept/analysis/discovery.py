@@ -433,6 +433,8 @@ class CARTDiscovery(ScenarioDiscovery):
     def _extract_boxes(self, triple_rules):
         """Converts tree rules into parameter bound 'boxes'."""
         cart_boxes = dict()
+        # TODO: At times, multiple rules (disjoint leaves in the tree) are converted into a single box though a Union of boxes.
+        # This approach is conservative, but it also leads to additional "spaces" in the union box
         for t in triple_rules:
             qa_label = t[-1][1]
             if qa_label not in cart_boxes.keys():
@@ -440,6 +442,8 @@ class CARTDiscovery(ScenarioDiscovery):
             vars_ = set([x[1] for x in t[0:-1]])
             vars_ranges = dict()
             for v in vars_:
+                # TODO: min_bound=0 is conservative and might not be correct for datasets with negative parameter values.
+                # Consider using the actual dataset minimum for the variable 'v' instead of a hardcoded 0.
                 vrange = self._intersect_intervals_from_paths([t[0:-1]], v, min_bound=0, max_bound=None)
                 if vrange is not None:
                     vars_ranges[v] = {'min': vrange[0], 'max': vrange[1]}
@@ -449,6 +453,9 @@ class CARTDiscovery(ScenarioDiscovery):
         final_boxes = {}
         for qa_label, boxes in cart_boxes.items():
             if boxes:
+                # TODO: This currently selects only the single largest/most significant leaf (boxes[0]).
+                # To support a "Union of Boxes" representation of the architecture space, 
+                # this should return the full 'boxes' list or a dedicated BoxUnion object.
                 final_boxes[qa_label] = boxes[0]
         return final_boxes
 
