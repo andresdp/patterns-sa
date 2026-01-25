@@ -139,12 +139,12 @@ class ContingencyAnalyzer:
         # Normalization logic
         if normalization_mode == 'population':
             totals = row_series.value_counts()
-            result_df = result_df.div(totals, axis=0) # * 100.0
+            result_df = result_df.div(totals, axis=0) * 100.0
         elif normalization_mode == 'row':
             row_sums = result_df.sum(axis=1)
             # Avoid division by zero
             row_sums = row_sums.replace(0, 1) 
-            result_df = result_df.div(row_sums, axis=0) # * 100.0
+            result_df = result_df.div(row_sums, axis=0) * 100.0
         elif normalization_mode == 'none':
             pass
         else:

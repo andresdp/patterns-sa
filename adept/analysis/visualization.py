@@ -854,17 +854,3 @@ def show_multi_objective_tradeoffs(
     if title: ax.set_title(title)
     return fig
 
-def _apply_axis_segmentation(ax: plt.Axes, scheme: Optional[DiscretizationScheme], data: pd.Series, orientation: str = 'x'):
-    if not scheme: return
-    line_color, line_alpha = 'red', 0.4
-    bounds = set()
-    for b in scheme.bins:
-        if np.isfinite(b.min_value): bounds.add(b.min_value)
-        if np.isfinite(b.max_value): bounds.add(b.max_value)
-        val_min, val_max = (b.min_value if np.isfinite(b.min_value) else data.min()), (b.max_value if np.isfinite(b.max_value) else data.max())
-        mid = (val_min + val_max) / 2
-        if orientation == 'x': ax.text(mid, 1.02, b.label, transform=ax.get_xaxis_transform(), color=line_color, fontsize=9, fontweight='bold', ha='center', va='bottom')
-        else: ax.text(1.02, mid, b.label, transform=ax.get_yaxis_transform(), color=line_color, fontsize=9, fontweight='bold', ha='left', va='center', rotation=90)
-    for val in bounds:
-        if orientation == 'x': ax.axvline(val, color=line_color, linestyle='--', alpha=line_alpha)
-        else: ax.axhline(val, color=line_color, linestyle='--', alpha=line_alpha)
