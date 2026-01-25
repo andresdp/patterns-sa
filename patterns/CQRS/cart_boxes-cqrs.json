@@ -2,9 +2,13 @@
     {
         "name": "Box for XS-M",
         "limits": {
+            "r_Z_write": {
+                "min": 0.0014187304216769924,
+                "max": 0.0015034767444692823
+            },
             "r_DB_read": {
                 "min": 0.23810269780740093,
-                "max": Infinity
+                "max": 0.3333333333333333
             }
         },
         "dataset_bounds": {
@@ -18,12 +22,12 @@
             }
         },
         "metrics": {
-            "density": 0.40145985401459855,
-            "coverage": 0.55,
+            "density": 0.2727272727272727,
+            "coverage": 0.03,
             "population_prevalence": 0.39267015706806285,
-            "lift": 0.008789696946535697,
-            "samples_in_box": 137.0,
-            "targets_in_box": 55.0
+            "lift": -0.11994288434079015,
+            "samples_in_box": 11.0,
+            "targets_in_box": 3.0
         },
         "target_tradeoff": "XS-M",
         "target_tradeoff_labels": "XS,M",

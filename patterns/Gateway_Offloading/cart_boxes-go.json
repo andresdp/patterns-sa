@@ -2,19 +2,19 @@
     {
         "name": "Box for XS-L",
         "limits": {
-            "r_B_s3": {
-                "min": 0.14999811693453896,
-                "max": Infinity
+            "S_gw": {
+                "min": 7.5018580793460075,
+                "max": 10.0
             },
             "N_B": {
-                "min": 12.533333333333333,
-                "max": Infinity
+                "min": 2.4984341726078902,
+                "max": 25.0
             }
         },
         "dataset_bounds": {
-            "r_B_s3": {
-                "min": 0.0666666666666666,
-                "max": 0.2
+            "S_gw": {
+                "min": 0.0,
+                "max": 10.0
             },
             "N_B": {
                 "min": 0.0,
@@ -23,11 +23,11 @@
         },
         "metrics": {
             "density": 1.0,
-            "coverage": 0.25,
+            "coverage": 1.0,
             "population_prevalence": 0.3333333333333333,
             "lift": 0.6666666666666667,
-            "samples_in_box": 2.0,
-            "targets_in_box": 2.0
+            "samples_in_box": 8.0,
+            "targets_in_box": 8.0
         },
         "target_tradeoff": "XS-L",
         "target_tradeoff_labels": "XS,L",
@@ -35,17 +35,21 @@
         "population_prevalence": 0.3333333333333333
     },
     {
-        "name": "Box for XS-XS",
+        "name": "Box for XS-M",
         "limits": {
+            "S_gw": {
+                "min": 2.4988836751651404,
+                "max": 7.5018580750772585
+            },
             "N_B": {
-                "min": 12.533333333333333,
-                "max": 21.502117656751977
+                "min": 6.002447998049919,
+                "max": 20.00359259523315
             }
         },
         "dataset_bounds": {
-            "r_B_s3": {
-                "min": 0.0666666666666666,
-                "max": 0.2
+            "S_gw": {
+                "min": 0.0,
+                "max": 10.0
             },
             "N_B": {
                 "min": 0.0,
@@ -53,12 +57,47 @@
             }
         },
         "metrics": {
-            "density": 0.3,
+            "density": 1.0,
             "coverage": 0.6,
+            "population_prevalence": 0.2222222222222222,
+            "lift": 0.7777777777777778,
+            "samples_in_box": 6.0,
+            "targets_in_box": 6.0
+        },
+        "target_tradeoff": "XS-M",
+        "target_tradeoff_labels": "XS,M",
+        "method": "cart",
+        "population_prevalence": 0.2222222222222222
+    },
+    {
+        "name": "Box for XS-XS",
+        "limits": {
+            "S_gw": {
+                "min": 0.0,
+                "max": 2.498883670896391
+            },
+            "N_B": {
+                "min": 7.001464705729136,
+                "max": 21.502117656751977
+            }
+        },
+        "dataset_bounds": {
+            "S_gw": {
+                "min": 0.0,
+                "max": 10.0
+            },
+            "N_B": {
+                "min": 0.0,
+                "max": 25.0
+            }
+        },
+        "metrics": {
+            "density": 0.8333333333333334,
+            "coverage": 1.0,
             "population_prevalence": 0.17777777777777778,
-            "lift": 0.1222222222222222,
-            "samples_in_box": 10.0,
-            "targets_in_box": 3.0
+            "lift": 0.6555555555555556,
+            "samples_in_box": 6.0,
+            "targets_in_box": 5.0
         },
         "target_tradeoff": "XS-XS",
         "target_tradeoff_labels": "XS,XS",
@@ -68,15 +107,19 @@
     {
         "name": "Box for S-XS",
         "limits": {
+            "S_gw": {
+                "min": 0.0,
+                "max": 2.498883670896391
+            },
             "N_B": {
-                "min": 21.502117664207326,
-                "max": Infinity
+                "min": 3.497450880287108,
+                "max": 7.001464698273788
             }
         },
         "dataset_bounds": {
-            "r_B_s3": {
-                "min": 0.0666666666666666,
-                "max": 0.2
+            "S_gw": {
+                "min": 0.0,
+                "max": 10.0
             },
             "N_B": {
                 "min": 0.0,
@@ -84,11 +127,11 @@
             }
         },
         "metrics": {
-            "density": 0.16666666666666666,
+            "density": 1.0,
             "coverage": 0.3333333333333333,
             "population_prevalence": 0.1111111111111111,
-            "lift": 0.05555555555555555,
-            "samples_in_box": 6.0,
+            "lift": 0.8888888888888888,
+            "samples_in_box": 1.0,
             "targets_in_box": 1.0
         },
         "target_tradeoff": "S-XS",

@@ -4,7 +4,11 @@
         "limits": {
             "N_B": {
                 "min": 36.502666740471284,
-                "max": Infinity
+                "max": 50.0
+            },
+            "c_T2": {
+                "min": 0.0,
+                "max": 0.49965598942838313
             }
         },
         "dataset_bounds": {
@@ -18,12 +22,12 @@
             }
         },
         "metrics": {
-            "density": 0.4375,
-            "coverage": 0.21875,
+            "density": 0.75,
+            "coverage": 0.09375,
             "population_prevalence": 0.5274725274725275,
-            "lift": -0.08997252747252749,
-            "samples_in_box": 16.0,
-            "targets_in_box": 7.0
+            "lift": 0.22252747252747251,
+            "samples_in_box": 4.0,
+            "targets_in_box": 3.0
         },
         "target_tradeoff": "XS-M",
         "target_tradeoff_labels": "XS,M",
@@ -33,8 +37,12 @@
     {
         "name": "Box for L-S",
         "limits": {
+            "N_B": {
+                "min": 3.502680327356064,
+                "max": 11.495756606916851
+            },
             "c_T2": {
-                "min": 0.9340659340659341,
+                "min": 0.49965599022400575,
                 "max": 1.499753609225822
             }
         },
@@ -49,12 +57,12 @@
             }
         },
         "metrics": {
-            "density": 0.3333333333333333,
-            "coverage": 0.8571428571428571,
+            "density": 0.75,
+            "coverage": 0.42857142857142855,
             "population_prevalence": 0.10989010989010989,
-            "lift": 0.22344322344322343,
-            "samples_in_box": 18.0,
-            "targets_in_box": 6.0
+            "lift": 0.6401098901098901,
+            "samples_in_box": 4.0,
+            "targets_in_box": 3.0
         },
         "target_tradeoff": "L-S",
         "target_tradeoff_labels": "L,S",
@@ -64,8 +72,12 @@
     {
         "name": "Box for M-S",
         "limits": {
+            "N_B": {
+                "min": 17.005269923725873,
+                "max": 22.00094259309886
+            },
             "c_T2": {
-                "min": 0.9340659340659341,
+                "min": 0.49965599022400575,
                 "max": 1.499753609225822
             }
         },
@@ -80,12 +92,12 @@
             }
         },
         "metrics": {
-            "density": 0.3888888888888889,
-            "coverage": 0.7777777777777778,
+            "density": 0.5,
+            "coverage": 0.1111111111111111,
             "population_prevalence": 0.14285714285714285,
-            "lift": 0.24603174603174605,
-            "samples_in_box": 18.0,
-            "targets_in_box": 7.0
+            "lift": 0.35714285714285715,
+            "samples_in_box": 2.0,
+            "targets_in_box": 1.0
         },
         "target_tradeoff": "M-S",
         "target_tradeoff_labels": "M,S",

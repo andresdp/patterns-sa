@@ -418,7 +418,10 @@ class CARTDiscovery(ScenarioDiscovery):
 
         string_rules, triple_rules = self._get_rules(cart_alg.clf, feature_names=x.columns, class_names=class_names)
         
-        cart_boxes = self._extract_boxes(triple_rules)
+        # Calculate dataset bounds to avoid hardcoded min_bound=0 in interval intersection
+        dataset_bounds = {col: {'min': x[col].min(), 'max': x[col].max()} for col in x.columns if np.issubdtype(x[col].dtype, np.number)}
+        
+        cart_boxes = self._extract_boxes(triple_rules, dataset_bounds=dataset_bounds)
         
         # Convert to Box objects
         box_objects = []
@@ -430,7 +433,7 @@ class CARTDiscovery(ScenarioDiscovery):
              
         return box_objects
 
-    def _extract_boxes(self, triple_rules):
+    def _extract_boxes(self, triple_rules, dataset_bounds=None):
         """Converts tree rules into parameter bound 'boxes'."""
         cart_boxes = dict()
         # TODO: At times, multiple rules (disjoint leaves in the tree) are converted into a single box though a Union of boxes.
@@ -442,9 +445,11 @@ class CARTDiscovery(ScenarioDiscovery):
             vars_ = set([x[1] for x in t[0:-1]])
             vars_ranges = dict()
             for v in vars_:
-                # TODO: min_bound=0 is conservative and might not be correct for datasets with negative parameter values.
-                # Consider using the actual dataset minimum for the variable 'v' instead of a hardcoded 0.
-                vrange = self._intersect_intervals_from_paths([t[0:-1]], v, min_bound=0, max_bound=None)
+                # Use dataset bounds if available, else fallback to 0 (conservative)
+                min_b = dataset_bounds[v]['min'] if (dataset_bounds and v in dataset_bounds) else 0
+                max_b = dataset_bounds[v]['max'] if (dataset_bounds and v in dataset_bounds) else None
+                
+                vrange = self._intersect_intervals_from_paths([t[0:-1]], v, min_bound=min_b, max_bound=max_b)
                 if vrange is not None:
                     vars_ranges[v] = {'min': vrange[0], 'max': vrange[1]}
             if len(vars_ranges.keys()) > 0:
