@@ -8,7 +8,7 @@
             }
         },
         "dataset_bounds": {
-            "c_T2": {
+            "c_T1": {
                 "min": 0.0,
                 "max": 2.0
             },
@@ -33,7 +33,7 @@
     {
         "name": "Box for S-S",
         "limits": {
-            "c_T2": {
+            "c_T1": {
                 "min": 0.5,
                 "max": 1.5
             },
@@ -43,7 +43,7 @@
             }
         },
         "dataset_bounds": {
-            "c_T2": {
+            "c_T1": {
                 "min": 0.0,
                 "max": 2.0
             },
@@ -68,7 +68,7 @@
     {
         "name": "Box for M-S",
         "limits": {
-            "c_T2": {
+            "c_T1": {
                 "min": 0.5,
                 "max": 1.5
             },
@@ -78,7 +78,7 @@
             }
         },
         "dataset_bounds": {
-            "c_T2": {
+            "c_T1": {
                 "min": 0.0,
                 "max": 2.0
             },
@@ -103,7 +103,7 @@
     {
         "name": "Box for L-S",
         "limits": {
-            "c_T2": {
+            "c_T1": {
                 "min": 0.5,
                 "max": 1.5
             },
@@ -113,7 +113,7 @@
             }
         },
         "dataset_bounds": {
-            "c_T2": {
+            "c_T1": {
                 "min": 0.0,
                 "max": 2.0
             },

@@ -2,13 +2,13 @@
     {
         "name": "Box for L-L",
         "limits": {
-            "r_A_gw": {
+            "r_B_gw": {
                 "min": 0.05,
                 "max": 0.058347784364893136
             }
         },
         "dataset_bounds": {
-            "r_A_gw": {
+            "r_B_gw": {
                 "min": 0.05,
                 "max": 0.2
             },
@@ -33,7 +33,7 @@
     {
         "name": "Box for XS-XS",
         "limits": {
-            "r_A_gw": {
+            "r_B_gw": {
                 "min": 0.1333597455355477,
                 "max": 0.2
             },
@@ -43,7 +43,7 @@
             }
         },
         "dataset_bounds": {
-            "r_A_gw": {
+            "r_B_gw": {
                 "min": 0.05,
                 "max": 0.2
             },
@@ -68,7 +68,7 @@
     {
         "name": "Box for S-L",
         "limits": {
-            "r_A_gw": {
+            "r_B_gw": {
                 "min": 0.05834778443216844,
                 "max": 0.1333597454682724
             },
@@ -78,7 +78,7 @@
             }
         },
         "dataset_bounds": {
-            "r_A_gw": {
+            "r_B_gw": {
                 "min": 0.05,
                 "max": 0.2
             },
@@ -103,7 +103,7 @@
     {
         "name": "Box for S-XS",
         "limits": {
-            "r_A_gw": {
+            "r_B_gw": {
                 "min": 0.1333597455355477,
                 "max": 0.2
             },
@@ -113,7 +113,7 @@
             }
         },
         "dataset_bounds": {
-            "r_A_gw": {
+            "r_B_gw": {
                 "min": 0.05,
                 "max": 0.2
             },
@@ -138,7 +138,7 @@
     {
         "name": "Box for M-M",
         "limits": {
-            "r_A_gw": {
+            "r_B_gw": {
                 "min": 0.05834778443216844,
                 "max": 0.1333597454682724
             },
@@ -148,7 +148,7 @@
             }
         },
         "dataset_bounds": {
-            "r_A_gw": {
+            "r_B_gw": {
                 "min": 0.05,
                 "max": 0.2
             },

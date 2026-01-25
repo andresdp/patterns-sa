@@ -2,9 +2,13 @@
     {
         "name": "Box for XS-M",
         "limits": {
+            "p_SS1toRef_B": {
+                "min": 0.5498896220202273,
+                "max": 0.9
+            },
             "N_A": {
-                "min": 12.58695652173913,
-                "max": Infinity
+                "min": 5.49832611273726,
+                "max": 25.0
             }
         },
         "dataset_bounds": {
@@ -12,22 +16,18 @@
                 "min": 0.0,
                 "max": 25.0
             },
-            "p_SS1toRef_A": {
-                "min": 0.0999999999999999,
-                "max": 0.9
-            },
             "p_SS1toRef_B": {
                 "min": 0.0999999999999999,
                 "max": 0.9
             }
         },
         "metrics": {
-            "density": 0.9111111111111111,
-            "coverage": 0.6307692307692307,
+            "density": 0.9714285714285714,
+            "coverage": 0.5230769230769231,
             "population_prevalence": 0.5579710144927537,
-            "lift": 0.35314009661835744,
-            "samples_in_box": 45.0,
-            "targets_in_box": 41.0
+            "lift": 0.41345755693581776,
+            "samples_in_box": 35.0,
+            "targets_in_box": 34.0
         },
         "target_tradeoff": "XS-M",
         "target_tradeoff_labels": "XS,M",
@@ -37,13 +37,13 @@
     {
         "name": "Box for XS-L",
         "limits": {
-            "N_A": {
-                "min": 12.58695652173913,
-                "max": 14.4986691475883
+            "p_SS1toRef_B": {
+                "min": 0.09999999999999987,
+                "max": 0.4499243375126996
             },
-            "p_SS1toRef_A": {
-                "min": 0.5500756627429659,
-                "max": Infinity
+            "N_A": {
+                "min": 0.0,
+                "max": 14.4986691475883
             }
         },
         "dataset_bounds": {
@@ -51,22 +51,18 @@
                 "min": 0.0,
                 "max": 25.0
             },
-            "p_SS1toRef_A": {
-                "min": 0.0999999999999999,
-                "max": 0.9
-            },
             "p_SS1toRef_B": {
                 "min": 0.0999999999999999,
                 "max": 0.9
             }
         },
         "metrics": {
-            "density": 0.25,
-            "coverage": 0.041666666666666664,
+            "density": 0.88,
+            "coverage": 0.9166666666666666,
             "population_prevalence": 0.35507246376811596,
-            "lift": -0.10507246376811596,
-            "samples_in_box": 4.0,
-            "targets_in_box": 1.0
+            "lift": 0.524927536231884,
+            "samples_in_box": 25.0,
+            "targets_in_box": 22.0
         },
         "target_tradeoff": "XS-L",
         "target_tradeoff_labels": "XS,L",

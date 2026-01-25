@@ -136,6 +136,39 @@ The LLM can cross-reference discovered boxes with an architectural corpus (e.g.,
 
 ---
 
+## 7. Data-Driven Causal Reasoning
+
+While Scenario Discovery (PRIM/CART) identifies **correlations** (e.g., "Success happens within this box"), it does not inherently prove **causality**. Integrating Causal Reasoning allows ADEPT to transition from "Box Discovery" to "Architectural Explanation."
+
+### Mapping ADEPT to Causal Concepts
+*   **Levers (Parameters):** Treatments or Interventions ($do(x)$).
+*   **Uncertainties:** Confounders or Background context.
+*   **Quality Objectives:** Outcome variables ($Y$).
+*   **Boxes:** Treatment Regions (the specific subset of $do(x)$ being evaluated).
+*   **Policies/Patterns:** Instrumental Variables or Contextual Moderators.
+
+### Causal Validation with Microsoft DoWhy
+DoWhy provides a robust framework to "Refute" discovered boxes, ensuring they aren't artifacts of spurious correlation.
+
+1.  **Causal Graph (DAG) Construction:** ADEPT's metadata can automatically seed a DAG where Levers affect Outcomes, and Uncertainties act as potential confounders.
+2.  **Refutation Tests:** Once a Box is discovered, DoWhy can perform "Stress Tests":
+    *   **Placebo Treatment:** If we shift the box boundaries to a random location, does the effect disappear?
+    *   **Subset Validation:** Does the box's effectiveness hold up if we only look at a subset of the simulation data?
+*   **Value:** It provides a **Causal Confidence Score** for every discovered box.
+
+### Heterogeneous Treatment Effects with EconML / CausalML
+In complex architectures, a constraint that works for one pattern might fail for another. This is "Heterogeneity."
+
+1.  **Causal Forests:** Using EconML, ADEPT can calculate the **Conditional Average Treatment Effect (CATE)** of an architectural decision.
+2.  **Context-Aware Recommendations:** ADEPT can identify that a specific box constraint (e.g., `Memory > 8GB`) has a high impact on *Latency* in the "Anti-Corruption Layer" pattern but negligible impact in "Pipes and Filters."
+*   **Value:** It enables **Personalized Architectural Advice**, telling the architect exactly where their design changes will have the highest ROI based on their chosen policy.
+
+### Counterfactual Explanations
+For any specific "Failure" run in the simulation, causal models can generate a "What-If" scenario:
+*   **LLM + Causal Perspective:** *"If you had increased 'IOPS' by 200 while keeping all other 20 parameters constant, this run would have moved from 'Failure' to 'Success'. Increasing 'ServerCount' would have been less effective in this specific scenario."*
+
+---
+
 ## Comparison Summary
 
 | Strategy | Primary Strength | Mitigation for "Brittleness" | Perspective |
