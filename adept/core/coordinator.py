@@ -18,6 +18,7 @@ from ..analysis.explainer import ExplanationManager
 from ..analysis.visualization_manager import VisualizationManager
 import matplotlib.pyplot as plt
 
+from matplotlib.lines import Line2D     
 
 class ArchSpaceCore:
     """The central orchestrator for the ADEPT framework.
@@ -251,6 +252,7 @@ class ArchSpaceCore:
         outcome_mask: pd.Series, 
         show_diagonal: bool = True,
         box_eps: float = 0.02,
+        policy_series: Optional[pd.Series] = None,
         **kwargs
     ) -> plt.Figure:
         """Visualizes detailed diagnostics for a discovered box (bars, metrics, scatter)."""
@@ -258,6 +260,7 @@ class ArchSpaceCore:
             box, experiments_df, outcome_mask, 
             show_diagonal=show_diagonal, 
             box_eps=box_eps, 
+            policy_series=policy_series,
             **kwargs
         )
 

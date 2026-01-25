@@ -3,6 +3,8 @@ import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
 
+from matplotlib.lines import Line2D     
+
 # Import custom exceptions
 try:
     from ..utils.exceptions import VisualizationError
@@ -136,6 +138,7 @@ class VisualizationManager:
         outcome_mask: pd.Series, 
         show_diagonal: bool = True,
         box_eps: float = 0.02,
+        policy_series: Optional[pd.Series] = None,
         **kwargs
     ) -> plt.Figure:
         """
@@ -147,6 +150,7 @@ class VisualizationManager:
                 box, experiments_df, outcome_mask, 
                 show_diagonal=show_diagonal, 
                 box_eps=box_eps, 
+                policy_series=policy_series,
                 **kwargs
             )
         except Exception as e:

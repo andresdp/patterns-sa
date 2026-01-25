@@ -382,8 +382,9 @@ class PatternAnalysis:
         self, 
         box: Any, 
         subset: str = 'all', 
-        show_diagonal: bool = True,
+        show_diagonal: bool = False,
         box_eps: float = 0.02,
+        show_policies: bool = False,
         **kwargs
     ) -> plt.Figure:
         """
@@ -392,18 +393,29 @@ class PatternAnalysis:
         Panels:
         1. Constraints: Horizontal bars showing parameter restrictions.
         2. Metrics: Text summary of Density, Coverage, Lift.
-        3. Pair Plot: Scatter matrix of restricted parameters (Red=Success, Blue=Failure).
+        3. Pair Plot: Scatter matrix of restricted parameters.
+           - If show_policies=False: Red=Satisfies Target, Blue=Other.
+           - If show_policies=True: Colors represent Policies, Markers represent Target satisfaction.
         
         Args:
             box: The discovered Box object.
             subset: 'all', 'train', or 'test'.
             show_diagonal: Whether to show frequency plots on the diagonal.
             box_eps: Epsilon factor to pad the box rectangles in pair plots.
+            show_policies: If True, uses colors for policies and markers for target satisfaction.
             **kwargs: Additional plotting arguments (figsize, s, alpha, bins, etc.)
         """
         X, _, discrete = self._get_subset_data(subset)
         
-        # Determine Target Mask (Ground Truth for Pair Plot colors)
+        policy_series = None
+        if show_policies:
+            config_col = self.sys_def.dataspace.configuration_identification.column
+            if config_col and config_col in X.columns:
+                policy_series = X[config_col]
+            else:
+                print(f"Warning: Configuration column '{config_col}' not found. show_policies ignored.")
+        
+        # Determine Target Mask (Ground Truth for Pair Plot colors/markers)
         tradeoff_name = getattr(box, 'target_tradeoff', None)
         if tradeoff_name:
             tradeoff = self.get_tradeoff(tradeoff_name)
@@ -413,7 +425,7 @@ class PatternAnalysis:
                     if obj in discrete.columns:
                         mask &= (discrete[obj] == label)
             else:
-                print(f"Warning: Tradeoff '{tradeoff_name}' not found. Scatter colors (Success/Failure) may be inaccurate (defaulting to all Success).")
+                print(f"Warning: Tradeoff '{tradeoff_name}' not found. Scatter indicators may be inaccurate (defaulting to all Success).")
                 mask = pd.Series(True, index=discrete.index)
         else:
              # If no target, we can't define Success/Failure easily.
@@ -423,6 +435,7 @@ class PatternAnalysis:
             box, X, mask, 
             show_diagonal=show_diagonal, 
             box_eps=box_eps, 
+            policy_series=policy_series,
             **kwargs
         )
 

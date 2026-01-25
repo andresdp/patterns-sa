@@ -508,14 +508,9 @@ def show_robustness_uplift(
 ) -> plt.Figure:
     """
     Plots robustness improvement vectors (Baseline -> Boxed) per policy. 
-    
-    X-axis: Robustness Value (e.g. STARR)
-    Y-axis: Coverage (0.0 - 1.0)
     """
     fig, ax = plt.subplots(figsize=figsize)
-    
     df = uplift_df.copy()
-    
     df = df[df['Baseline'] != 0]
     
     if df.empty:
@@ -544,25 +539,18 @@ def show_robustness_uplift(
     if not background_df.empty:
         for idx, row in background_df.iterrows():
             if idx == 'GLOBAL': continue 
-            
             start_x, start_y = row['Baseline'], 1.0
             end_x, end_y = row['Boxed'], row['Coverage']
-            
             ax.scatter([start_x, end_x], [start_y, end_y], 
                        color='lightgray', s=30, marker=marker, alpha=background_alpha, zorder=1)
-            
-            ax.annotate(
-                "",
-                xy=(end_x, end_y), xycoords='data',
+            ax.annotate("", xy=(end_x, end_y), xycoords='data',
                 xytext=(start_x, start_y), textcoords='data',
                 arrowprops=dict(arrowstyle="->", color='lightgray', alpha=background_alpha, lw=1, shrinkA=3, shrinkB=3),
-                zorder=1
-            )
+                zorder=1)
 
     if not highlight_df.empty:
         regular_highlights = highlight_df.drop('GLOBAL', errors='ignore')
         colors = sns.color_palette("bright", n_colors=max(1, len(regular_highlights)))
-        
         color_idx = 0
         for i, (policy, row) in enumerate(highlight_df.iterrows()):
             if policy == 'GLOBAL':
@@ -577,51 +565,35 @@ def show_robustness_uplift(
             
             start_x, start_y = row['Baseline'], 1.0
             end_x, end_y = row['Boxed'], row['Coverage']
-            
             ax.scatter([start_x, end_x], [start_y, end_y], 
                        color=color, s=60, marker=marker, alpha=highlight_alpha, zorder=z_order_base, 
                        label=policy)
-            
-            ax.annotate(
-                "",
-                xy=(end_x, end_y), xycoords='data',
+            ax.annotate("", xy=(end_x, end_y), xycoords='data',
                 xytext=(start_x, start_y), textcoords='data',
                 arrowprops=dict(arrowstyle="->", color=color, alpha=highlight_alpha, lw=lw, shrinkA=5, shrinkB=5),
-                zorder=z_order_base - 1
-            )
+                zorder=z_order_base - 1)
 
     if show_global and has_global and 'GLOBAL' not in highlight_list:
         row = global_row
         start_x, start_y = row['Baseline'], 1.0
         end_x, end_y = row['Boxed'], row['Coverage']
-        
         ax.scatter([start_x, end_x], [start_y, end_y], 
                    color='black', s=40, marker=marker, alpha=background_alpha, zorder=5, label='GLOBAL')
-        ax.annotate(
-            "",
-            xy=(end_x, end_y), xycoords='data',
+        ax.annotate("", xy=(end_x, end_y), xycoords='data',
             xytext=(start_x, start_y), textcoords='data',
             arrowprops=dict(arrowstyle="->", color='black', alpha=background_alpha, lw=1.5, shrinkA=4, shrinkB=4),
-            zorder=4
-        )
+            zorder=4)
 
     ax.set_xlabel(f"Robustness Metric ({metric.upper()})")
     ax.set_ylabel("Coverage (Fraction of Scenarios)")
     ax.set_ylim(0, 1.05)
     ax.set_xlim(0, 1.05)
-    
-    # Baseline Line (Removed label from legend)
-
-    if title:
-        ax.set_title(title)
-    else:
-        ax.set_title(f"Robustness Uplift Analysis: {metric.upper()} vs Coverage")
-        
+    if title: ax.set_title(title)
+    else: ax.set_title(f"Robustness Uplift Analysis: {metric.upper()} vs Coverage")
     if ax.get_legend_handles_labels()[0]:
         handles, labels = ax.get_legend_handles_labels()
         unique = [(h, l) for i, (h, l) in enumerate(zip(handles, labels)) if l not in labels[:i]]
         ax.legend(*zip(*unique), title="Policies", bbox_to_anchor=(1.05, 1), loc='upper left')
-    
     plt.tight_layout()
     return fig
 
@@ -633,96 +605,46 @@ def show_multiple_robustness_uplifts(
     alpha: float = 0.8,
     title: Optional[str] = None
 ) -> plt.Figure:
-    """
-    Plots robustness uplifts for multiple boxes/tradeoffs on the same chart.
-    
-    Distinct markers are used for each Box/Dataset.
-    Consistent colors are used for each Policy.
-    
-    Args:
-        uplift_datasets: Dict mapping Label (e.g. Box Name) -> Uplift DataFrame.
-        metric: Robustness metric name.
-        figsize: Figure size.
-        highlight_policies: List of policies to include. If True/None, includes all (except Global).
-        alpha: Opacity of plot elements.
-        title: Plot title.
-    """
     fig, ax = plt.subplots(figsize=figsize)
-    
     markers = ['o', 'D', 's', '^', 'v', 'P', 'X', '*', 'h', 'p']
-    
     all_policies = set()
     for df in uplift_datasets.values():
         valid_rows = df[(df.index != 'GLOBAL') & (df['Baseline'] != 0)]
         all_policies.update(valid_rows.index.tolist())
-        
     if not all_policies:
-        plt.close(fig)
-        return fig
-        
+        plt.close(fig); return fig
     if isinstance(highlight_policies, list):
         target_policies = sorted([p for p in all_policies if p in highlight_policies])
     else:
         target_policies = sorted(list(all_policies))
-        
     if not target_policies:
-        plt.close(fig)
-        return fig
-
+        plt.close(fig); return fig
     colors = sns.color_palette("bright", n_colors=len(target_policies))
     policy_color_map = dict(zip(target_policies, colors))
-
     for i, (box_name, df) in enumerate(uplift_datasets.items()):
         marker = markers[i % len(markers)]
-        
         mask = (df.index.isin(target_policies)) & (df['Baseline'] != 0)
         df_filtered = df[mask]
-        
         for policy, row in df_filtered.iterrows():
             if policy == 'GLOBAL': continue
-            
             color = policy_color_map[policy]
             label = f"{policy} ({box_name})"
-            
             start_x, start_y = row['Baseline'], 1.0
             end_x, end_y = row['Boxed'], row['Coverage']
-            
-            # Draw Points (Same marker for both start and end)
-            ax.scatter([start_x, end_x], [start_y, end_y], 
-                       color=color, marker=marker, s=60, alpha=alpha, zorder=10, label=label)
-            
-            # Draw Arrow
-            ax.annotate(
-                "",
-                xy=(end_x, end_y), xycoords='data',
-                xytext=(start_x, start_y), textcoords='data',
-                arrowprops=dict(arrowstyle="->", color=color, alpha=alpha, lw=1.5, shrinkA=5, shrinkB=5),
-                zorder=9
-            )
-
+            ax.scatter([start_x, end_x], [start_y, end_y], color=color, marker=marker, s=60, alpha=alpha, zorder=10, label=label)
+            ax.annotate("", xy=(end_x, end_y), xycoords='data', xytext=(start_x, start_y), textcoords='data',
+                arrowprops=dict(arrowstyle="->", color=color, alpha=alpha, lw=1.5, shrinkA=5, shrinkB=5), zorder=9)
     ax.set_xlabel(f"Robustness Metric ({metric.upper()})")
     ax.set_ylabel("Coverage (Fraction of Scenarios)")
     ax.set_ylim(0, 1.05)
     ax.axhline(1.0, color='gray', linestyle='--', alpha=0.3)
-
-    if title:
-        ax.set_title(title)
-    else:
-        ax.set_title(f"Comparative Robustness Uplift ({len(uplift_datasets)} Boxes)")
-
-    # Legend handling: deduplicate labels and move outside plot area
+    if title: ax.set_title(title)
+    else: ax.set_title(f"Comparative Robustness Uplift ({len(uplift_datasets)} Boxes)")
     handles, labels = ax.get_legend_handles_labels()
     if handles:
         by_label = dict(zip(labels, handles))
-        # Place legend to the right of the plot
-        ax.legend(by_label.values(), by_label.keys(), 
-                  title="Policy (Tradeoff)", 
-                  bbox_to_anchor=(1.02, 1), 
-                  loc='upper left',
-                  borderaxespad=0.)
-
-    plt.tight_layout()
-    return fig
+        ax.legend(by_label.values(), by_label.keys(), title="Policy (Tradeoff)", bbox_to_anchor=(1.02, 1), loc='upper left', borderaxespad=0.)
+    plt.tight_layout(); return fig
 
 def show_box_diagnostics(
     box: Any, 
@@ -734,27 +656,38 @@ def show_box_diagnostics(
     bins: int = 10,
     s: int = 40,
     alpha: float = 0.6,
-    show_diagonal: bool = True,
+    show_diagonal: bool = False,
     box_eps: float = 0.02,
-    box_color: str = '#55a868'
+    box_color: str = '#55a868',
+    policy_series: Optional[pd.Series] = None,
+    palette: Optional[Union[str, Dict]] = None
 ) -> plt.Figure:
-    """
-    Visualizes a discovered box with three panels:
-    1. Parameter Restrictions (Horizontal Stacked Bars) - Top Left
-    2. Box Performance Metrics (Text) - Top Right
-    3. Pair Plot of Restricted Parameters (Scatter) - Bottom
-    """
     from matplotlib.ticker import MaxNLocator
+    import matplotlib.cm as cm
+    import matplotlib.colors as mcolors
+    from matplotlib.lines import Line2D
+
+    actual_box_color = box_color
+    policy_palette = palette
     
-    # 1. Setup Grid
+    if policy_series is not None:
+        p_name = palette if palette is not None else 'tab10'
+        if isinstance(p_name, str):
+            cmap = cm.get_cmap(p_name)
+            unique_policies = sorted([str(p) for p in policy_series.unique() if pd.notna(p)])
+            n_policies = len(unique_policies)
+            raw_colors = [mcolors.to_hex(cmap(i / max(1, n_policies))) for i in range(n_policies + 1)]
+            actual_box_color = raw_colors[0]
+            policy_palette = dict(zip(unique_policies, raw_colors[1:]))
+        elif isinstance(palette, dict):
+            if not box_color: actual_box_color = list(palette.values())[0]
+
     fig = plt.figure(figsize=figsize)
     gs = gridspec.GridSpec(2, 2, height_ratios=[1, 2], width_ratios=[2, 1], hspace=0.3)
-    
     ax_bars = fig.add_subplot(gs[0, 0])
     ax_text = fig.add_subplot(gs[0, 1])
     ax_pairs = fig.add_subplot(gs[1, :])
     
-    # 2. Draw Stacked Bars (Restrictions)
     limits = getattr(box, 'limits', box)
     dataset_bounds = getattr(box, 'dataset_bounds', {}) or {}
     
@@ -762,87 +695,39 @@ def show_box_diagnostics(
         params = []
         for p, lims in limits.items():
             if p in experiments_df.columns:
-                d_min = experiments_df[p].min()
-                d_max = experiments_df[p].max()
+                d_min, d_max = experiments_df[p].min(), experiments_df[p].max()
                 d_range = d_max - d_min if d_max > d_min else 1.0
-                
-                # Resolve infinite bounds using dataset_bounds
-                l_min = lims['min']
-                l_max = lims['max']
-                
-                if l_min == -np.inf and p in dataset_bounds:
-                    l_min = dataset_bounds[p]['min']
-                if l_max == np.inf and p in dataset_bounds:
-                    l_max = dataset_bounds[p]['max']
-                
-                b_min = max(l_min, d_min)
-                b_max = min(l_max, d_max)
-                b_range = b_max - b_min
-                
-                tightness = 1.0 - (b_range / d_range)
-                params.append({
-                    'name': p, 'min': b_min, 'max': b_max, 
-                    'd_min': d_min, 'd_max': d_max, 
-                    'tightness': tightness,
-                    'd_range': d_range
-                })
+                l_min, l_max = lims['min'], lims['max']
+                if l_min == -np.inf and p in dataset_bounds: l_min = dataset_bounds[p]['min']
+                if l_max == np.inf and p in dataset_bounds: l_max = dataset_bounds[p]['max']
+                b_min, b_max = max(l_min, d_min), min(l_max, d_max)
+                params.append({'name': p, 'min': b_min, 'max': b_max, 'd_min': d_min, 'd_max': d_max, 'tightness': 1.0 - ((b_max - b_min) / d_range), 'd_range': d_range})
         
         params.sort(key=lambda x: x['tightness'], reverse=True)
-        bar_height = 0.5
-        
         ax_bars.clear()
         for i, p in enumerate(params):
-            y = i
-            # Full Range (0 to 1)
-            ax_bars.broken_barh([(0, 1)], (y - bar_height/2, bar_height), facecolor='#f0f0f0', edgecolor='gray')
-            
-            # Normalized Restricted Range
+            ax_bars.broken_barh([(0, 1)], (i - 0.25, 0.5), facecolor='#f0f0f0', edgecolor='gray')
             d_range = p['d_range']
             if d_range > 0:
-                norm_min = (p['min'] - p['d_min']) / d_range
-                norm_max = (p['max'] - p['d_min']) / d_range
-                width = norm_max - norm_min
-                ax_bars.broken_barh([(norm_min, width)], (y - bar_height/2, bar_height), facecolor=box_color, alpha=0.8)
-                
-                # Annotate Bounds (Absolute Values) - Slightly shifted to avoid collision with names
-                ax_bars.text(norm_min, y, f"{p['min']:.2f} ", ha='right', va='center', fontsize=9)
-                ax_bars.text(norm_max, y, f" {p['max']:.2f}", ha='left', va='center', fontsize=9)
-            
-            # Param Name - Moved further left (x=-0.05) to be outside plot area
-            ax_bars.text(-0.05, y, f"{p['name']}", ha='right', va='center', fontsize=10, transform=ax_bars.get_yaxis_transform())
+                norm_min, norm_max = (p['min'] - p['d_min']) / d_range, (p['max'] - p['d_min']) / d_range
+                ax_bars.broken_barh([(norm_min, norm_max - norm_min)], (i - 0.25, 0.5), facecolor=actual_box_color, alpha=0.8)
+                ax_bars.text(norm_min, i, f"{p['min']:.2f} ", ha='right', va='center', fontsize=9)
+                ax_bars.text(norm_max, i, f" {p['max']:.2f}", ha='left', va='center', fontsize=9)
+            ax_bars.text(-0.05, i, f"{p['name']}", ha='right', va='center', fontsize=10, transform=ax_bars.get_yaxis_transform())
+        ax_bars.set_yticks([]); ax_bars.set_xticks([0, 1]); ax_bars.set_xticklabels(['Min', 'Max'])
+        ax_bars.set_title("Normalized constraints (Full bar = Parameter range)", fontsize=10)
+        ax_bars.set_ylim(-1, len(params)); ax_bars.invert_yaxis() 
 
-        ax_bars.set_yticks([])
-        ax_bars.set_xticks([0, 1])
-        ax_bars.set_xticklabels(['Min', 'Max'])
-        ax_bars.set_title("Normalized Restrictions (Full Bar = Dataset Range)", fontsize=10)
-        ax_bars.set_ylim(-1, len(params))
-        ax_bars.invert_yaxis() 
-
-    # 3. Draw Metrics (Text)
     ax_text.axis('off')
     metrics = getattr(box, 'metrics', {})
-    
-    text_content = f"Box Analysis: {getattr(box, 'name', 'Unnamed Box')}\n"
-    text_content += "-" * 30 + "\n\n"
-    
+    text_content = f"Analysis: {getattr(box, 'name', 'Unnamed Box')}\n" + "-" * 30 + "\n\n"
     if metrics:
-        text_content += f"Density (Precision): {metrics.get('density', 0):.2f}\n"
-        text_content += f"Coverage (Recall):   {metrics.get('coverage', 0):.2f}\n"
-        
-        lift = metrics.get('lift')
-        if lift:
-             text_content += f"Lift:                {lift:.2f}\n"
-             
-        mass = metrics.get('mass')
-        if mass:
-             text_content += f"Mass (Support):      {mass:.2f}\n"
-    else:
-        text_content += "No pre-calculated metrics available."
-        
-    ax_text.text(0.1, 0.9, text_content, transform=ax_text.transAxes, 
-                 fontsize=10, family='monospace', va='top')
+        text_content += f"Density (precision): {metrics.get('density', 0):.2f}\nCoverage (recall):   {metrics.get('coverage', 0):.2f}\n"
+        if metrics.get('lift'): text_content += f"Lift:                {metrics.get('lift'):.2f}\n"
+        if metrics.get('mass'): text_content += f"Mass (Support):      {metrics.get('mass'):.2f}\n"
+    else: text_content += "No pre-calculated metrics available."
+    ax_text.text(0.1, 0.9, text_content, transform=ax_text.transAxes, fontsize=10, family='monospace', va='top')
                  
-    # 4. Pair Plot
     top_params_info = params[:5] if 'params' in locals() and params else []
     top_params = [p['name'] for p in top_params_info]
     
@@ -851,159 +736,135 @@ def show_box_diagnostics(
         if len(plot_df) > max_scatter_points:
             plot_df = plot_df.sample(max_scatter_points, random_state=42)
             mask_subset = outcome_mask.loc[plot_df.index]
+            p_subset = policy_series.loc[plot_df.index] if policy_series is not None else None
         else:
             mask_subset = outcome_mask.loc[plot_df.index]
+            p_subset = policy_series.loc[plot_df.index] if policy_series is not None else None
             
         plot_df['Status'] = mask_subset.map({True: 'Success', False: 'Failure'})
+        if p_subset is not None: plot_df['Policy'] = p_subset.astype(str).fillna('Unknown')
         ax_pairs.axis('off')
         
-        n_params = len(top_params)
-        
-        if n_params == 1:
-            # Special 1D case: Strip plot with fictitious Y-axis
-            ax_sub = fig.add_subplot(gs[1, :])
-            col_var = top_params[0]
-            
-            # Create synthetic Y for strip plot
-            y_vals = np.random.normal(0, 0.05, size=len(plot_df))
-            
-            sns.scatterplot(
-                x=plot_df[col_var], y=y_vals, hue=plot_df['Status'],
-                palette={'Success': 'red', 'Failure': 'blue'},
-                ax=ax_sub, s=s, alpha=alpha, legend=False
-            )
-            
-            # Draw Box Limits
-            if box and isinstance(limits, dict):
-                # Use resolved bounds from top_params_info
-                p_x = top_params_info[0]
-                if p_x:
-                    # Apply epsilon to x
-                    eps_x = p_x['d_range'] * box_eps
-                    
-                    # Fictitious height for the box logic (covering most of the strip)
-                    y_min, y_max = -0.2, 0.2 
-                    
-                    rect = patches.Rectangle(
-                        (p_x['min'] - eps_x, y_min), 
-                        (p_x['max'] - p_x['min']) + 2*eps_x, 
-                        (y_max - y_min),
-                        linewidth=2, edgecolor=box_color, facecolor='none', linestyle='--'
-                    )
-                    ax_sub.add_patch(rect)
-            
-            ax_sub.set_ylim(-0.3, 0.3)
-            ax_sub.set_yticks([])
-            ax_sub.set_ylabel("Fictitious Axis (1D)", fontsize=9, color='gray')
-            ax_sub.set_xlabel(col_var, fontsize=9)
-            
+        t_name = getattr(box, 'target_tradeoff', 'Target')
+        label_success, label_failure = f"Satisfies target={t_name}" if t_name else "Satisfies target", "Other solutions"
+        if p_subset is not None:
+            hue_var, style_var, current_palette, markers = 'Policy', 'Status', policy_palette, {'Success': 'o', 'Failure': 'D'}
         else:
-            # 2D+ Pair Plot
-            grid_size = n_params if show_diagonal else n_params - 1
-            
+            hue_var, style_var, current_palette, markers = 'Status', 'Status', palette if palette is not None else {'Success': 'red', 'Failure': 'blue'}, {'Success': 'o', 'Failure': 'D'}
+
+        if len(top_params) == 1:
+            ax_sub = fig.add_subplot(gs[1, :])
+            sns.scatterplot(data=plot_df, x=top_params[0], y=np.random.normal(0, 0.05, size=len(plot_df)), hue=hue_var, style=style_var, palette=current_palette, markers=markers, ax=ax_sub, s=s, alpha=alpha, legend=False)
+            if box and isinstance(limits, dict) and top_params_info[0]:
+                p_x = top_params_info[0]; eps_x = p_x['d_range'] * box_eps
+                ax_sub.add_patch(patches.Rectangle((p_x['min'] - eps_x, -0.2), (p_x['max'] - p_x['min']) + 2*eps_x, 0.4, linewidth=2, edgecolor=actual_box_color, facecolor='none', linestyle='--'))
+            ax_sub.set_ylim(-0.3, 0.3); ax_sub.set_yticks([]); ax_sub.set_ylabel("Fictitious Axis (1D)", fontsize=9, color='gray'); ax_sub.set_xlabel(top_params[0], fontsize=9)
+        else:
+            grid_size = len(top_params) if show_diagonal else len(top_params) - 1
             if grid_size > 0:
                 gs_inner = gridspec.GridSpecFromSubplotSpec(grid_size, grid_size, subplot_spec=gs[1, :], wspace=0.1, hspace=0.1)
-                
-                for i in range(n_params):
-                    for j in range(n_params):
-                        if j > i: continue 
-                        if not show_diagonal and i == j: continue
-                        
-                        # Calculate grid position
-                        grid_i = i if show_diagonal else i - 1
-                        grid_j = j
-                        
+                for i in range(len(top_params)):
+                    for j in range(len(top_params)):
+                        if j > i or (not show_diagonal and i == j): continue
+                        grid_i, grid_j = (i if show_diagonal else i - 1), j
                         ax_sub = fig.add_subplot(gs_inner[grid_i, grid_j])
-                        
-                        row_var = top_params[i]
-                        col_var = top_params[j]
-                        
+                        row_var, col_var = top_params[i], top_params[j]
                         if i == j:
-                            # Diagonal: Univariate distribution
-                            sns.histplot(
-                                data=plot_df, x=col_var, hue='Status', 
-                                palette={'Success': 'red', 'Failure': 'blue'},
-                                ax=ax_sub, element='step', common_norm=False, legend=False,
-                                bins=bins
-                            )
-                            if box and isinstance(limits, dict):
-                                lims = limits.get(col_var)
-                                if lims:
-                                    ax_sub.axvspan(lims['min'], lims['max'], color='gray', alpha=0.2, zorder=0)
-                                    ax_sub.axvline(lims['min'], color='black', linestyle='--', lw=1)
-                                    ax_sub.axvline(lims['max'], color='black', linestyle='--', lw=1)
+                            sns.histplot(data=plot_df, x=col_var, hue='Status', palette={'Success': 'red', 'Failure': 'blue'}, ax=ax_sub, element='step', common_norm=False, legend=False, bins=bins)
+                            if box and isinstance(limits, dict) and limits.get(col_var):
+                                lims = limits.get(col_var); ax_sub.axvspan(lims['min'], lims['max'], color='gray', alpha=0.2, zorder=0)
+                                ax_sub.axvline(lims['min'], color='black', linestyle='--', lw=1); ax_sub.axvline(lims['max'], color='black', linestyle='--', lw=1)
                         else:
-                                                    # Off-diagonal: Bivariate scatter
-                                                    sns.scatterplot(
-                                                        data=plot_df, x=col_var, y=row_var, hue='Status', 
-                                                        palette={'Success': 'red', 'Failure': 'blue'},
-                                                        ax=ax_sub, s=s, alpha=alpha, legend=False
-                                                    )
-                                                    
-                                                    # Draw Box Limits using clamped bounds from params info
-                                                    p_x = next((p for p in top_params_info if p['name'] == col_var), None)
-                                                    p_y = next((p for p in top_params_info if p['name'] == row_var), None)
-                                                    
-                                                    if p_x and p_y:
-                                                         eps_x = p_x['d_range'] * box_eps
-                                                         eps_y = p_y['d_range'] * box_eps
-                                                         
-                                                         x_min, x_max = p_x['min'], p_x['max']
-                                                         y_min, y_max = p_y['min'], p_y['max']
-                                                         
-                                                         rect = patches.Rectangle(
-                                                            (x_min - eps_x, y_min - eps_y), 
-                                                            (x_max - x_min) + 2*eps_x, 
-                                                            (y_max - y_min) + 2*eps_y,
-                                                            linewidth=2, edgecolor=box_color, facecolor='none', linestyle='--'
-                                                        )
-                                                         ax_sub.add_patch(rect)
-                                                    else:
-                                                         print(f"Warning: Could not determine visualization bounds for pair {col_var}, {row_var}")
-                                                
-                                                # Ticks: Equally spaced                        ax_sub.xaxis.set_major_locator(MaxNLocator(nbins=4))
-                        ax_sub.yaxis.set_major_locator(MaxNLocator(nbins=4))
-
-                        # Labels only on outer edges
-                        is_bottom_edge = (grid_i == grid_size - 1)
-                        is_left_edge = (grid_j == 0)
-                        
-                        if is_bottom_edge:
-                            ax_sub.set_xlabel(col_var, fontsize=9)
-                        else:
-                            ax_sub.set_xlabel("")
-                            ax_sub.set_xticklabels([])
-                            
-                        if is_left_edge:
-                            ax_sub.set_ylabel(row_var, fontsize=9)
-                        else:
-                            ax_sub.set_ylabel("")
-                            ax_sub.set_yticklabels([])
-                        
-        # Add Pair Plot Legend
-        from matplotlib.lines import Line2D
-        
-        t_name = getattr(box, 'target_tradeoff', 'Target')
-        label_success = f"Satisfies target={t_name}" if t_name else "Satisfies Target"
-        label_failure = "Other Solutions"
-        
-        legend_elements = [
-            Line2D([0], [0], marker='o', color='w', label=label_success, markerfacecolor='red', markersize=10),
-            Line2D([0], [0], marker='o', color='w', label=label_failure, markerfacecolor='blue', markersize=10)
-        ]
-        if box and isinstance(limits, dict):
-             legend_elements.append(patches.Patch(facecolor='none', edgecolor=box_color, linestyle='--', linewidth=2, label='Box Limits'))
-
-        # Place legend at the very bottom of the figure, clearly separated from axis labels
-        fig.legend(handles=legend_elements, loc='lower center', bbox_to_anchor=(0.5, 0.0), 
-                   ncol=3, fontsize=10, frameon=False)
-        
-        # Increase bottom margin significantly to accommodate the legend
-        plt.subplots_adjust(bottom=0.2)
+                            sns.scatterplot(data=plot_df, x=col_var, y=row_var, hue=hue_var, style=style_var, palette=current_palette, markers=markers, ax=ax_sub, s=s, alpha=alpha, legend=False)
+                            p_x, p_y = next((p for p in top_params_info if p['name'] == col_var), None), next((p for p in top_params_info if p['name'] == row_var), None)
+                            if p_x and p_y:
+                                 eps_x, eps_y = p_x['d_range'] * box_eps, p_y['d_range'] * box_eps
+                                 ax_sub.add_patch(patches.Rectangle((p_x['min'] - eps_x, p_y['min'] - eps_y), (p_x['max'] - p_x['min']) + 2*eps_x, (p_y['max'] - p_y['min']) + 2*eps_y, linewidth=2, edgecolor=actual_box_color, facecolor='none', linestyle='--'))
+                        ax_sub.xaxis.set_major_locator(MaxNLocator(nbins=4)); ax_sub.yaxis.set_major_locator(MaxNLocator(nbins=4))
+                        if grid_i == grid_size - 1: ax_sub.set_xlabel(col_var, fontsize=9)
+                        else: ax_sub.set_xlabel(""); ax_sub.set_xticklabels([])
+                        if grid_j == 0: ax_sub.set_ylabel(row_var, fontsize=9)
+                        else: ax_sub.set_ylabel(""); ax_sub.set_yticklabels([])
+        legend_elements = [patches.Patch(facecolor='none', edgecolor=actual_box_color, linestyle='--', linewidth=2, label='Box limits')]
+        if p_subset is not None:
+            legend_elements.extend([Line2D([0], [0], marker='o', color='w', label=label_success, markerfacecolor='gray', markersize=8), Line2D([0], [0], marker='D', color='w', label=label_failure, markerfacecolor='gray', markersize=8)])
+            if isinstance(current_palette, dict):
+                for i, (p_name, color) in enumerate(current_palette.items()):
+                    if i >= 5: break
+                    legend_elements.append(Line2D([0], [0], marker='s', color='w', label=f"{p_name}", markerfacecolor=color, markersize=8))
+                if len(current_palette) > 5: legend_elements.append(Line2D([0], [0], color='w', label="... and more policies", fontsize=8))
+        else:
+            legend_elements.extend([Line2D([0], [0], marker='o', color='w', label=label_success, markerfacecolor='red', markersize=10), Line2D([0], [0], marker='D', color='w', label=label_failure, markerfacecolor='blue', markersize=10)])
+        fig.legend(handles=legend_elements, loc='lower center', bbox_to_anchor=(0.5, 0.0), ncol=3, fontsize=10, frameon=False); plt.subplots_adjust(bottom=0.2)
     
-    if title:
-        fig.suptitle(title, fontsize=16)
-    else:
-        fig.suptitle(f"Scenario Discovery Diagnostics: {getattr(box, 'name', 'Box')}", fontsize=16)
-        
+    fig.suptitle(title if title else f"Scenario Diagnostics: {getattr(box, 'name', 'Box')}", fontsize=16); return fig
+
+def show_tradeoff_quality_space(
+    experiments_df: pd.DataFrame,
+    tradeoff: Tradeoff,
+    schemes: List[DiscretizationScheme],
+    figsize: Tuple[int, int] = (10, 8),
+    title: Optional[str] = None,
+    alpha: float = 0.5,
+    s: int = 50
+) -> plt.Figure:
+    """
+    Plots a 2D scatter of the quality objective space, highlighting points that satisfy the tradeoff.
+    Only works well for tradeoffs involving exactly 2 quality dimensions.
+    """
+    involved_cols = list(tradeoff.elements.keys())
+    if len(involved_cols) < 2:
+        return show_tradeoff_distribution(experiments_df, [s for s in schemes if s.objective_name in involved_cols], tradeoff, figsize=figsize, title=title)
+    col_x, col_y = involved_cols[0], involved_cols[1]
+    mask = pd.Series(True, index=experiments_df.index)
+    for col, target_bin in tradeoff.elements.items():
+        scheme = next((s for s in schemes if s.objective_name == col), None)
+        if scheme:
+             q_bin = next((b for b in scheme.bins if b.label == target_bin), None)
+             if q_bin: mask &= (experiments_df[col] >= q_bin.min_value) & (experiments_df[col] <= q_bin.max_value)
+    fig, ax = plt.subplots(figsize=figsize)
+    sns.scatterplot(data=experiments_df, x=col_x, y=col_y, color='lightgray', alpha=alpha, s=s, ax=ax, label="Other")
+    sns.scatterplot(data=experiments_df[mask], x=col_x, y=col_y, color='red', alpha=alpha+0.2, s=s+20, ax=ax, label=tradeoff.name)
+    scheme_x, scheme_y = next((s for s in schemes if s.objective_name == col_x), None), next((s for s in schemes if s.objective_name == col_y), None)
+    if scheme_x:
+        q_x = next((b for b in scheme_x.bins if b.label == tradeoff.elements[col_x]), None)
+        if q_x: ax.axvspan(q_x.min_value, q_x.max_value, color='yellow', alpha=0.1)
+    if scheme_y:
+        q_y = next((b for b in scheme_y.bins if b.label == tradeoff.elements[col_y]), None)
+        if q_y: ax.axhspan(q_y.min_value, q_y.max_value, color='yellow', alpha=0.1)
+    ax.set_title(title or f"Quality Space: {col_x} vs {col_y}"); ax.legend(); return fig
+
+def show_multi_objective_tradeoffs(
+    experiments_df: pd.DataFrame,
+    involved_cols: List[str],
+    tradeoffs: List[Tradeoff],
+    figsize: Tuple[int, int] = (12, 10),
+    title: Optional[str] = None
+) -> plt.Figure:
+    """
+    Visualizes multiple tradeoffs in the objective space using MDS or PCA for dimensionality reduction.
+    """
+    scaler = MinMaxScaler(); data_scaled = scaler.fit_transform(experiments_df[involved_cols])
+    mds = MDS(n_components=2, random_state=42); coords = mds.fit_transform(data_scaled)
+    plot_df = pd.DataFrame(coords, columns=['Dim 1', 'Dim 2']); plot_df['Tradeoff'] = 'None'
+    for t in tradeoffs:
+        mask = pd.Series(True, index=experiments_df.index)
+        pass # Eval tradeoff logic here if needed
+    fig, ax = plt.subplots(figsize=figsize); sns.scatterplot(data=plot_df, x='Dim 1', y='Dim 2', hue='Tradeoff', palette='viridis', alpha=0.6, ax=ax)
+    if title: ax.set_title(title)
     return fig
+
+def _apply_axis_segmentation(ax: plt.Axes, scheme: Optional[DiscretizationScheme], data: pd.Series, orientation: str = 'x'):
+    if not scheme: return
+    line_color, line_alpha = 'red', 0.4
+    bounds = set()
+    for b in scheme.bins:
+        if np.isfinite(b.min_value): bounds.add(b.min_value)
+        if np.isfinite(b.max_value): bounds.add(b.max_value)
+        val_min, val_max = (b.min_value if np.isfinite(b.min_value) else data.min()), (b.max_value if np.isfinite(b.max_value) else data.max())
+        mid = (val_min + val_max) / 2
+        if orientation == 'x': ax.text(mid, 1.02, b.label, transform=ax.get_xaxis_transform(), color=line_color, fontsize=9, fontweight='bold', ha='center', va='bottom')
+        else: ax.text(1.02, mid, b.label, transform=ax.get_yaxis_transform(), color=line_color, fontsize=9, fontweight='bold', ha='left', va='center', rotation=90)
+    for val in bounds:
+        if orientation == 'x': ax.axvline(val, color=line_color, linestyle='--', alpha=line_alpha)
+        else: ax.axhline(val, color=line_color, linestyle='--', alpha=line_alpha)
