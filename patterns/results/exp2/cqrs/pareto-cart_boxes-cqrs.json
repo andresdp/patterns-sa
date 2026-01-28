@@ -1,0 +1,107 @@
+[
+    {
+        "name": "Box for L-S",
+        "limits": {
+            "r_DB_read": {
+                "min": 0.2381130401661589,
+                "max": 0.3333333333333333
+            },
+            "r_Z_write": {
+                "min": 0.002985698950401639,
+                "max": 0.005
+            }
+        },
+        "dataset_bounds": {
+            "r_Z_write": {
+                "min": 0.001,
+                "max": 0.005
+            },
+            "r_DB_read": {
+                "min": 0.1428571428571428,
+                "max": 0.3333333333333333
+            }
+        },
+        "metrics": {
+            "density": 1.0,
+            "coverage": 0.1590909090909091,
+            "population_prevalence": 0.5157068062827225,
+            "lift": 0.4842931937172775,
+            "samples_in_box": 21.0,
+            "targets_in_box": 21.0
+        },
+        "target_tradeoff": "L-S",
+        "target_tradeoff_labels": "L,S",
+        "method": "cart",
+        "population_prevalence": 0.5157068062827225
+    },
+    {
+        "name": "Box for S-S",
+        "limits": {
+            "r_DB_read": {
+                "min": 0.2381130401661589,
+                "max": 0.3333333333333333
+            },
+            "r_Z_write": {
+                "min": 0.0011046262501456057,
+                "max": 0.0011429353015445158
+            }
+        },
+        "dataset_bounds": {
+            "r_Z_write": {
+                "min": 0.001,
+                "max": 0.005
+            },
+            "r_DB_read": {
+                "min": 0.1428571428571428,
+                "max": 0.3333333333333333
+            }
+        },
+        "metrics": {
+            "density": 0.5,
+            "coverage": 0.0967741935483871,
+            "population_prevalence": 0.12303664921465969,
+            "lift": 0.3769633507853403,
+            "samples_in_box": 6.0,
+            "targets_in_box": 3.0
+        },
+        "target_tradeoff": "S-S",
+        "target_tradeoff_labels": "S,S",
+        "method": "cart",
+        "population_prevalence": 0.12303664921465969
+    },
+    {
+        "name": "Box for L-L",
+        "limits": {
+            "r_DB_read": {
+                "min": 0.1428571428571428,
+                "max": 0.23811304007095344
+            },
+            "r_Z_write": {
+                "min": 0.001197943172612615,
+                "max": 0.0012421459243778625
+            }
+        },
+        "dataset_bounds": {
+            "r_Z_write": {
+                "min": 0.001,
+                "max": 0.005
+            },
+            "r_DB_read": {
+                "min": 0.1428571428571428,
+                "max": 0.3333333333333333
+            }
+        },
+        "metrics": {
+            "density": 0.2857142857142857,
+            "coverage": 0.038461538461538464,
+            "population_prevalence": 0.20157068062827224,
+            "lift": 0.08414360508601346,
+            "samples_in_box": 7.0,
+            "targets_in_box": 2.0
+        },
+        "target_tradeoff": "L-L",
+        "target_tradeoff_labels": "L,L",
+        "method": "cart",
+        "population_prevalence": 0.20157068062827224
+    }
+]

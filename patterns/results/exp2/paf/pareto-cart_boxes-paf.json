@@ -1,0 +1,33 @@
+[
+    {
+        "name": "Box for L-L",
+        "limits": {
+            "N_A": {
+                "min": 18.4998447461978,
+                "max": 50.0
+            }
+        },
+        "dataset_bounds": {
+            "c_T1": {
+                "min": 0.0,
+                "max": 2.0
+            },
+            "N_A": {
+                "min": 0.0,
+                "max": 50.0
+            }
+        },
+        "metrics": {
+            "density": 1.0,
+            "coverage": 0.5483870967741935,
+            "population_prevalence": 0.989010989010989,
+            "lift": 0.01098901098901095,
+            "samples_in_box": 34.0,
+            "targets_in_box": 34.0
+        },
+        "target_tradeoff": "L-L",
+        "target_tradeoff_labels": "L,L",
+        "method": "cart",
+        "population_prevalence": 0.989010989010989
+    }
+]

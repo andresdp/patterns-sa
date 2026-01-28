@@ -1,0 +1,10 @@
+method,policy,target,L-L,L-S,S-L,S-S
+test set,joint1,,"1,0","0,0","0,0","0,0"
+test set,joint2,,"1,0","0,0","0,0","0,0"
+test set,separated,,"1,0","0,0","0,0","0,0"
+prim,joint1,L-L,"1,0","0,0","0,0","0,0"
+prim,joint2,L-L,"0,0","0,0","0,0","0,0"
+prim,separated,L-L,"1,0","0,0","0,0","0,0"
+cart,joint1,L-L,"1,0","0,0","0,0","0,0"
+cart,joint2,L-L,"1,0","0,0","0,0","0,0"
+cart,separated,L-L,"1,0","0,0","0,0","0,0"
