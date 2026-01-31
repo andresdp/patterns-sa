@@ -1,10 +1,14 @@
 [
     {
-        "name": "Box for S-S",
+        "name": "Box for XS-XS",
         "limits": {
             "r_Z_write": {
-                "min": 0.003922856226143151,
-                "max": 0.005
+                "min": 0.0012735529043574768,
+                "max": 0.00130764341343882
+            },
+            "r_DB_read": {
+                "min": 0.23814016699371815,
+                "max": 0.3333333333333333
             }
         },
         "dataset_bounds": {
@@ -18,16 +22,51 @@
             }
         },
         "metrics": {
-            "density": 1.0,
-            "coverage": 0.0896551724137931,
-            "population_prevalence": 0.5680628272251309,
-            "lift": 0.4319371727748691,
-            "samples_in_box": 13.0,
-            "targets_in_box": 13.0
+            "density": 0.3333333333333333,
+            "coverage": 0.013513513513513514,
+            "population_prevalence": 0.23036649214659685,
+            "lift": 0.10296684118673646,
+            "samples_in_box": 3.0,
+            "targets_in_box": 1.0
         },
-        "target_tradeoff": "S-S",
-        "target_tradeoff_labels": "S,S",
+        "target_tradeoff": "XS-XS",
+        "target_tradeoff_labels": "XS,S",
         "method": "cart",
-        "population_prevalence": 0.5680628272251309
+        "population_prevalence": 0.23036649214659685
+    },
+    {
+        "name": "Box for X-S",
+        "limits": {
+            "r_Z_write": {
+                "min": 0.0043559031860830886,
+                "max": 0.004880518256127217
+            },
+            "r_DB_read": {
+                "min": 0.1428571428571428,
+                "max": 0.23814016689848527
+            }
+        },
+        "dataset_bounds": {
+            "r_Z_write": {
+                "min": 0.001,
+                "max": 0.005
+            },
+            "r_DB_read": {
+                "min": 0.1428571428571428,
+                "max": 0.3333333333333333
+            }
+        },
+        "metrics": {
+            "density": 0.5,
+            "coverage": 0.014925373134328358,
+            "population_prevalence": 0.28534031413612565,
+            "lift": 0.21465968586387435,
+            "samples_in_box": 2.0,
+            "targets_in_box": 1.0
+        },
+        "target_tradeoff": "X-S",
+        "target_tradeoff_labels": "X,S",
+        "method": "cart",
+        "population_prevalence": 0.28534031413612565
     }
 ]

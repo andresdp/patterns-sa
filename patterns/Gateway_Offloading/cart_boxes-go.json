@@ -2,71 +2,207 @@
     {
         "name": "Box for S-L",
         "limits": {
-            "r_A_s1": {
-                "min": 0.058340421075245674,
-                "max": 0.1
-            },
-            "N_B": {
-                "min": 3.503449153536023,
-                "max": 24.49932933452805
+            "S_gw": {
+                "min": 7.498479541721324,
+                "max": 10.0
             }
         },
         "dataset_bounds": {
-            "r_A_s1": {
-                "min": 0.05,
-                "max": 0.1
-            },
-            "N_B": {
+            "S_gw": {
                 "min": 0.0,
-                "max": 25.0
-            }
-        },
-        "metrics": {
-            "density": 0.9444444444444444,
-            "coverage": 0.8947368421052632,
-            "population_prevalence": 0.6,
-            "lift": 0.34444444444444444,
-            "samples_in_box": 18.0,
-            "targets_in_box": 17.0
-        },
-        "target_tradeoff": "S-L",
-        "target_tradeoff_labels": "S,L",
-        "method": "cart",
-        "population_prevalence": 0.6
-    },
-    {
-        "name": "Box for S-S",
-        "limits": {
-            "r_A_s1": {
-                "min": 0.05,
-                "max": 0.05834042105487194
+                "max": 10.0
             },
-            "N_B": {
-                "min": 6.497514064548812,
-                "max": 23.496317589338766
-            }
-        },
-        "dataset_bounds": {
-            "r_A_s1": {
-                "min": 0.05,
-                "max": 0.1
-            },
-            "N_B": {
+            "N_A": {
                 "min": 0.0,
                 "max": 25.0
             }
         },
         "metrics": {
             "density": 1.0,
-            "coverage": 0.6,
-            "population_prevalence": 0.35555555555555557,
-            "lift": 0.6444444444444444,
-            "samples_in_box": 6.0,
-            "targets_in_box": 6.0
+            "coverage": 1.0,
+            "population_prevalence": 0.3333333333333333,
+            "lift": 0.6666666666666667,
+            "samples_in_box": 11.0,
+            "targets_in_box": 11.0
+        },
+        "target_tradeoff": "S-L",
+        "target_tradeoff_labels": "S,L",
+        "method": "cart",
+        "population_prevalence": 0.3333333333333333
+    },
+    {
+        "name": "Box for S-S",
+        "limits": {
+            "S_gw": {
+                "min": 0.0,
+                "max": 2.5015204623611584
+            },
+            "N_A": {
+                "min": 2.496867584444928,
+                "max": 20.502942504881236
+            }
+        },
+        "dataset_bounds": {
+            "S_gw": {
+                "min": 0.0,
+                "max": 10.0
+            },
+            "N_A": {
+                "min": 0.0,
+                "max": 25.0
+            }
+        },
+        "metrics": {
+            "density": 1.0,
+            "coverage": 1.0,
+            "population_prevalence": 0.24444444444444444,
+            "lift": 0.7555555555555555,
+            "samples_in_box": 7.0,
+            "targets_in_box": 7.0
         },
         "target_tradeoff": "S-S",
-        "target_tradeoff_labels": "S,S",
+        "target_tradeoff_labels": "S,XS",
         "method": "cart",
-        "population_prevalence": 0.35555555555555557
+        "population_prevalence": 0.24444444444444444
+    },
+    {
+        "name": "Box for S-M",
+        "limits": {
+            "S_gw": {
+                "min": 2.5015204664436412,
+                "max": 7.498479537638842
+            },
+            "N_A": {
+                "min": 0.0,
+                "max": 18.503078487775678
+            }
+        },
+        "dataset_bounds": {
+            "S_gw": {
+                "min": 0.0,
+                "max": 10.0
+            },
+            "N_A": {
+                "min": 0.0,
+                "max": 25.0
+            }
+        },
+        "metrics": {
+            "density": 0.7777777777777778,
+            "coverage": 1.0,
+            "population_prevalence": 0.2222222222222222,
+            "lift": 0.5555555555555556,
+            "samples_in_box": 9.0,
+            "targets_in_box": 7.0
+        },
+        "target_tradeoff": "S-M",
+        "target_tradeoff_labels": "S,M",
+        "method": "cart",
+        "population_prevalence": 0.2222222222222222
+    },
+    {
+        "name": "Box for S-X",
+        "limits": {
+            "S_gw": {
+                "min": 2.5015204664436412,
+                "max": 7.498479537638842
+            },
+            "N_A": {
+                "min": 18.50307849507445,
+                "max": 22.502806521986795
+            }
+        },
+        "dataset_bounds": {
+            "S_gw": {
+                "min": 0.0,
+                "max": 10.0
+            },
+            "N_A": {
+                "min": 0.0,
+                "max": 25.0
+            }
+        },
+        "metrics": {
+            "density": 1.0,
+            "coverage": 0.3333333333333333,
+            "population_prevalence": 0.06666666666666667,
+            "lift": 0.9333333333333333,
+            "samples_in_box": 1.0,
+            "targets_in_box": 1.0
+        },
+        "target_tradeoff": "S-X",
+        "target_tradeoff_labels": "S,X",
+        "method": "cart",
+        "population_prevalence": 0.06666666666666667
+    },
+    {
+        "name": "Box for L-L",
+        "limits": {
+            "S_gw": {
+                "min": 2.5015204664436412,
+                "max": 7.498479537638842
+            },
+            "N_A": {
+                "min": 22.50280652928557,
+                "max": 25.0
+            }
+        },
+        "dataset_bounds": {
+            "S_gw": {
+                "min": 0.0,
+                "max": 10.0
+            },
+            "N_A": {
+                "min": 0.0,
+                "max": 25.0
+            }
+        },
+        "metrics": {
+            "density": 1.0,
+            "coverage": 1.0,
+            "population_prevalence": 0.044444444444444446,
+            "lift": 0.9555555555555556,
+            "samples_in_box": 1.0,
+            "targets_in_box": 1.0
+        },
+        "target_tradeoff": "L-L",
+        "target_tradeoff_labels": "L,X",
+        "method": "cart",
+        "population_prevalence": 0.044444444444444446
+    },
+    {
+        "name": "Box for L-XS",
+        "limits": {
+            "S_gw": {
+                "min": 0.0,
+                "max": 2.5015204623611584
+            },
+            "N_A": {
+                "min": 20.502942512180013,
+                "max": 25.0
+            }
+        },
+        "dataset_bounds": {
+            "S_gw": {
+                "min": 0.0,
+                "max": 10.0
+            },
+            "N_A": {
+                "min": 0.0,
+                "max": 25.0
+            }
+        },
+        "metrics": {
+            "density": 1.0,
+            "coverage": 0.5,
+            "population_prevalence": 0.08888888888888889,
+            "lift": 0.9111111111111111,
+            "samples_in_box": 1.0,
+            "targets_in_box": 1.0
+        },
+        "target_tradeoff": "L-XS",
+        "target_tradeoff_labels": "L,XS",
+        "method": "cart",
+        "population_prevalence": 0.08888888888888889
     }
 ]
