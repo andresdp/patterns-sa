@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from typing import Any, Tuple, Optional, List
+from typing import Any, Tuple, Optional, List, Dict
 import pandas as pd
 import os
 import glob
@@ -12,7 +12,7 @@ class DataLoader(ABC):
     """Abstract base class for data loaders.
     
     A DataLoader's responsibility is to bridge the gap between external 
-    storage (CSV, SQL, etc.) and the internal pandas-based analysis engine.
+    storage (CSV, SQL, etc.) and internal pandas-based analysis engine.
     """
     @abstractmethod
     def load(self, source: Any) -> pd.DataFrame:
@@ -31,7 +31,7 @@ class GenericDataLoader(DataLoader):
     """The primary ADEPT loader that implements metadata-driven data ingestion.
     
     This loader uses a SystemDefinition (JSON) to understand how to:
-    1. Locate data files (relative to the JSON or absolute).
+    1. Locate data files (relative to JSON or absolute).
     2. Merge data from multiple policy files if necessary.
     3. Rename columns to align with internal framework expectations.
     4. Automatically split data into 'experiments' (parameters) and 
@@ -43,8 +43,8 @@ class GenericDataLoader(DataLoader):
         Loads data based on a system definition JSON file.
         
         Args:
-            source: Path to the system definition JSON file.
-            validate_integrity: Whether to run the SystemLinter.
+            source: Path to system definition JSON file.
+            validate_integrity: Whether to run SystemLinter.
             preprocessor: Optional function(df) -> df to apply custom transformations immediately after loading.
         
         Returns:
@@ -65,7 +65,7 @@ class GenericDataLoader(DataLoader):
         return SystemDefinition.from_json(json_path)
 
     def validate_data_integrity(self, sys_def: SystemDefinition, df: pd.DataFrame) -> None:
-        """Runs the SystemLinter to check consistency between JSON and Data."""
+        """Runs SystemLinter to check consistency between JSON and Data."""
         linter = SystemLinter()
         issues = linter.lint(sys_def, df)
         if not issues:
@@ -76,12 +76,35 @@ class GenericDataLoader(DataLoader):
             else:
                 print(str(issue))
 
+    def report_nan_proportions(self, df: pd.DataFrame, label: str = "Dataset") -> Dict[str, float]:
+        """Calculates and prints the proportion of NaN values in the DataFrame."""
+        if df is None or df.empty:
+            return {}
+        
+        total_cells = df.size
+        total_nans = df.isnull().sum().sum()
+        overall_prop = (total_nans / total_cells) * 100 if total_cells > 0 else 0
+        
+        print(f"\n--- NaN Proportion Report: {label} ---")
+        print(f"Overall NaN proportion: {overall_prop:.2f}% ({total_nans}/{total_cells} cells)")
+        
+        col_nans = df.isnull().sum()
+        high_nan_cols = col_nans[col_nans > 0]
+        
+        if not high_nan_cols.empty:
+            print("Columns with NaNs:")
+            for col, count in high_nan_cols.items():
+                prop = (count / len(df)) * 100
+                print(f"  - {col}: {prop:.2f}% ({count}/{len(df)} rows)")
+        
+        return {"overall": overall_prop, "columns": (col_nans / len(df)).to_dict()}
+
     def load_data(self, source: Any, validate_integrity: bool = True, preprocessor: Optional[callable] = None) -> Tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
         """
         Loads data and automatically partitions it based on the architectural model.
         
         Args:
-            source: Path to the system definition JSON file.
+            source: Path to system definition JSON file.
             validate_integrity: Whether to run validation.
             preprocessor: Optional transformation function.
             
@@ -120,12 +143,12 @@ class GenericDataLoader(DataLoader):
              if col in df.columns:
                  experiments_cols.append(col)
 
-        # Fallback if no specific columns found (e.g. discovery mode or simple CSV)
-        if not experiments_cols and not outcomes_cols:
-             return df, df, df 
-
         experiments_df = df[experiments_cols].copy() if experiments_cols else pd.DataFrame()
         outcomes_df = df[outcomes_cols].copy() if outcomes_cols else pd.DataFrame()
+
+        # Report NaNs
+        self.report_nan_proportions(experiments_df, label="Experiments")
+        self.report_nan_proportions(outcomes_df, label="Outcomes")
         
         return df, experiments_df, outcomes_df
 
@@ -133,7 +156,7 @@ class GenericDataLoader(DataLoader):
         """
         Loads behavioral traces from the directory specified in the system definition.
         
-        Traces represent the cycle-by-cycle performance of adaptive processes.
+        Traces represent cycle-by-cycle performance of adaptive processes.
         """
         sys_def = self.load_system_definition(source)
         if not sys_def.dataspace.traces_path:
@@ -149,7 +172,7 @@ class GenericDataLoader(DataLoader):
             return []
             
         traces = []
-        # Assume traces are CSV files in the directory, named by scenario_id
+        # Assume traces are CSV files in directory, named by scenario_id
         for filepath in glob.glob(os.path.join(traces_path, "*.csv")):
             scenario_id = os.path.splitext(os.path.basename(filepath))[0]
             df = pd.read_csv(filepath)
@@ -173,15 +196,15 @@ class GenericDataLoader(DataLoader):
         def process_config(config_obj):
             bindings = {}
             for ref in config_obj.pattern_policy_references:
-                # Find the component
+                # Find component
                 comp = sys_def.system.components.get(ref.component)
                 if not comp: continue
                 
-                # Find the decision
+                # Find decision
                 decision = comp.decisions.get(ref.decision)
                 if not decision: continue
                 
-                # Find the policy
+                # Find policy
                 policy = decision.policies.get(ref.policy)
                 if not policy: continue
                 
@@ -200,13 +223,13 @@ class GenericDataLoader(DataLoader):
              # Assuming 'name' matches identification column value or similar logic
              # This part might need adaptation if 'from: file' uses names differently
              for cfg_obj in ident.configurations:
-                 # Assuming the config object name is the key if we are mapping
+                 # Assuming config object name is the key if we are mapping
                  # But usually file loading is separate. 
                  # If from='column' but configs are a list, we might assume 'name' is the key
                  config_param_map[cfg_obj.name] = process_config(cfg_obj)
 
         
-        # 1. Identify all unique parameters implicated
+        # 1. Identify all parameters implicated
         all_params = set()
         for p_map in config_param_map.values():
             all_params.update(p_map.keys())
@@ -222,7 +245,7 @@ class GenericDataLoader(DataLoader):
             
             if not val_map: continue
             
-            # Map values based on the identification column
+            # Map values based on identification column
             mapped_values = df[ident.column].astype(str).map(val_map)
             
             if param not in df.columns:
@@ -231,7 +254,7 @@ class GenericDataLoader(DataLoader):
                 df[param] = mapped_values
             else:
                 # Overwrite existing values where mapping exists (JSON is source of truth)
-                # mask() applies the change where the condition is True.
+                # mask() applies to change where condition is True.
                 # mapped_values.notna() correctly identifies where we have an explicit override.
                 df[param] = df[param].mask(mapped_values.notna(), mapped_values)
                 
@@ -264,7 +287,15 @@ class GenericDataLoader(DataLoader):
                 path = os.path.join(base_path, path)
             
             print(f"Loading single source file: {path}")
-            df = pd.read_csv(path)
+            
+            # Check for CSV delimiter in discovery options
+            csv_args = {}
+            if hasattr(sys_def.dataspace, 'discovery_options') and sys_def.dataspace.discovery_options:
+                if hasattr(sys_def.dataspace.discovery_options, 'csv_delimiter'):
+                    csv_args['sep'] = sys_def.dataspace.discovery_options.csv_delimiter
+                    print(f"Using CSV delimiter: '{csv_args['sep']}'")
+            
+            df = pd.read_csv(path, **csv_args)
             print(f"Loaded {len(df)} rows.")
             
             # Apply hook immediately
@@ -294,9 +325,9 @@ class GenericDataLoader(DataLoader):
                             temp_df = _apply_pp(temp_df, conf_name=config.name)
 
                         # Inject configuration name so mapping can work
-                        # Note: We do this AFTER preprocessing in case the user wants to rename cols first,
-                        # but typically we want the ID there. 
-                        # However, if the preprocessor returns a new DF, we should ensure the ID persists.
+                        # Note: We do this AFTER preprocessing in case user wants to rename columns first,
+                        # but typically we want to ID there. 
+                        # However, if preprocessor returns a new DF, we should ensure to ID persists.
                         # Let's inject it AGAIN to be safe, or check.
                         col_name = sys_def.dataspace.configuration_identification.column or 'policy'
                         if col_name not in temp_df.columns:

@@ -7,6 +7,7 @@ from sklearn.neighbors import NearestNeighbors
 from sklearn.cluster import KMeans
 from sklearn.metrics import silhouette_score
 from ..core.models import QualityBin, DiscretizationScheme, QualityObjective
+from ..utils.nan_handler import SemanticNaNHandler
 
 
 class DataProcessor:
@@ -20,7 +21,7 @@ class DataProcessor:
 
     @staticmethod
     def define_tradeoffs(df: pd.DataFrame, method: str = 'discretization', **kwargs) -> Tuple[pd.DataFrame, Any, Dict[str, np.ndarray], Optional[pd.DataFrame]]:
-        """Defines tradeoff regions in the outcome space.
+        """Defines tradeoff regions in outcome space.
         
         Args:
             df: DataFrame containing continuous metrics.
@@ -32,8 +33,14 @@ class DataProcessor:
             - labeled_df: DataFrame with categorical labels.
             - schemes_metadata: List of DiscretizationScheme objects.
             - tradeoff_indices: Dictionary mapping tradeoff labels (comma-separated) to numpy arrays of row indices.
-            - pareto_front_df: DataFrame containing only the Pareto front (if applicable).
+            - pareto_front_df: DataFrame containing only Pareto front (if applicable).
         """
+        # --- NEW: Semantic NaN Imputation ---
+        objectives = kwargs.pop('objectives', None)  # Pop to remove from kwargs
+        if objectives:
+            # We impute NaNs according to their nan_policy before any segmentation
+            df = SemanticNaNHandler.impute_outcomes(df, objectives)
+        
         labeled_df = None
         schemes = []
         pareto_front = None

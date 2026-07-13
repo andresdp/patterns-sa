@@ -21,6 +21,7 @@ from sklearn.tree import _tree
 
 from .robustness import RobustnessAnalyzer
 from ..core.models import Box
+from ..utils.nan_handler import SemanticNaNHandler
 
 # Import custom exceptions
 try:
@@ -615,6 +616,7 @@ class ScenarioDiscoveryManager:
                 - tradeoff: Tradeoff object for complex tradeoff definitions
                 - target_spec: Specification for target-based discovery
                 - discrete_outcomes_df: DataFrame with discretized outcomes
+                - parameters: List of Parameter objects (for NaN handling)
                 
         Returns:
             Result from the selected discovery strategy
@@ -625,6 +627,13 @@ class ScenarioDiscoveryManager:
         """
         self._validate_inputs(experiments_df, outcomes_df, outcome)
         
+        # --- NEW: Semantic NaN Handling for Inputs ---
+        parameters = kwargs.get('parameters', [])
+        sentinels = {}
+        if parameters:
+            experiments_df, sentinels = SemanticNaNHandler.apply_sentinel_transformation(experiments_df, parameters)
+            kwargs['sentinels'] = sentinels # Pass to strategy if needed
+
         # Handle tradeoff-based discovery
         if 'tradeoff' in kwargs:
             self._handle_tradeoff_based_discovery(kwargs, method)
@@ -637,7 +646,20 @@ class ScenarioDiscoveryManager:
         self._validate_discovery_parameters(kwargs, method)
         
         strategy = self.get_strategy(method)
-        return strategy.discover(experiments_df, outcomes_df, **kwargs)
+        box_objects = strategy.discover(experiments_df, outcomes_df, **kwargs)
+        
+        # --- NEW: Inverse Mapping for Sentinel Values ---
+        if sentinels and box_objects:
+            for box_obj in box_objects:
+                if not isinstance(box_obj, Box): continue
+                for param, sentinel in sentinels.items():
+                    if param in box_obj.limits:
+                        # If sentinel is within limits, mark includes_na=True
+                        # Since sentinel is usually below min, check if min_limit <= sentinel
+                        if box_obj.limits[param]['min'] <= (sentinel + 1e-6):
+                             box_obj.includes_na[param] = True
+                             
+        return box_objects
     
     def _validate_inputs(self, experiments_df: pd.DataFrame, outcomes_df: pd.DataFrame, outcome: str) -> None:
         """Validates input DataFrames and parameters."""

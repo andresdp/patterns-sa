@@ -47,6 +47,7 @@ class Parameter(BaseModel):
     description: str = Field(default="", description="Human-readable description of the parameter's meaning.")
     value: Any = Field(default=None, description="Current value assigned to the parameter.")
     bounds: Optional[Tuple[float, float]] = Field(default=None, description="Numeric range (min, max) for exploration.")
+    optional: bool = Field(default=False, description="Whether NaN is a valid 'Not Selected' state.")
 
     model_config = {"extra": "allow", "validate_assignment": True}
 
@@ -142,6 +143,8 @@ class QualityObjective(BaseModel):
     metric: str = Field(default="", description="Unit of measurement (e.g., 'ms', '%').")
     maximize: bool = Field(default=True, description="Whether higher values are better.")
     threshold: Optional[float] = Field(default=None, description="Optional target value for baseline compliance.")
+    nan_policy: str = Field(default="worst_case", description="How to impute failure states (worst_case, drop, fixed_value).")
+    nan_value: Optional[float] = Field(default=None, description="Value for fixed_value policy.")
 
     model_config = {"extra": "allow", "validate_assignment": True}
 
@@ -246,6 +249,7 @@ class Box(BaseModel):
     """Represents a discovered region in parameter space."""
     name: str = Field(default="", description="Human-readable name for the box.")
     limits: Dict[str, Dict[str, float]] = Field(..., description="Parameter bounds {param: {min, max}}.")
+    includes_na: Dict[str, bool] = Field(default_factory=dict, description="Whether NaN values are included for each parameter.")
     dataset_bounds: Dict[str, Dict[str, float]] = Field(default_factory=dict, description="Original data ranges.")
     metrics: Dict[str, float] = Field(default_factory=dict, description="Discovery performance (density, coverage).")
     target_tradeoff: Optional[str] = Field(default=None, description="ID of the targeted tradeoff.")

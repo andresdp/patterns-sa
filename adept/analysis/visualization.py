@@ -691,6 +691,12 @@ def show_box_diagnostics(
     limits = getattr(box, 'limits', box)
     dataset_bounds = getattr(box, 'dataset_bounds', {}) or {}
     
+    # Extract includes_na flags from box limits metadata
+    includes_na = {}
+    if isinstance(limits, dict):
+        for p, lims in limits.items():
+            includes_na[p] = lims.get('includes_na', False)
+    
     if isinstance(limits, dict):
         params = []
         for p, lims in limits.items():
@@ -710,7 +716,23 @@ def show_box_diagnostics(
             d_range = p['d_range']
             if d_range > 0:
                 norm_min, norm_max = (p['min'] - p['d_min']) / d_range, (p['max'] - p['d_min']) / d_range
-                ax_bars.broken_barh([(norm_min, norm_max - norm_min)], (i - 0.25, 0.5), facecolor=actual_box_color, alpha=0.8)
+                
+                p_name = p['name']
+                if includes_na.get(p_name):
+                    # Sentinel is at the beginning. N/A region is approx [0, 0.09]
+                    na_end = 0.1 / 1.1
+                    # Draw N/A region with hatch if included
+                    ax_bars.broken_barh([(0, min(norm_max, na_end))], (i - 0.25, 0.5), 
+                                        facecolor=actual_box_color, alpha=0.5, hatch='///')
+                    
+                    # Draw the rest of the box if it extends beyond N/A
+                    if norm_max > na_end:
+                        box_start = max(norm_min, na_end)
+                        ax_bars.broken_barh([(box_start, norm_max - box_start)], (i - 0.25, 0.5), 
+                                            facecolor=actual_box_color, alpha=0.8)
+                else:
+                    ax_bars.broken_barh([(norm_min, norm_max - norm_min)], (i - 0.25, 0.5), facecolor=actual_box_color, alpha=0.8)
+                
                 ax_bars.text(norm_min, i, f"{p['min']:.2f} ", ha='right', va='center', fontsize=9)
                 ax_bars.text(norm_max, i, f" {p['max']:.2f}", ha='left', va='center', fontsize=9)
             ax_bars.text(-0.05, i, f"{p['name']}", ha='right', va='center', fontsize=10, transform=ax_bars.get_yaxis_transform())
@@ -772,20 +794,32 @@ def show_box_diagnostics(
                         if i == j:
                             sns.histplot(data=plot_df, x=col_var, hue='Status', palette={'Success': 'red', 'Failure': 'blue'}, ax=ax_sub, element='step', common_norm=False, legend=False, bins=bins)
                             if box and isinstance(limits, dict) and limits.get(col_var):
-                                lims = limits.get(col_var); ax_sub.axvspan(lims['min'], lims['max'], color='gray', alpha=0.2, zorder=0)
+                                lims = limits.get(col_var)
+                                hatch = '///' if includes_na.get(col_var) else None
+                                ax_sub.axvspan(lims['min'], lims['max'], color='gray', alpha=0.2, zorder=0, hatch=hatch)
                                 ax_sub.axvline(lims['min'], color='black', linestyle='--', lw=1); ax_sub.axvline(lims['max'], color='black', linestyle='--', lw=1)
                         else:
                             sns.scatterplot(data=plot_df, x=col_var, y=row_var, hue=hue_var, style=style_var, palette=current_palette, markers=markers, ax=ax_sub, s=s, alpha=alpha, legend=False)
                             p_x, p_y = next((p for p in top_params_info if p['name'] == col_var), None), next((p for p in top_params_info if p['name'] == row_var), None)
                             if p_x and p_y:
                                  eps_x, eps_y = p_x['d_range'] * box_eps, p_y['d_range'] * box_eps
-                                 ax_sub.add_patch(patches.Rectangle((p_x['min'] - eps_x, p_y['min'] - eps_y), (p_x['max'] - p_x['min']) + 2*eps_x, (p_y['max'] - p_y['min']) + 2*eps_y, linewidth=2, edgecolor=actual_box_color, facecolor='none', linestyle='--'))
+                                 hatch = '///' if includes_na.get(col_var) or includes_na.get(row_var) else None
+                                 ax_sub.add_patch(patches.Rectangle(
+                                     (p_x['min'] - eps_x, p_y['min'] - eps_y), 
+                                     (p_x['max'] - p_x['min']) + 2*eps_x, 
+                                     (p_y['max'] - p_y['min']) + 2*eps_y, 
+                                     linewidth=2, edgecolor=actual_box_color, 
+                                     facecolor='none', linestyle='--', hatch=hatch
+                                 ))
                         ax_sub.xaxis.set_major_locator(MaxNLocator(nbins=4)); ax_sub.yaxis.set_major_locator(MaxNLocator(nbins=4))
                         if grid_i == grid_size - 1: ax_sub.set_xlabel(col_var, fontsize=9)
                         else: ax_sub.set_xlabel(""); ax_sub.set_xticklabels([])
                         if grid_j == 0: ax_sub.set_ylabel(row_var, fontsize=9)
                         else: ax_sub.set_ylabel(""); ax_sub.set_yticklabels([])
         legend_elements = [patches.Patch(facecolor='none', edgecolor=actual_box_color, linestyle='--', linewidth=2, label='Box limits')]
+        if any(includes_na.values()):
+            legend_elements.append(patches.Patch(facecolor='none', edgecolor=actual_box_color, hatch='///', label='Includes N/A'))
+
         if p_subset is not None:
             legend_elements.extend([Line2D([0], [0], marker='o', color='w', label=label_success, markerfacecolor='gray', markersize=8), Line2D([0], [0], marker='D', color='w', label=label_failure, markerfacecolor='gray', markersize=8)])
             if isinstance(current_palette, dict):

@@ -6,11 +6,12 @@ from .coordinator import ArchSpaceCore
 from .models import SystemDefinition, DiscretizationScheme, Tradeoff
 
 from ..utils import sort_tradeoff_labels, get_tradeoff_sort_key
+from ..utils.nan_handler import SemanticNaNHandler
 
 import seaborn as sns
 
 class PatternAnalysis:
-    """Encapsulates the state and workflow for analyzing a single pattern configuration. 
+    """Encapsulates state and workflow for analyzing a single pattern configuration. 
     
     This class manages the lifecycle of data loading, processing, and analysis 
     for a given SystemDefinition.
@@ -63,14 +64,70 @@ class PatternAnalysis:
         self.raw_df, self.experiments_df, self.outcomes_df = \
             self.coordinator.load_detailed_data(self.json_path, validate_integrity=validate_integrity, preprocessor=preprocessor)
 
-        # 3. Handle Missing Values (NaN)
-        for name, df in [("Experiments", self.experiments_df), ("Outcomes", self.outcomes_df)]:
-            if df is not None and df.isnull().values.any():
-                nan_count = df.isnull().sum().sum()
-                nan_cols = df.columns[df.isnull().any()].tolist()
-                print(f"Warning: {name} data contains {nan_count} NaN values in columns: {nan_cols}. Filling numeric NaNs with 0.0.")
-                numeric_cols = df.select_dtypes(include=[np.number]).columns
-                df[numeric_cols] = df[numeric_cols].fillna(0.0)
+        # 2.5. Run Comprehensive NaN Audit
+        print("\n" + "="*60)
+        print("NaN AUDIT REPORT")
+        print("="*60)
+        
+        if self.experiments_df is not None:
+            exp_stats = SemanticNaNHandler.audit_nan_proportions(self.experiments_df)
+            print("\n[EXPERIMENTS - Parameters]")
+            print(f"  Overall NaN: {exp_stats['overall_pct']:.2f}% ({exp_stats['total_nans']} of {exp_stats['total_cells']} cells)")
+            print(f"  Columns with NaNs:")
+            for col, pct in exp_stats['columns'].items():
+                if pct > 0:
+                    print(f"    - {col}: {pct:.2f}%")
+        
+        if self.outcomes_df is not None:
+            out_stats = SemanticNaNHandler.audit_nan_proportions(self.outcomes_df)
+            print("\n[OUTCOMES - Quality Objectives]")
+            print(f"  Overall NaN: {out_stats['overall_pct']:.2f}% ({out_stats['total_nans']} of {out_stats['total_cells']} cells)")
+            print(f"  Columns with NaNs:")
+            for col, pct in out_stats['columns'].items():
+                if pct > 0:
+                    print(f"    - {col}: {pct:.2f}%")
+
+        # 3. Handle Missing Values (NaN) based on metadata
+        if self.sys_def:
+            # Handle Experiments (Parameters)
+            if self.experiments_df is not None:
+                # Identify parameters that are NOT optional
+                non_optional_params = []
+                # Map param names to their 'optional' status
+                for comp in self.sys_def.system.components.values():
+                    for p_name, p_obj in comp.parameters.items():
+                        if not p_obj.optional:
+                            non_optional_params.append(p_name)
+                
+                # Also check system-level parameters
+                for p_name, p_obj in self.sys_def.system.parameters.items():
+                    if not p_obj.optional:
+                        non_optional_params.append(p_name)
+
+                # Only fill NaNs for non-optional numeric parameters
+                numeric_cols = self.experiments_df.select_dtypes(include=[np.number]).columns
+                cols_to_fill = [c for c in numeric_cols if c in non_optional_params]
+                
+                if self.experiments_df[cols_to_fill].isnull().values.any():
+                    print(f"Filling NaNs with 0.0 for non-optional parameters: {cols_to_fill}")
+                    self.experiments_df[cols_to_fill] = self.experiments_df[cols_to_fill].fillna(0.0)
+
+            # Handle Outcomes (Quality Objectives)
+            if self.outcomes_df is not None:
+                # Outcomes usually represent failure if NaN. 
+                # We leave them as NaN here so the DataProcessor can handle them semantically (e.g. Failure bin)
+                # according to their nan_policy.
+                # However, for backward compatibility, if NO nan_policy is set (default worst_case),
+                # we might want to inform the user.
+                nan_outcomes = self.outcomes_df.columns[self.outcomes_df.isnull().any()].tolist()
+                if nan_outcomes:
+                    print(f"Note: Outcomes {nan_outcomes} contain NaNs. These will be handled during tradeoff definition according to their nan_policy.")
+        else:
+            # Fallback if no sys_def (should not happen with generic loader)
+            for df in [self.experiments_df, self.outcomes_df]:
+                if df is not None:
+                    numeric_cols = df.select_dtypes(include=[np.number]).columns
+                    df[numeric_cols] = df[numeric_cols].fillna(0.0)
 
     def _ensure_outcome_stats(self) -> None:
         """Computes statistics (mean/std) for outcomes to support standardized metrics."""
@@ -118,13 +175,12 @@ class PatternAnalysis:
         self._validate_tradeoff_params(method, params)
 
         # 2. Prepare kwargs based on method
-        kwargs = {}
+        kwargs = {'objectives': self.sys_def.dataspace.quality_objectives}
         if method in ['discretization', 'clustering']:
-            kwargs = {'n_bins': n_bins, 'all_labels': labels, 'ranges': ranges}
+            kwargs.update({'n_bins': n_bins, 'all_labels': labels, 'ranges': ranges})
             if method == 'clustering':
                 kwargs['params'] = params
         else:
-            kwargs = {'objectives': self.sys_def.dataspace.quality_objectives}
             if params:
                 kwargs['params'] = params
             if labels:
@@ -1472,7 +1528,7 @@ class PatternAnalysis:
         if np.any(a_can_improve):
             # Lift
             valid_lifts = a_lift[a_can_improve]
-            # print("Valid lifts:", valid_lifts)
+            # print("Valid lifts:", valid_lifts)
             valid_weights = a_weights[a_can_improve]
             if np.sum(valid_weights) > 0:
                 avg_lift = np.average(valid_lifts, weights=valid_weights)
@@ -2058,7 +2114,7 @@ class PatternAnalysis:
 
     def rename_outcome_labels(self, objective: str, mapping: Dict[str, str]) -> None:
         """
-        Renames the labels for a specific objective in the discrete dataset, 
+        Renames labels for a specific objective in the discrete dataset, 
         tradeoff definitions, and schemes.
         
         Useful for post-processing automatic labels (e.g., 'cluster_0' -> 'High Performance').
@@ -2367,7 +2423,7 @@ class PatternAnalysis:
         Aligns a list of discovered boxes to the full list of system tradeoffs.
         
         Useful for preparing the input list for robustness matrix methods.
-        If multiple boxes match a tradeoff name, the first one is used.
+        If multiple boxes match a tradeoff name, first one is used.
         
         Args:
             boxes: List of Box objects (e.g., from discover_scenarios).
@@ -2424,8 +2480,19 @@ class PatternAnalysis:
         # 1. Resolve parameters to analyze
         analyzer_fi = FeatureImportanceAnalyzer(self.sys_def)
         if parameters is None:
-            parameters = analyzer_fi.get_parameter_columns(self.experiments_df)
+            parameter_names = analyzer_fi.get_parameter_columns(self.experiments_df)
+        else:
+            parameter_names = parameters
+            
+        # Get Parameter objects for those names (required for NaN sentinel logic)
+        all_param_objs = []
+        for comp in self.sys_def.system.components.values():
+            all_param_objs.extend(comp.parameters.values())
+        all_param_objs.extend(self.sys_def.system.parameters.values())
         
+        # Filter objects to only those requested
+        selected_param_objs = [p for p in all_param_objs if p.name in parameter_names]
+
         # 2. Normalize input names
         all_tradeoffs = self.get_tradeoffs()
         if tradeoff_names is None:
@@ -2445,7 +2512,7 @@ class PatternAnalysis:
                     tradeoff_labels.append("unknown")
 
         # Dataset bounds (restricted to analyzed parameters)
-        valid_params = [p for p in parameters if p in self.experiments_df.columns]
+        valid_params = [p for p in parameter_names if p in self.experiments_df.columns]
         target_df = self.experiments_df[valid_params]
             
         agg_results = target_df.select_dtypes(include=[np.number]).agg(['min', 'max'])
@@ -2463,7 +2530,7 @@ class PatternAnalysis:
             if combine_tradeoffs and len(tradeoff_names) > 1:
                 # Combined Logic
                 boxes = self._discover_combined_prim(
-                    tradeoff_names, parameters=parameters, standardize=standardize, **kwargs
+                    tradeoff_names, parameters=selected_param_objs, standardize=standardize, **kwargs
                 )
                 
                 # Set metadata for combined result
@@ -2480,9 +2547,9 @@ class PatternAnalysis:
                 # Iterative Logic
                 for name, label in zip(tradeoff_names, tradeoff_labels):
                     boxes = self._discover_single_prim(
-                        name, parameters=parameters, standardize=standardize, **kwargs
+                        name, parameters=selected_param_objs, standardize=standardize, **kwargs
                     )
-                    print(min_max_dict)
+                    # print(min_max_dict)
                     for box in boxes:
                         box.target_tradeoff_labels = label
                         box.dataset_bounds = min_max_dict
@@ -2498,8 +2565,8 @@ class PatternAnalysis:
         if self.train_indices is None:
             self.split_data()
             
-        X_train = self.experiments_df.iloc[self.train_indices][parameters]
-        X_test = self.experiments_df.iloc[self.test_indices][parameters]
+        X_train = self.experiments_df.iloc[self.train_indices][parameter_names]
+        X_test = self.experiments_df.iloc[self.test_indices][parameter_names]
         
         # CART multi-class targets
         y_train = self.discrete_df.iloc[self.train_indices].astype(str).agg(','.join, axis=1)
@@ -2522,6 +2589,7 @@ class PatternAnalysis:
         print(f"Running CART global discovery for all tradeoff combinations ...")
         discovery_kwargs = kwargs.copy()
         discovery_kwargs['discrete_outcomes'] = y_train
+        discovery_kwargs['parameters'] = selected_param_objs
         
         result = self.coordinator.discover_scenarios(
             X_train, outcome="all", method='cart', experiments_df=X_train, **discovery_kwargs
@@ -2577,11 +2645,17 @@ class PatternAnalysis:
             self.split_data()
             
         analyzer = FeatureImportanceAnalyzer(self.sys_def)
-        if parameters is None:
-            parameters = analyzer.get_parameter_columns(self.experiments_df)
+        
+        # Resolve names vs objects
+        if parameters and not isinstance(parameters[0], str):
+            parameter_objs = parameters
+            parameter_names = [p.name for p in parameter_objs]
+        else:
+            parameter_names = parameters or analyzer.get_parameter_columns(self.experiments_df)
+            parameter_objs = [] # Not provided as objects
             
-        X_train = self.experiments_df.iloc[self.train_indices][parameters]
-        X_test = self.experiments_df.iloc[self.test_indices][parameters]
+        X_train = self.experiments_df.iloc[self.train_indices][parameter_names]
+        X_test = self.experiments_df.iloc[self.test_indices][parameter_names]
         
         # Build Combined Mask (Union)
         y_all = pd.Series(False, index=self.experiments_df.index)
@@ -2614,6 +2688,7 @@ class PatternAnalysis:
         print(f"Running Combined PRIM discovery for: {tradeoff_names} ...")
         discovery_kwargs = kwargs.copy()
         discovery_kwargs['y_mask'] = y_train
+        discovery_kwargs['parameters'] = parameter_objs
             
         # We pass a dummy outcome name since we provided y_mask
         result = self.coordinator.discover_scenarios(
@@ -2645,11 +2720,17 @@ class PatternAnalysis:
             self.split_data()
             
         analyzer = FeatureImportanceAnalyzer(self.sys_def)
-        if parameters is None:
-            parameters = analyzer.get_parameter_columns(self.experiments_df)
+        
+        # Resolve names vs objects
+        if parameters and not isinstance(parameters[0], str):
+            parameter_objs = parameters
+            parameter_names = [p.name for p in parameter_objs]
+        else:
+            parameter_names = parameters or analyzer.get_parameter_columns(self.experiments_df)
+            parameter_objs = []
             
-        X_train = self.experiments_df.iloc[self.train_indices][parameters]
-        X_test = self.experiments_df.iloc[self.test_indices][parameters]
+        X_train = self.experiments_df.iloc[self.train_indices][parameter_names]
+        X_test = self.experiments_df.iloc[self.test_indices][parameter_names]
         
         # Target prep
         tradeoff = next((t for t in self.get_tradeoffs() if t.name == tradeoff_name), None)
@@ -2667,7 +2748,7 @@ class PatternAnalysis:
         # Preprocessing
         current_stats = None
         if standardize:
-             X_train, _, stats = analyzer.preprocess_features(X_train, standardize=True)
+             X_train, _, stats = analyzer_fi.preprocess_features(X_train, standardize=True)
              current_stats = stats
              X_test_arr = stats['scaler'].transform(X_test[stats['numeric_cols']])
              X_test = pd.DataFrame(X_test_arr, index=X_test.index, columns=stats['numeric_cols'])
@@ -2675,6 +2756,7 @@ class PatternAnalysis:
         print(f"Running PRIM discovery for: {tradeoff_name} ...")
         discovery_kwargs = kwargs.copy()
         discovery_kwargs['y_mask'] = y_train
+        discovery_kwargs['parameters'] = parameter_objs
             
         result = self.coordinator.discover_scenarios(
             X_train, outcome=tradeoff_name, method='prim', experiments_df=X_train, **discovery_kwargs
@@ -2806,8 +2888,8 @@ class PatternAnalysis:
         
         prim_all_impacts_df = self._compute_impacts(prim_boxes, 'prim') # These are usually computed on the test set
         cart_all_impacts_df = self._compute_impacts(cart_boxes, 'cart') # These are usually computed on the test set
-        prim_all_impacts_df.reset_index(inplace=True) # 'policy´ is the old index
-        cart_all_impacts_df.reset_index(inplace=True) # 'policy´ is the old index
+        prim_all_impacts_df.reset_index(inplace=True) # 'policy' is the old index
+        cart_all_impacts_df.reset_index(inplace=True) # 'policy' is the old index
 
         if baseline is not None:
             base_matrix = baseline.copy()
@@ -2815,7 +2897,7 @@ class PatternAnalysis:
             base_matrix = self.get_robustness_report(metric=metric, subset='test')
         base_matrix['method'] = method
         base_matrix['target'] = '' # No target here
-        base_matrix.reset_index(inplace=True) # 'policy´ is the old index
+        base_matrix.reset_index(inplace=True) # 'policy' is the old index
       
         prim_all_impacts_df = prim_all_impacts_df.sort_values(by='policy')
         prim_all_impacts_df = prim_all_impacts_df.sort_values(by='target', key=lambda col: col.map(get_tradeoff_sort_key))

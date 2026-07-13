@@ -68,19 +68,60 @@ Visualizing "Non-numeric states" on numeric axes requires specific treatments:
 
 ## 7. Impact Analysis
 
-| Component | Impact | Implementation Detail |
+| Component | Status | Implementation Detail |
 | :--- | :--- | :--- |
-| **Data Models** | Medium | Add `optional` and `nan_policy` fields to `Parameter` and `QualityObjective`. |
-| **Data Loading** | Low | Implement `NaN` proportion check in `DataLoader`. |
-| **Discovery** | High | Implement `includes_na` logic in `Box` and wrappers in `ScenarioDiscoveryManager`. |
-| **Robustness** | Low | No change needed if outputs are imputed as failures before masking. |
-| **Visuals** | High | Update `VisualizationManager` to handle `includes_na` flags. |
+| **Data Models** | ✅ Complete | Added `optional` and `nan_policy` fields to `Parameter` and `QualityObjective` in `adept/core/models.py`. |
+| **Data Loading** | ✅ Complete | Implemented `NaN` proportion check in `DataLoader` and `PatternAnalysis.load()`. |
+| **Discovery** | ✅ Complete | Implemented `includes_na` logic in `Box` model and wrappers in `ScenarioDiscoveryManager`. |
+| **Feature Importance** | ✅ Complete | Implemented sentinel value imputation in `FeatureImportanceAnalyzer`. |
+| **Robustness** | ✅ Complete | No change needed; works with imputed failure states. |
+| **Visuals** | ⚠️ Partial | `VisualizationManager` partially updated but has a bug in `show_box_diagnostics()`. |
+| **Testing** | ❌ Not Started | Test system and documentation needed. |
 
 ## 8. Implementation Plan
 
-1.  **Phase 1:** Update `adept/core/models.py` to include the new metadata fields.
-2.  **Phase 2:** Update `adept/core/loader.py` and `adept/core/session.py` to include the `NaN` proportion audit during `load()`.
-3.  **Phase 3:** Create `adept/utils/nan_handler.py` with the JIT transformation logic.
-4.  **Phase 4:** Wrap `ScenarioDiscoveryManager` and `FeatureImportanceAnalyzer` to use the handler.
-5.  **Phase 5:** Update the `Box` model to support `includes_na` in its limits definition.
-6.  **Phase 6:** Refactor `VisualizationManager` to render the "N/A" states in box and scatter plots.
+### Completed Phases ✅
+
+1.  **Phase 1:** ✅ Updated `adept/core/models.py` to include the new metadata fields (`optional`, `nan_policy`, `nan_value`).
+2.  **Phase 2:** ✅ Updated `adept/core/loader.py` and `adept/core/session.py` to include the `NaN` proportion audit during `load()`.
+3.  **Phase 3:** ✅ Created `adept/utils/nan_handler.py` with the JIT transformation logic (`SemanticNaNHandler` class).
+4.  **Phase 4:** ✅ Wrapped `ScenarioDiscoveryManager` and `FeatureImportanceAnalyzer` to use the handler.
+5.  **Phase 5:** ✅ Updated the `Box` model to support `includes_na` in its limits definition.
+6.  **Phase 6:** ⚠️ Partially completed visualization updates in `VisualizationManager` to render "N/A" states in box and scatter plots.
+
+### Remaining Phases ❌
+
+7.  **Phase 7:** Fix visualization bug in `show_box_diagnostics()` function.
+8.  **Phase 8:** Create test system definition file (`federatedlearning/FLsystem.json`) with proper `optional` flags for Federated Learning patterns.
+9.  **Phase 9:** Create test notebook (`federatedlearning/test_nan_feature.ipynb`) to validate end-to-end NaN functionality.
+10. **Phase 10:** Run end-to-end test and document findings.
+
+## 9. Known Issues
+
+### Visualization Bug in `show_box_diagnostics()`
+
+**Issue:** The `show_box_diagnostics()` function in `adept/analysis/visualization.py` references an undefined variable `includes_na`.
+
+**Location:** 
+- Line 576
+- Line 652
+
+**Impact:** 
+- Raises `NameError` when attempting to visualize boxes that include N/A parameters
+- Prevents proper rendering of N/A indicator hatch patterns (`////`)
+
+**Root Cause:**
+The variable `includes_na` is never defined in the function scope. It should be extracted from:
+- `box.includes_na` attribute, or
+- `box.limits` metadata
+
+**Fix Required:**
+```python
+# Before (current buggy code):
+# includes_na  # <-- Undefined!
+
+# After (corrected):
+includes_na = box.limits.get(param_name, {}).get('includes_na', False)
+# OR
+includes_na = box.includes_na if hasattr(box, 'includes_na') else False
+```

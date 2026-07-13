@@ -1,0 +1,368 @@
+{
+  "mode": "discovery",
+  "system": {
+    "name": "Federated Learning with Architectural Patterns",
+    "description": "A federated learning system testing impact of Client Selector, Message Compressor, and Heterogeneous Data Handler patterns on model performance.",
+    
+    "components": {
+      "fl_system": {
+        "name": "Federated Learning System",
+        "description": "The core FL system with adaptive process patterns",
+        
+        "parameters": {
+          "N Rounds": {
+            "data_type": "integer",
+            "type": "lever",
+            "level": "system",
+            "description": "Total number of training rounds"
+          },
+          "Total Clients": {
+            "data_type": "integer",
+            "type": "lever",
+            "level": "system",
+            "description": "Total number of clients in system"
+          },
+          "Model": {
+            "data_type": "string",
+            "type": "lever",
+            "level": "system",
+            "description": "Neural network architecture (CNN 16k, squeezenet1_1)"
+          },
+          "Dataset": {
+            "data_type": "string",
+            "type": "lever",
+            "level": "system",
+            "description": "Dataset used for training (CIFAR-10, FashionMNIST)"
+          },
+          "Optimizer": {
+            "data_type": "string",
+            "type": "lever",
+            "level": "system",
+            "description": "Optimization algorithm (Adam)"
+          },
+          "Learning Rate": {
+            "data_type": "float",
+            "type": "lever",
+            "level": "system",
+            "description": "Learning rate for optimizer"
+          },
+          "Batch Size": {
+            "data_type": "integer",
+            "type": "lever",
+            "level": "system",
+            "description": "Batch size for training"
+          },
+          "Epochs": {
+            "data_type": "integer",
+            "type": "lever",
+            "level": "system",
+            "description": "Number of local training epochs per round"
+          },
+          "Client Selector Strategy": {
+            "data_type": "string",
+            "type": "constraint",
+            "level": "pattern",
+            "description": "Strategy for client selection",
+            "optional": true
+          },
+          "Client Selector Criteria": {
+            "data_type": "string",
+            "type": "constraint",
+            "level": "pattern",
+            "description": "Criteria used for client selection",
+            "optional": true
+          },
+          "Client Selector Value": {
+            "data_type": "float",
+            "type": "constraint",
+            "level": "pattern",
+            "description": "Value for client selection criteria",
+            "optional": true
+          },
+          "Message Compressor Alg": {
+            "data_type": "string",
+            "type": "constraint",
+            "level": "pattern",
+            "description": "Compression algorithm used",
+            "optional": true
+          },
+          "HDH Batch Size": {
+            "data_type": "float",
+            "type": "constraint",
+            "level": "pattern",
+            "description": "Batch size for HDH training",
+            "optional": true
+          },
+          "HDH Beta 1": {
+            "data_type": "float",
+            "type": "constraint",
+            "level": "pattern",
+            "description": "Beta 1 parameter for HDH",
+            "optional": true
+          },
+          "HDH Beta 2": {
+            "data_type": "float",
+            "type": "constraint",
+            "level": "pattern",
+            "description": "Beta 2 parameter for HDH",
+            "optional": true
+          },
+          "HDH Discriminator": {
+            "data_type": "string",
+            "type": "constraint",
+            "level": "pattern",
+            "description": "Discriminator network for HDH",
+            "optional": true
+          },
+          "HDH Epochs": {
+            "data_type": "float",
+            "type": "constraint",
+            "level": "pattern",
+            "description": "Number of HDH training epochs",
+            "optional": true
+          },
+          "HDH Generator": {
+            "data_type": "string",
+            "type": "constraint",
+            "level": "pattern",
+            "description": "Generator network for HDH",
+            "optional": true
+          },
+          "HDH Learning Rate": {
+            "data_type": "float",
+            "type": "constraint",
+            "level": "pattern",
+            "description": "Learning rate for HDH",
+            "optional": true
+          },
+          "HDH Latent Dim": {
+            "data_type": "float",
+            "type": "constraint",
+            "level": "pattern",
+            "description": "Latent dimension for HDH",
+            "optional": true
+          },
+          "HDH Optimizer": {
+            "data_type": "string",
+            "type": "constraint",
+            "level": "pattern",
+            "description": "Optimizer for HDH",
+            "optional": true
+          }
+        },
+        
+        "decisions": {
+          "client_selector_pattern": {
+            "description": "Pattern for selecting which clients participate in training",
+            "policies": {
+              "OFF": {
+                "description": "Client selector pattern disabled - all clients participate",
+                "parameter_bindings": {
+                  "levers": {},
+                  "constraints": {}
+                }
+              },
+              "ON": {
+                "description": "Client selector pattern enabled - Resource-Based selection",
+                "parameter_bindings": {
+                  "levers": {},
+                  "constraints": {
+                    "Client Selector Strategy": "Resource-Based",
+                    "Client Selector Criteria": "CPU",
+                    "Client Selector Value": 2.0
+                  }
+                }
+              }
+            }
+          },
+          "message_compressor_pattern": {
+            "description": "Pattern for compressing messages exchanged between clients and server",
+            "policies": {
+              "OFF": {
+                "description": "Message compressor disabled",
+                "parameter_bindings": {
+                  "levers": {},
+                  "constraints": {}
+                }
+              },
+              "ON": {
+                "description": "Message compressor enabled - zlib compression",
+                "parameter_bindings": {
+                  "levers": {},
+                  "constraints": {
+                    "Message Compressor Alg": "zlib"
+                  }
+                }
+              }
+            }
+          },
+          "hdh_pattern": {
+            "description": "Heterogeneous Data Handler pattern for managing non-IID data",
+            "policies": {
+              "OFF": {
+                "description": "HDH pattern disabled",
+                "parameter_bindings": {
+                  "levers": {},
+                  "constraints": {}
+                }
+              },
+              "ON": {
+                "description": "HDH pattern enabled - DCGAN for data augmentation",
+                "parameter_bindings": {
+                  "levers": {},
+                  "constraints": {
+                    "HDH Batch Size": 32.0,
+                    "HDH Beta 1": 0.5,
+                    "HDH Beta 2": 0.999,
+                    "HDH Discriminator": "DCGANDiscriminator",
+                    "HDH Epochs": 1.0,
+                    "HDH Generator": "DCGANGenerator",
+                    "HDH Learning Rate": 0.0002,
+                    "HDH Latent Dim": 100.0,
+                    "HDH Optimizer": "Adam"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    
+    "adaptive_processes": [],
+    
+    "tradeoffs": []
+  },
+  
+  "dataspace": {
+    "source_file": "FLwithAP_MLdata_split.csv",
+    
+    "configuration_identification": {
+      "from": "column",
+      "column": "config_id",
+      "configurations": {
+        "OFF,OFF,OFF": {
+          "name": "All Patterns Off",
+          "description": "No adaptive patterns enabled",
+          "pattern_policy_references": [
+            {"component": "fl_system", "decision": "client_selector_pattern", "policy": "OFF"},
+            {"component": "fl_system", "decision": "message_compressor_pattern", "policy": "OFF"},
+            {"component": "fl_system", "decision": "hdh_pattern", "policy": "OFF"}
+          ]
+        },
+        "ON,OFF,OFF": {
+          "name": "Client Selector Only",
+          "description": "Only client selector pattern enabled",
+          "pattern_policy_references": [
+            {"component": "fl_system", "decision": "client_selector_pattern", "policy": "ON"},
+            {"component": "fl_system", "decision": "message_compressor_pattern", "policy": "OFF"},
+            {"component": "fl_system", "decision": "hdh_pattern", "policy": "OFF"}
+          ]
+        },
+        "OFF,ON,OFF": {
+          "name": "Message Compressor Only",
+          "description": "Only message compressor pattern enabled",
+          "pattern_policy_references": [
+            {"component": "fl_system", "decision": "client_selector_pattern", "policy": "OFF"},
+            {"component": "fl_system", "decision": "message_compressor_pattern", "policy": "ON"},
+            {"component": "fl_system", "decision": "hdh_pattern", "policy": "OFF"}
+          ]
+        },
+        "OFF,OFF,ON": {
+          "name": "HDH Only",
+          "description": "Only heterogeneous data handler pattern enabled",
+          "pattern_policy_references": [
+            {"component": "fl_system", "decision": "client_selector_pattern", "policy": "OFF"},
+            {"component": "fl_system", "decision": "message_compressor_pattern", "policy": "OFF"},
+            {"component": "fl_system", "decision": "hdh_pattern", "policy": "ON"}
+          ]
+        }
+      }
+    },
+    
+    "discovery_options": {
+      "auto_detect_parameters": true,
+      "auto_detect_objectives": true
+    },
+    
+    "column_renames": {
+      "Final Val F1 (Best)": "best_val_f1",
+      "Final Val Accuracy": "final_val_accuracy",
+      "Final Val F1 (Last Round)": "final_val_f1",
+      "Avg Total Round Time": "avg_total_time",
+      "Avg Training Time": "avg_training_time",
+      "Avg Communication Time": "avg_communication_time"
+    },
+    
+    "quality_objectives": [
+      {
+        "name": "best_val_f1",
+        "metric": "f1_score",
+        "description": "Best F1 score achieved on validation set",
+        "maximize": true,
+        "nan_policy": "worst_case",
+        "nan_value": 0.0
+      },
+      {
+        "name": "final_val_accuracy",
+        "metric": "accuracy",
+        "description": "Final validation accuracy",
+        "maximize": true,
+        "nan_policy": "worst_case",
+        "nan_value": 0.0
+      },
+      {
+        "name": "avg_total_time",
+        "metric": "time",
+        "description": "Average total round time (training + communication)",
+        "maximize": false,
+        "nan_policy": "worst_case",
+        "nan_value": 999999.0
+      },
+      {
+        "name": "avg_training_time",
+        "metric": "time",
+        "description": "Average training time per round",
+        "maximize": false,
+        "nan_policy": "worst_case",
+        "nan_value": 999999.0
+      },
+      {
+        "name": "avg_communication_time",
+        "metric": "time",
+        "description": "Average communication time per round",
+        "maximize": false,
+        "nan_policy": "worst_case",
+        "nan_value": 999999.0
+      }
+    ]
+  },
+  
+  "metadata": {
+    "version": "3.0",
+    "author": "System Architect",
+    "created_date": "2024-03-20",
+    "notes": "FL system with adaptive process patterns. Using split CSV with multi-column pattern mapping. NaN values represent 'pattern not selected' state.",
+    "analysis_paradigm": "discovery",
+    "validation_status": "verified",
+    "nan_features": {
+      "enabled": true,
+      "optional_parameters": [
+        "Client Selector Strategy",
+        "Client Selector Criteria",
+        "Client Selector Value",
+        "Message Compressor Alg",
+        "HDH Batch Size",
+        "HDH Beta 1",
+        "HDH Beta 2",
+        "HDH Discriminator",
+        "HDH Epochs",
+        "HDH Generator",
+        "HDH Learning Rate",
+        "HDH Latent Dim",
+        "HDH Optimizer"
+      ],
+      "description": "When a pattern is OFF, its specific parameters are NaN (not applicable)"
+    }
+  }
+}

@@ -5,7 +5,8 @@ from sklearn.model_selection import train_test_split
 from sklearn.ensemble import RandomForestRegressor
 from sklearn.base import clone
 from feature_engine.selection import SmartCorrelatedSelection
-from ..core.models import SystemDefinition, Tradeoff, ParameterType
+from ..core.models import SystemDefinition, Tradeoff, ParameterType, Parameter
+from ..utils.nan_handler import SemanticNaNHandler
 
 from sklearn.preprocessing import StandardScaler
 
@@ -17,6 +18,14 @@ class FeatureImportanceAnalyzer:
 
     def __init__(self, sys_def: SystemDefinition):
         self.sys_def = sys_def
+
+    def _get_all_parameters(self) -> List[Parameter]:
+        """Helper to flatten all parameter objects from the system definition."""
+        all_params = []
+        for comp in self.sys_def.system.components.values():
+            all_params.extend(comp.parameters.values())
+        all_params.extend(self.sys_def.system.parameters.values())
+        return all_params
 
     def get_parameter_columns(self, df: pd.DataFrame, include_levers: bool = True, include_uncertainties: bool = True, include_constraints: bool = True) -> List[str]:
         """Identifies columns in the dataframe that correspond to system parameters."""
@@ -69,15 +78,22 @@ class FeatureImportanceAnalyzer:
                 - mask: Boolean mask of rows kept.
                 - stats: Dict with 'scaler' for de-standardization.
         """
+        # --- NEW: Semantic NaN Handling ---
+        # Apply sentinel transformation to optional parameters BEFORE scaling
+        all_params = self._get_all_parameters()
+        df_trans, _ = SemanticNaNHandler.apply_sentinel_transformation(df, all_params)
+        
         # Ensure we work with numeric data
-        numeric_cols = df.select_dtypes(include=[np.number]).columns
+        numeric_cols = df_trans.select_dtypes(include=[np.number]).columns
             
         # Initialize and fit scaler
         scaler = StandardScaler()
-        z_scores_arr = scaler.fit_transform(df[numeric_cols])
-        z_scores = pd.DataFrame(z_scores_arr, index=df.index, columns=numeric_cols)
+        # If there are still NaNs (not optional), fill with 0 for scaler compatibility
+        X_for_scaler = df_trans[numeric_cols].fillna(0.0)
+        z_scores_arr = scaler.fit_transform(X_for_scaler)
+        z_scores = pd.DataFrame(z_scores_arr, index=df_trans.index, columns=numeric_cols)
         
-        mask = pd.Series(True, index=df.index)
+        mask = pd.Series(True, index=df_trans.index)
         
         if remove_outliers:
             # Identify outliers: any row where any feature |z| > threshold
@@ -85,7 +101,7 @@ class FeatureImportanceAnalyzer:
             mask = ~is_outlier
             
         # Construct result
-        df_processed = df.copy()
+        df_processed = df_trans.copy() # Use the transformed one
         
         if standardize:
             # Replace numeric columns with their Z-scores
@@ -122,9 +138,19 @@ class FeatureImportanceAnalyzer:
         Returns:
             pd.Series: Importance scores indexed by feature name.
         """
+        # --- NEW: Semantic NaN Handling ---
+        all_params = self._get_all_parameters()
+        X_train, _ = SemanticNaNHandler.apply_sentinel_transformation(X_train, all_params)
+        # Fill any remaining non-optional NaNs
+        X_train = X_train.fillna(0.0)
+        
+        # Filter to only numeric columns (Random Forest can't handle categorical)
+        numeric_cols = X_train.select_dtypes(include=[np.number]).columns.tolist()
+        X_train = X_train[numeric_cols]
+        
         # 1. Selection (Optional)
         features_to_use = X_train.columns.tolist()
-        print(f"Original features: {features_to_use}")
+        print(f"Original features (numeric only): {features_to_use}")
         
         if use_smart_correlation:
             # SmartCorrelatedSelection groups correlated features and selects one.
