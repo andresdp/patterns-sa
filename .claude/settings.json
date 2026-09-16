@@ -9,7 +9,10 @@
       "Bash(python3 -)",
       "WebFetch(domain:cs.gssi.it)",
       "Bash(rtk find *)",
-      "Read(//Users/adiazpace/.claude/plugins/cache/compound-engineering-plugin/compound-engineering/3.22.0/skills/ce-brainstorm/references/**)"
+      "Read(//Users/adiazpace/.claude/plugins/cache/compound-engineering-plugin/compound-engineering/3.22.0/skills/ce-brainstorm/references/**)",
+      "Bash(python3 -c ' *)",
+      "Bash(awk 'NR==2339{print NR\": \"$0}' adept/core/session.py)",
+      "Bash(/usr/bin/find adept *)"
     ],
     "additionalDirectories": [
       "/tmp/compound-engineering-501/ce-brainstorm/fl-adept-support",
