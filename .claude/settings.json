@@ -1,0 +1,19 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(rtk git *)",
+      "Bash(rtk ls *)",
+      "Bash(rtk wc *)",
+      "Bash(rtk grep *)",
+      "Bash(rtk read *)",
+      "Bash(python3 -)",
+      "WebFetch(domain:cs.gssi.it)",
+      "Bash(rtk find *)",
+      "Read(//Users/adiazpace/.claude/plugins/cache/compound-engineering-plugin/compound-engineering/3.22.0/skills/ce-brainstorm/references/**)"
+    ],
+    "additionalDirectories": [
+      "/tmp/compound-engineering-501/ce-brainstorm/fl-adept-support",
+      "/private/tmp/compound-engineering-501/ce-brainstorm/fl-adept-support"
+    ]
+  }
+}

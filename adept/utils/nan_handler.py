@@ -71,8 +71,13 @@ class SemanticNaNHandler:
     @staticmethod
     def apply_sentinel_transformation(df: pd.DataFrame, parameters: List[Parameter]) -> Tuple[pd.DataFrame, Dict[str, float]]:
         """Maps NaNs in optional parameters to sentinel values for discovery.
-        
+
         Allows PRIM/CART to treat 'Option Not Selected' as a distinct numeric region.
+        Numeric optional columns get a sentinel just below their observed minimum.
+        Non-numeric (categorical) optional columns are reduced to a binary
+        presence flag (1.0 = selected, 0.0 = not selected/NaN), since the
+        downstream algorithms (RandomForest, PRIM, CART) require numeric input
+        and cannot consume the original category value directly.
         """
         df_trans = df.copy()
         sentinels = {}
@@ -80,18 +85,25 @@ class SemanticNaNHandler:
             # We only transform if the parameter is explicitly marked as optional
             if param.name not in df_trans.columns or not getattr(param, 'optional', False):
                 continue
-                
+
             if not df_trans[param.name].isnull().any():
                 continue
-            
-            # Use a value slightly below the current minimum
-            p_min = df_trans[param.name].min()
-            p_max = df_trans[param.name].max()
-            p_range = p_max - p_min
-            if p_range == 0: p_range = abs(p_min) if p_min != 0 else 1.0
-            
-            sentinel = p_min - (0.1 * p_range)
-            df_trans[param.name] = df_trans[param.name].fillna(sentinel)
-            sentinels[param.name] = sentinel
-            
+
+            col = df_trans[param.name]
+
+            if pd.api.types.is_numeric_dtype(col):
+                # Use a value slightly below the current minimum
+                p_min = col.min()
+                p_max = col.max()
+                p_range = p_max - p_min
+                if p_range == 0: p_range = abs(p_min) if p_min != 0 else 1.0
+
+                sentinel = p_min - (0.1 * p_range)
+                df_trans[param.name] = col.fillna(sentinel)
+                sentinels[param.name] = sentinel
+            else:
+                # Categorical: collapse to a binary "was this selected" flag.
+                df_trans[param.name] = col.notna().astype(float)
+                sentinels[param.name] = 0.0
+
         return df_trans, sentinels
