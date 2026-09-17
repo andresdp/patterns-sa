@@ -1,5 +1,5 @@
 import itertools
-from typing import List, Dict, Set, Tuple, Any
+from typing import List, Dict, Optional, Set, Tuple, Any
 import pandas as pd
 from ..core.models import SystemDefinition
 
@@ -56,6 +56,21 @@ class SystemLinter:
 
         return issues
 
+    def _iter_configs(self, sys_def: SystemDefinition):
+        """Normalize `configuration_identification.configurations` -- a dict
+        keyed by config id, or (legacy) a plain list -- into an iterable of
+        SystemConfiguration objects. Shared by every check below that walks
+        declared configurations."""
+        configs = sys_def.dataspace.configuration_identification.configurations
+        return configs.values() if isinstance(configs, dict) else configs
+
+    def _resolve_column(self, param_name: str, comp_name: str, df: pd.DataFrame) -> Optional[str]:
+        """Resolve a component parameter to its actual data column: mirrors
+        GenericDataLoader, checking the bare name first and the
+        component-prefixed name second. Returns None if neither is present."""
+        candidates = [param_name, f"{comp_name}_{param_name}"]
+        return next((c for c in candidates if c in df.columns), None)
+
     def _validate_objectives(self, sys_def: SystemDefinition, df: pd.DataFrame) -> List[LintIssue]:
         issues = []
         for obj in sys_def.dataspace.quality_objectives:
@@ -71,9 +86,8 @@ class SystemLinter:
         issues = []
         for comp_name, comp in sys_def.system.components.items():
             for param_name, param in comp.parameters.items():
-                # Logic mirrors GenericDataLoader: check exact name or prefixed name
-                candidates = [param_name, f"{comp_name}_{param_name}"]
-                if not any(c in df.columns for c in candidates):
+                if self._resolve_column(param_name, comp_name, df) is None:
+                    candidates = [param_name, f"{comp_name}_{param_name}"]
                     issues.append(LintIssue(
                         "WARNING",
                         f"Parameter '{param_name}' (Component: {comp_name}) not found in data columns. Checked: {candidates}",
@@ -131,8 +145,7 @@ class SystemLinter:
     def _validate_configuration_references(self, sys_def: SystemDefinition) -> List[LintIssue]:
         issues = []
         
-        configs = sys_def.dataspace.configuration_identification.configurations
-        config_iterator = configs.values() if isinstance(configs, dict) else configs
+        config_iterator = self._iter_configs(sys_def)
 
         for config in config_iterator:
             for ref in config.pattern_policy_references:
@@ -199,8 +212,7 @@ class SystemLinter:
         complete."""
         issues = []
 
-        configs = sys_def.dataspace.configuration_identification.configurations
-        config_iterator = configs.values() if isinstance(configs, dict) else configs
+        config_iterator = self._iter_configs(sys_def)
 
         for comp_name, comp in sys_def.system.components.items():
             decision_names = list(comp.decisions.keys())
@@ -245,8 +257,7 @@ class SystemLinter:
         size-1 "combination"), so this never fires for one (R5)."""
         issues = []
 
-        configs = sys_def.dataspace.configuration_identification.configurations
-        config_iterator = configs.values() if isinstance(configs, dict) else configs
+        config_iterator = self._iter_configs(sys_def)
 
         for comp_name, comp in sys_def.system.components.items():
             decision_names = list(comp.decisions.keys())
@@ -304,49 +315,32 @@ class SystemLinter:
             counts = df[col].value_counts(normalize=True, dropna=False)
             return float(counts.max()) if not counts.empty else 0.0
 
-        # Quality objectives
-        for obj in sys_def.dataspace.quality_objectives:
-            if obj.name not in df.columns:
-                continue
-            concentration = _concentration(obj.name)
+        def _check(label: str, column: str, context: str) -> None:
+            concentration = _concentration(column)
             if concentration >= LOW_VARIANCE_THRESHOLD:
                 issues.append(LintIssue(
                     "WARNING",
-                    f"Quality Objective '{obj.name}' is low-variance: "
+                    f"{label} is low-variance: "
                     f"{concentration:.1%} of values are concentrated on a single value "
                     f"(threshold {LOW_VARIANCE_THRESHOLD:.0%}).",
-                    "Dataspace.QualityObjectives"
+                    context
                 ))
+
+        # Quality objectives
+        for obj in sys_def.dataspace.quality_objectives:
+            if obj.name in df.columns:
+                _check(f"Quality Objective '{obj.name}'", obj.name, "Dataspace.QualityObjectives")
 
         # System-level parameters
         for param_name in sys_def.system.parameters.keys():
-            if param_name not in df.columns:
-                continue
-            concentration = _concentration(param_name)
-            if concentration >= LOW_VARIANCE_THRESHOLD:
-                issues.append(LintIssue(
-                    "WARNING",
-                    f"Parameter '{param_name}' (System) is low-variance: "
-                    f"{concentration:.1%} of values are concentrated on a single value "
-                    f"(threshold {LOW_VARIANCE_THRESHOLD:.0%}).",
-                    "System.Parameters"
-                ))
+            if param_name in df.columns:
+                _check(f"Parameter '{param_name}' (System)", param_name, "System.Parameters")
 
         # Component (pattern) parameters
         for comp_name, comp in sys_def.system.components.items():
             for param_name in comp.parameters.keys():
-                candidates = [param_name, f"{comp_name}_{param_name}"]
-                col = next((c for c in candidates if c in df.columns), None)
-                if col is None:
-                    continue
-                concentration = _concentration(col)
-                if concentration >= LOW_VARIANCE_THRESHOLD:
-                    issues.append(LintIssue(
-                        "WARNING",
-                        f"Parameter '{param_name}' (Component: {comp_name}) is low-variance: "
-                        f"{concentration:.1%} of values are concentrated on a single value "
-                        f"(threshold {LOW_VARIANCE_THRESHOLD:.0%}).",
-                        "System.Components"
-                    ))
+                col = self._resolve_column(param_name, comp_name, df)
+                if col is not None:
+                    _check(f"Parameter '{param_name}' (Component: {comp_name})", col, "System.Components")
 
         return issues

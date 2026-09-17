@@ -68,6 +68,16 @@ def _format_value(value: Any) -> str:
     return str(value)
 
 
+def _level_type(param: Parameter) -> Tuple[str, str]:
+    level = getattr(param.level, "value", str(param.level))
+    ptype = getattr(param.type, "value", str(param.type))
+    return level, ptype
+
+
+def _optional_flag(param: Parameter) -> str:
+    return " (optional)" if bool(getattr(param, "optional", False)) else ""
+
+
 def _render_decisions(comp: ArchitecturalPattern) -> List[str]:
     lines: List[str] = []
     if not comp.decisions:
@@ -119,17 +129,14 @@ def _render_parameters(comp: ArchitecturalPattern, bound_by: Dict[str, List[str]
     # Group parameter names by (level, type).
     groups: Dict[Tuple[str, str], List[str]] = {}
     for name, param in comp.parameters.items():
-        level = getattr(param.level, "value", str(param.level))
-        ptype = getattr(param.type, "value", str(param.type))
-        groups.setdefault((level, ptype), []).append(name)
+        groups.setdefault(_level_type(param), []).append(name)
 
     for (level, ptype), names in sorted(groups.items()):
         lines.append("")
         lines.append(f"**{level} / {ptype}**")
         for name in sorted(names):
             param = comp.parameters[name]
-            optional = bool(getattr(param, "optional", False))
-            flags = " (optional)" if optional else ""
+            flags = _optional_flag(param)
             binders = bound_by.get(name)
             if binders:
                 binding_note = "bound by " + ", ".join(binders)
@@ -292,10 +299,8 @@ def summarize_system(sys_def: SystemDefinition) -> str:
         lines.append("")
         lines.append("## System-Level Parameters")
         for name, param in system.parameters.items():
-            level = getattr(param.level, "value", str(param.level))
-            ptype = getattr(param.type, "value", str(param.type))
-            optional = bool(getattr(param, "optional", False))
-            flags = " (optional)" if optional else ""
+            level, ptype = _level_type(param)
+            flags = _optional_flag(param)
             lines.append(f"- `{name}`{flags} — {level} / {ptype}")
 
     lines.extend(_render_quality_objectives(sys_def))
