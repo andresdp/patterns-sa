@@ -2748,7 +2748,7 @@ class PatternAnalysis:
         # Preprocessing
         current_stats = None
         if standardize:
-             X_train, _, stats = analyzer_fi.preprocess_features(X_train, standardize=True)
+             X_train, _, stats = analyzer.preprocess_features(X_train, standardize=True)
              current_stats = stats
              X_test_arr = stats['scaler'].transform(X_test[stats['numeric_cols']])
              X_test = pd.DataFrame(X_test_arr, index=X_test.index, columns=stats['numeric_cols'])
