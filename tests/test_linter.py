@@ -223,6 +223,51 @@ class TestMultiDecisionLinting(unittest.TestCase):
         issues = self.linter._validate_policy_combination_coverage(sys_def)
         self.assertEqual(len(issues), 0, f"Expected no coverage warnings, got: {[str(i) for i in issues]}")
 
+    def test_zero_policy_decision_skips_coverage_rather_than_vacuous_pass(self):
+        """A decision with zero declared policies has no valid combination to
+        cover -- coverage must skip the component (not report a vacuous "0 of
+        0 declared" pass with no warning), mirroring spec_summary.py's guard.
+        Completeness (R1) independently flags the malformed config."""
+        data = {
+            "system": {
+                "name": "ZeroPolicyTest",
+                "components": {
+                    "mc": {
+                        "name": "MC",
+                        "parameters": {},
+                        "decisions": {
+                            "d1": {"policies": {"A": {}, "B": {}}},
+                            "d2": {"policies": {}},
+                        },
+                    }
+                },
+                "tradeoffs": [],
+            },
+            "dataspace": {
+                "quality_objectives": [],
+                "policy_identification": {
+                    "from": "column",
+                    "column": "config_id",
+                    "policies": {
+                        "cfg1": {
+                            "name": "cfg1",
+                            "pattern_policy_references": [
+                                {"component": "mc", "decision": "d1", "policy": "A"},
+                            ],
+                        }
+                    },
+                },
+            },
+        }
+        sys_def = SystemDefinition.model_validate(data)
+        coverage_issues = self.linter._validate_policy_combination_coverage(sys_def)
+        completeness_issues = self.linter._validate_multi_decision_completeness(sys_def)
+        self.assertEqual(len(coverage_issues), 0, f"Expected no coverage output (skipped, not vacuous), got: {[str(i) for i in coverage_issues]}")
+        self.assertTrue(
+            any(i.level == "ERROR" and "d2" in i.message for i in completeness_issues),
+            f"Expected completeness to independently flag missing 'd2', got: {[str(i) for i in completeness_issues]}"
+        )
+
     def test_single_decision_component_no_coverage_warning(self):
         """AE5: a single-decision pattern's spec -> the coverage check
         reports no warning (1 of 1 combination trivially satisfied)."""

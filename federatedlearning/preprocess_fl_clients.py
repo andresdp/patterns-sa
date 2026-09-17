@@ -103,13 +103,23 @@ FIELD_ROLES: Dict[str, str] = {
 def preprocess_fl(df: pd.DataFrame, config_name: str = None) -> pd.DataFrame:
     """Preprocessor hook suitable for `session.load(preprocessor=preprocess_fl)`.
 
-    Applies the generic per-client aggregation (`aggregate_per_client_columns`)
-    and returns the resulting DataFrame. `config_name` is accepted for
+    Applies the generic per-client aggregation (`aggregate_per_client_columns`),
+    then drops any aggregated column whose field isn't in `FIELD_ROLES` --
+    e.g. a per-client `ID` column matches the same `Client <N> <field>` shape
+    as real telemetry but isn't a modeled parameter or objective. This keeps
+    `aggregate_per_client_columns` itself fully generic (it hardcodes no
+    field names) while `FIELD_ROLES` is what actually decides which
+    aggregated fields reach the spec, per KTD9. `config_name` is accepted for
     backward-compatibility with `adept/core/loader.py`'s inspect-based
     preprocessor signature check (it is unused here since FL's spec loads a
     single source file, not per-configuration files).
     """
-    return aggregate_per_client_columns(df)
+    aggregated = aggregate_per_client_columns(df)
+    new_columns = [c for c in aggregated.columns if c not in df.columns]
+    unroled = [c for c in new_columns if c.rsplit(" ", 1)[0] not in FIELD_ROLES]
+    if unroled:
+        aggregated = aggregated.drop(columns=unroled)
+    return aggregated
 
 
 __all__ = [

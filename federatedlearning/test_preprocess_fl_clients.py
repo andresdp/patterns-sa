@@ -16,7 +16,7 @@ import os
 import pandas as pd
 import pytest
 
-from preprocess_fl_clients import aggregate_per_client_columns
+from preprocess_fl_clients import aggregate_per_client_columns, preprocess_fl
 
 FL_CSV_PATH = os.path.join(os.path.dirname(__file__), "FLwithAP_MLdata_split.csv")
 
@@ -48,6 +48,27 @@ def test_happy_path_real_fl_csv_produces_documented_columns():
     # Original columns/data are preserved.
     assert original_cols.issubset(set(out.columns))
     pd.testing.assert_frame_equal(out[list(original_cols)], df[list(original_cols)])
+
+
+def test_preprocess_fl_drops_columns_not_in_field_roles():
+    """`preprocess_fl` (unlike the generic `aggregate_per_client_columns`) must
+    filter its output down to `FIELD_ROLES`-declared fields only. The real FL
+    CSV also has `Client <N> ID` columns, which match the generic
+    `Client <N> <field>` shape but aren't a modeled parameter or objective --
+    they must not leak into the preprocessed frame as a spurious
+    'ID Diversity' column.
+    """
+    df = pd.read_csv(FL_CSV_PATH)
+    original_cols = set(df.columns)
+
+    out = preprocess_fl(df)
+
+    new_cols = set(out.columns) - original_cols
+    assert new_cols == EXPECTED_FL_COLUMNS, (
+        f"Unexpected columns leaked through: {new_cols - EXPECTED_FL_COLUMNS}; "
+        f"missing: {EXPECTED_FL_COLUMNS - new_cols}"
+    )
+    assert "ID Diversity" not in out.columns
 
 
 def test_generality_different_client_count_and_novel_field_names():

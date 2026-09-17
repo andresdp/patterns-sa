@@ -168,12 +168,20 @@ def _compute_coverage(
 
     declared: set = set()
     for config in _iter_configs(configs):
-        refs = {
-            ref.decision: ref.policy
-            for ref in getattr(config, "pattern_policy_references", [])
-            if ref.component == comp_key
-        }
-        if set(refs.keys()) != set(decision_keys):
+        refs: Dict[str, str] = {}
+        well_formed = True
+        for ref in getattr(config, "pattern_policy_references", []):
+            if ref.component != comp_key:
+                continue
+            if ref.decision in refs:
+                # Duplicate reference to the same decision -- ambiguous which
+                # policy applies, so this config doesn't count toward
+                # coverage (mirrors SystemLinter's well-formedness check;
+                # completeness (R1) is what actually flags this as an error).
+                well_formed = False
+                break
+            refs[ref.decision] = ref.policy
+        if not well_formed or set(refs.keys()) != set(decision_keys):
             # Doesn't fully (or uniquely) cover this component's decisions;
             # not a valid combination to count (completeness is R1's job).
             continue

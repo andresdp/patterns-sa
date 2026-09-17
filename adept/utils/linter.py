@@ -265,6 +265,13 @@ class SystemLinter:
                 continue
 
             policy_lists = [list(comp.decisions[d].policies.keys()) for d in decision_names]
+            if any(len(policies) == 0 for policies in policy_lists):
+                # A decision with zero declared policies has no valid
+                # combination to cover; completeness (R1) already flags this
+                # component's configs with an ERROR, so skip coverage here
+                # rather than reporting a vacuous "0 of 0" pass.
+                continue
+
             all_combos: Set[Tuple[str, ...]] = set(itertools.product(*policy_lists))
 
             declared_combos: Set[Tuple[str, ...]] = set()

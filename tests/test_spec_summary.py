@@ -95,6 +95,52 @@ def test_summarize_multi_decision_reports_coverage_gap():
     assert "p1" in summary  # policy binding renders the actual parameter name
 
 
+def test_duplicate_decision_reference_excluded_from_coverage():
+    """A config that references the same decision twice is ambiguous and must
+    not be counted toward coverage -- mirrors SystemLinter's well-formedness
+    check so the two tools never disagree on the same malformed spec."""
+    sys_def_dict = {
+        "system": {
+            "name": "DuplicateRefTest",
+            "components": {
+                "c1": {
+                    "name": "C1",
+                    "parameters": {},
+                    "decisions": {
+                        "d1": {"policies": {"A": {}, "B": {}}},
+                        "d2": {"policies": {"X": {}, "Y": {}}},
+                    },
+                }
+            },
+            "tradeoffs": [],
+        },
+        "dataspace": {
+            "quality_objectives": [],
+            "configuration_identification": {
+                "from": "column",
+                "column": "config_id",
+                "configurations": {
+                    "dup": {
+                        "name": "dup",
+                        "pattern_policy_references": [
+                            {"component": "c1", "decision": "d1", "policy": "A"},
+                            {"component": "c1", "decision": "d2", "policy": "X"},
+                            {"component": "c1", "decision": "d2", "policy": "Y"},
+                        ],
+                    },
+                },
+            },
+        },
+    }
+    sys_def = SystemDefinition.model_validate(sys_def_dict)
+
+    summary = summarize_system(sys_def)
+
+    # The duplicate-reference config must not be counted as declaring (A,X)
+    # or (A,Y) -- 0 of 4 combinations declared, matching SystemLinter.
+    assert "0 of 4" in summary
+
+
 def test_summarize_system_does_not_raise_on_empty_system():
     sys_def = SystemDefinition.model_validate({
         "system": {"name": "Empty"},
