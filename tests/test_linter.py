@@ -1,5 +1,6 @@
 
 import os
+import sys
 import unittest
 import pandas as pd
 from adept.utils.linter import SystemLinter
@@ -330,12 +331,24 @@ class TestRealSpecRegression(unittest.TestCase):
         self.linter = SystemLinter()
 
     def test_fl_system_split_lints_clean_on_completeness_with_expected_coverage_warning(self):
-        json_path = os.path.join(REPO_ROOT, "federatedlearning", "FLsystem_split.json")
+        # federatedlearning/ has no __init__.py (a plain script directory, not
+        # a package) -- add it to sys.path explicitly rather than relying on
+        # pytest's collection-order-dependent implicit insertion.
+        fl_dir = os.path.join(REPO_ROOT, "federatedlearning")
+        if fl_dir not in sys.path:
+            sys.path.insert(0, fl_dir)
+        from preprocess_fl_clients import preprocess_fl
+
+        json_path = os.path.join(fl_dir, "FLsystem_split.json")
         loader = GenericDataLoader()
         sys_def = loader.load_system_definition(json_path)
         raw_df, _experiments_df, _outcomes_df = loader.load_data(json_path, validate_integrity=False)
+        # U3's aggregated parameters/objectives (e.g. "CPU Mean") only exist
+        # after the preprocessor runs -- mirror how the real pipeline (U4's
+        # notebook) uses this spec, not the pre-aggregation raw frame.
+        preprocessed_df = preprocess_fl(raw_df)
 
-        issues = self.linter.lint(sys_def, raw_df)
+        issues = self.linter.lint(sys_def, preprocessed_df)
 
         errors = [i for i in issues if i.level == "ERROR"]
         self.assertEqual(len(errors), 0, f"Expected zero ERRORs, got: {[str(i) for i in errors]}")
@@ -349,26 +362,23 @@ class TestRealSpecRegression(unittest.TestCase):
         for combo in ["ON,ON,OFF", "ON,OFF,ON", "OFF,ON,ON", "ON,ON,ON"]:
             self.assertIn(combo, message, f"Expected missing combination '{combo}' named in: {message}")
 
-        # NOTE: U3 (a parallel unit) is responsible for adding the 6
-        # aggregated client-heterogeneity parameters (e.g. "Client CPU Mean")
-        # to FLsystem_split.json. As of this test, they are not yet present,
-        # so we do not assert low-variance warnings on them here -- only that
-        # today's declared parameters/objectives don't produce completeness
-        # errors and the coverage warning is exactly as expected. If U3 lands
-        # first, those aggregated parameters would additionally appear as
-        # low-variance WARNINGs, which this test does not contradict.
+        # U3 declares 6 aggregated client-heterogeneity parameters, all
+        # currently constant/NaN-dominated on this dataset (verified this
+        # session) -- confirm the low-variance check actually catches them.
         aggregated_param_names = [
-            "Client CPU Mean", "Client RAM Mean", "Client Alpha Dirichlet Mean",
-            "Client JSD Mean", "Client Data Distribution Diversity",
-            "Client Data Persistence Diversity",
+            "CPU Mean", "RAM Mean", "Alpha Dirichlet Mean", "JSD Mean",
+            "Data Distribution Diversity", "Data Persistence Diversity",
         ]
-        if all(name in sys_def.system.components["fl_system"].parameters for name in aggregated_param_names):
-            low_variance_warnings = [i for i in issues if "is low-variance" in i.message]
-            for name in aggregated_param_names:
-                self.assertTrue(
-                    any(f"Parameter '{name}'" in i.message for i in low_variance_warnings),
-                    f"Expected low-variance WARNING for aggregated parameter '{name}'"
-                )
+        self.assertTrue(
+            all(name in sys_def.system.components["fl_system"].parameters for name in aggregated_param_names),
+            "Expected U3's 6 aggregated heterogeneity parameters to be declared in FLsystem_split.json",
+        )
+        low_variance_warnings = [i for i in issues if "is low-variance" in i.message]
+        for name in aggregated_param_names:
+            self.assertTrue(
+                any(f"Parameter '{name}'" in i.message for i in low_variance_warnings),
+                f"Expected low-variance WARNING for aggregated parameter '{name}'"
+            )
 
     def test_cqrs_single_decision_lints_clean_on_completeness_and_coverage(self):
         json_path = os.path.join(REPO_ROOT, "patterns", "CQRS", "CQRS.json")

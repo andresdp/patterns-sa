@@ -148,6 +148,43 @@
             "level": "pattern",
             "description": "Optimizer for HDH",
             "optional": true
+          },
+          "CPU Mean": {
+            "data_type": "float",
+            "type": "uncertainty",
+            "level": "infrastructure",
+            "description": "Per-row mean of each client's CPU allocation, aggregated across all clients (R7)."
+          },
+          "RAM Mean": {
+            "data_type": "float",
+            "type": "uncertainty",
+            "level": "infrastructure",
+            "description": "Per-row mean of each client's RAM allocation, aggregated across all clients (R7)."
+          },
+          "Alpha Dirichlet Mean": {
+            "data_type": "float",
+            "type": "uncertainty",
+            "level": "pattern",
+            "description": "Per-row mean of each client's Dirichlet alpha (data heterogeneity concentration), aggregated across all clients (R7)."
+          },
+          "JSD Mean": {
+            "data_type": "float",
+            "type": "uncertainty",
+            "level": "pattern",
+            "description": "Per-row mean of each client's Jensen-Shannon divergence (data distribution skew), aggregated across all clients (R7). NaN when the HDH pattern is OFF.",
+            "optional": true
+          },
+          "Data Distribution Diversity": {
+            "data_type": "integer",
+            "type": "uncertainty",
+            "level": "pattern",
+            "description": "Per-row count of distinct client data-distribution labels (IID/non-IID) across all clients (R7)."
+          },
+          "Data Persistence Diversity": {
+            "data_type": "integer",
+            "type": "uncertainty",
+            "level": "pattern",
+            "description": "Per-row count of distinct client data-persistence labels across all clients (R7)."
           }
         },
         
@@ -304,6 +341,14 @@
         "nan_value": 0.0
       },
       {
+        "name": "final_val_f1",
+        "metric": "f1_score",
+        "description": "Final validation F1 score (last training round)",
+        "maximize": true,
+        "nan_policy": "worst_case",
+        "nan_value": 0.0
+      },
+      {
         "name": "final_val_accuracy",
         "metric": "accuracy",
         "description": "Final validation accuracy",
@@ -334,6 +379,22 @@
         "maximize": false,
         "nan_policy": "worst_case",
         "nan_value": 999999.0
+      },
+      {
+        "name": "CPU Usage Avg Mean",
+        "metric": "cpu_usage",
+        "description": "Per-row mean of each client's average CPU usage, aggregated across all clients (R8).",
+        "maximize": false,
+        "nan_policy": "worst_case",
+        "nan_value": 999999.0
+      },
+      {
+        "name": "RAM Usage Avg Mean",
+        "metric": "ram_usage",
+        "description": "Per-row mean of each client's average RAM usage, aggregated across all clients (R8).",
+        "maximize": false,
+        "nan_policy": "worst_case",
+        "nan_value": 999999.0
       }
     ]
   },
@@ -360,7 +421,8 @@
         "HDH Generator",
         "HDH Learning Rate",
         "HDH Latent Dim",
-        "HDH Optimizer"
+        "HDH Optimizer",
+        "JSD Mean"
       ],
       "description": "When a pattern is OFF, its specific parameters are NaN (not applicable)"
     }
