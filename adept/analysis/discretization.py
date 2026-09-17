@@ -51,14 +51,14 @@ class DataProcessor:
             labeled_df, schemes = DataProcessor._discretize_kmeans(df, **kwargs)
         elif method in ['pareto', 'pareto_nadir']:
             labels = kwargs.pop('labels', ["pareto-efficient", "sub-optimal"])
-            labeled_df, schemes, pareto_front = DataProcessor._pareto_nadir(df, labels=labels,**kwargs)
+            labeled_df, schemes, pareto_front = DataProcessor._pareto_nadir(df, objectives=objectives, labels=labels, **kwargs)
         elif method == 'threshold':
             labels = kwargs.pop('labels', ["satisfactory", "unsatisfactory"])
-            labeled_df, schemes = DataProcessor._static_threshold(df, labels=labels, **kwargs)
+            labeled_df, schemes = DataProcessor._static_threshold(df, objectives=objectives, labels=labels, **kwargs)
         elif method == 'pareto_knee':
-            labeled_df, schemes, pareto_front = DataProcessor._pareto_knee(df, **kwargs)
+            labeled_df, schemes, pareto_front = DataProcessor._pareto_knee(df, objectives=objectives, **kwargs)
         elif method == 'pareto_epsilon':
-            labeled_df, schemes, pareto_front = DataProcessor._pareto_epsilon(df, **kwargs)
+            labeled_df, schemes, pareto_front = DataProcessor._pareto_epsilon(df, objectives=objectives, **kwargs)
         else:
             raise NotImplementedError(f"Tradeoff definition method '{method}' not implemented.")
 
