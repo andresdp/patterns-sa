@@ -1,6 +1,15 @@
-from typing import List, Dict, Set, Any
+import itertools
+from typing import List, Dict, Set, Tuple, Any
 import pandas as pd
 from ..core.models import SystemDefinition
+
+# Concentration (most-common-value share) at or above which a declared quality
+# objective or parameter is flagged as low-variance (R3). Calibrated against
+# the observed 78%-concentrated `RAM Usage Avg Mean` case in FL's aggregated
+# telemetry data (AE4) -- not derived from any broader statistical analysis,
+# so a future pattern with different data characteristics may need a
+# different cutoff.
+LOW_VARIANCE_THRESHOLD = 0.70
 
 class LintIssue:
     def __init__(self, level: str, message: str, context: str):
@@ -35,6 +44,15 @@ class SystemLinter:
 
         # 5. Validate System Configurations against Patterns
         issues.extend(self._validate_configuration_references(sys_def))
+
+        # 6. Validate multi-decision configuration completeness (R1)
+        issues.extend(self._validate_multi_decision_completeness(sys_def))
+
+        # 7. Validate policy-combination coverage (R2)
+        issues.extend(self._validate_policy_combination_coverage(sys_def))
+
+        # 8. Validate low-variance objectives/parameters (R3)
+        issues.extend(self._validate_low_variance(sys_def, df))
 
         return issues
 
@@ -167,9 +185,168 @@ class SystemLinter:
                     
                     if not found:
                         issues.append(LintIssue(
-                            "ERROR", 
-                            f"Configuration '{config.name}' references undefined policy '{pol_name}' in component '{comp_name}'.", 
+                            "ERROR",
+                            f"Configuration '{config.name}' references undefined policy '{pol_name}' in component '{comp_name}'.",
                             "Dataspace.Configurations"
                         ))
+
+        return issues
+
+    def _validate_multi_decision_completeness(self, sys_def: SystemDefinition) -> List[LintIssue]:
+        """R1: every declared configuration must reference every decision of a
+        multi-decision component exactly once. A component with a single
+        decision is exempt -- there is nothing to check, it is trivially
+        complete."""
+        issues = []
+
+        configs = sys_def.dataspace.configuration_identification.configurations
+        config_iterator = configs.values() if isinstance(configs, dict) else configs
+
+        for comp_name, comp in sys_def.system.components.items():
+            decision_names = list(comp.decisions.keys())
+            if len(decision_names) <= 1:
+                continue
+
+            for config in config_iterator:
+                ref_counts: Dict[str, int] = {}
+                for ref in config.pattern_policy_references:
+                    if ref.component != comp_name:
+                        continue
+                    ref_counts[ref.decision] = ref_counts.get(ref.decision, 0) + 1
+
+                missing = [d for d in decision_names if ref_counts.get(d, 0) == 0]
+                duplicated = [d for d, count in ref_counts.items() if count > 1]
+
+                for decision_name in missing:
+                    issues.append(LintIssue(
+                        "ERROR",
+                        f"Configuration '{config.name}' does not reference decision "
+                        f"'{decision_name}' of multi-decision component '{comp_name}'.",
+                        "Dataspace.Configurations"
+                    ))
+
+                for decision_name in duplicated:
+                    issues.append(LintIssue(
+                        "ERROR",
+                        f"Configuration '{config.name}' references decision '{decision_name}' "
+                        f"of component '{comp_name}' more than once "
+                        f"({ref_counts[decision_name]} times).",
+                        "Dataspace.Configurations"
+                    ))
+
+        return issues
+
+    def _validate_policy_combination_coverage(self, sys_def: SystemDefinition) -> List[LintIssue]:
+        """R2: for each multi-decision component, compare the declared
+        configurations' decision->policy combinations against the theoretical
+        cross-product of policies across its decisions, and WARN naming any
+        undeclared combinations. A single-decision component's cross-product
+        is trivially 1-of-1 (its one decision's policies each form their own
+        size-1 "combination"), so this never fires for one (R5)."""
+        issues = []
+
+        configs = sys_def.dataspace.configuration_identification.configurations
+        config_iterator = configs.values() if isinstance(configs, dict) else configs
+
+        for comp_name, comp in sys_def.system.components.items():
+            decision_names = list(comp.decisions.keys())
+            if len(decision_names) <= 1:
+                continue
+
+            policy_lists = [list(comp.decisions[d].policies.keys()) for d in decision_names]
+            all_combos: Set[Tuple[str, ...]] = set(itertools.product(*policy_lists))
+
+            declared_combos: Set[Tuple[str, ...]] = set()
+            for config in config_iterator:
+                per_decision: Dict[str, str] = {}
+                is_well_formed = True
+                for ref in config.pattern_policy_references:
+                    if ref.component != comp_name:
+                        continue
+                    if ref.decision in per_decision:
+                        # Duplicate reference -- already reported by the
+                        # completeness check; skip this config for coverage
+                        # purposes since its combination is ambiguous.
+                        is_well_formed = False
+                        break
+                    per_decision[ref.decision] = ref.policy
+
+                if is_well_formed and all(d in per_decision for d in decision_names):
+                    declared_combos.add(tuple(per_decision[d] for d in decision_names))
+
+            missing_combos = all_combos - declared_combos
+            if missing_combos:
+                missing_strs = sorted(",".join(combo) for combo in missing_combos)
+                issues.append(LintIssue(
+                    "WARNING",
+                    f"Component '{comp_name}' has incomplete policy-combination coverage: "
+                    f"{len(declared_combos)} of {len(all_combos)} combinations declared "
+                    f"(decisions: {', '.join(decision_names)}). "
+                    f"Missing combinations: {', '.join(missing_strs)}.",
+                    "Dataspace.Configurations"
+                ))
+
+        return issues
+
+    def _validate_low_variance(self, sys_def: SystemDefinition, df: pd.DataFrame) -> List[LintIssue]:
+        """R3: flag declared quality objectives and parameters whose data is
+        near-constant/low-variance, so an architect decides whether to keep
+        them declared rather than the pipeline silently deciding upfront."""
+        issues = []
+
+        def _concentration(col: str) -> float:
+            # NaN is treated as its own distinct value for concentration
+            # purposes (dropna=False): a column that is NaN-dominated (e.g.
+            # an optional pattern parameter that is absent whenever its
+            # pattern is OFF) is just as low-signal/near-constant as one
+            # dominated by a single non-null value, so it should surface the
+            # same way rather than being silently excluded from the count.
+            counts = df[col].value_counts(normalize=True, dropna=False)
+            return float(counts.max()) if not counts.empty else 0.0
+
+        # Quality objectives
+        for obj in sys_def.dataspace.quality_objectives:
+            if obj.name not in df.columns:
+                continue
+            concentration = _concentration(obj.name)
+            if concentration >= LOW_VARIANCE_THRESHOLD:
+                issues.append(LintIssue(
+                    "WARNING",
+                    f"Quality Objective '{obj.name}' is low-variance: "
+                    f"{concentration:.1%} of values are concentrated on a single value "
+                    f"(threshold {LOW_VARIANCE_THRESHOLD:.0%}).",
+                    "Dataspace.QualityObjectives"
+                ))
+
+        # System-level parameters
+        for param_name in sys_def.system.parameters.keys():
+            if param_name not in df.columns:
+                continue
+            concentration = _concentration(param_name)
+            if concentration >= LOW_VARIANCE_THRESHOLD:
+                issues.append(LintIssue(
+                    "WARNING",
+                    f"Parameter '{param_name}' (System) is low-variance: "
+                    f"{concentration:.1%} of values are concentrated on a single value "
+                    f"(threshold {LOW_VARIANCE_THRESHOLD:.0%}).",
+                    "System.Parameters"
+                ))
+
+        # Component (pattern) parameters
+        for comp_name, comp in sys_def.system.components.items():
+            for param_name in comp.parameters.keys():
+                candidates = [param_name, f"{comp_name}_{param_name}"]
+                col = next((c for c in candidates if c in df.columns), None)
+                if col is None:
+                    continue
+                concentration = _concentration(col)
+                if concentration >= LOW_VARIANCE_THRESHOLD:
+                    issues.append(LintIssue(
+                        "WARNING",
+                        f"Parameter '{param_name}' (Component: {comp_name}) is low-variance: "
+                        f"{concentration:.1%} of values are concentrated on a single value "
+                        f"(threshold {LOW_VARIANCE_THRESHOLD:.0%}).",
+                        "System.Components"
+                    ))
 
         return issues
