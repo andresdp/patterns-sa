@@ -58,6 +58,20 @@ class TestDataProcessor(unittest.TestCase):
         # Row 2 is far away (dominanted)
         self.assertEqual(discrete_df.iloc[2]['A'], 'out_high')
 
+    def test_pareto_knee_degenerate_single_row_region_does_not_raise(self):
+        # A=[1..10] min, B=10*A max: perfectly collinear, so every point is
+        # Pareto-efficient and the knee region (closest point to the utopia
+        # point) collapses to a single row at the default tolerance=0.1 --
+        # spacing between normalized points (~0.157) exceeds it. k_min==k_max
+        # for that single row previously crashed pd.cut with
+        # "Bin edges must be unique".
+        params = {'tolerance': 0.1}
+        discrete_df, schemes, indices, front = self.processor.define_tradeoffs(self.data, method='pareto_knee', params=params, objectives=self.objectives)
+
+        self.assertEqual((discrete_df['A'] == 'knee').sum(), 1)
+        scheme_a = next(s for s in schemes if s.objective_name == 'A')
+        self.assertEqual(len(scheme_a.bins), 3)
+
     def test_discretize_with_ranges(self):
         # A has values [1..10]. Default min/max is 1/10.
         # Force range to [0, 20]. 

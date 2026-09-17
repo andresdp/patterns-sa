@@ -274,8 +274,15 @@ class DataProcessor:
             if not compliant_df.empty:
                 k_min = float(compliant_df[col].min())
                 k_max = float(compliant_df[col].max())
-                
-                bins = [-float('inf'), k_min, k_max, float('inf')]
+
+                # Guard against a degenerate knee region (a single row, or a
+                # column constant across it) producing duplicate bin edges --
+                # the knee region collapses to one point whenever no other
+                # point falls within `tolerance` of it, which is common at
+                # the default tolerance. Mirrors the buffer _pareto_epsilon
+                # uses for the same reason.
+                buffer = 1e-9
+                bins = [-float('inf'), k_min - buffer, k_max + buffer, float('inf')]
                 labels = ["off-knee-low", "knee", "off-knee-high"]
                 
                 discrete_df[col] = pd.cut(df[col], bins=bins, labels=labels, include_lowest=True)
