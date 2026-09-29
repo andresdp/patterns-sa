@@ -1,5 +1,10 @@
 """Generic per-client column aggregator for federated-learning-style datasets.
 
+NOTE: the aggregation is now built into ADEPT (`adept/utils/aggregation.py`) and
+declared in `FLsystem_split.json` under `dataspace.aggregations`, so
+`session.load()` no longer needs `preprocessor=preprocess_fl`. This module is
+kept as a thin compatibility wrapper for existing callers and tests.
+
 This module implements two deliberately separate concerns (per KTD9 in
 docs/plans/2026-09-16-1102-feat-federated-learning-adept-support-plan.md):
 
@@ -25,6 +30,8 @@ from typing import Dict
 
 import pandas as pd
 
+from adept.utils.aggregation import aggregate_instance_columns
+
 # Matches columns like "Client 1 CPU", "Client 12 Data Distribution", etc.
 # Group 1: the client index (unused for aggregation, only for detection).
 # Group 2: the field name (everything after "Client <N> ").
@@ -45,35 +52,9 @@ def aggregate_per_client_columns(df: pd.DataFrame) -> pd.DataFrame:
     `Client <N> <field>`-shaped columns are present, this is a no-op that
     returns the input DataFrame unchanged.
 
-    This function hardcodes no client count and no field name — it works
-    purely off the `Client <N> <field>` naming convention.
+    Delegates to the generic `adept.utils.aggregation.aggregate_instance_columns`.
     """
-    # Group matched columns by field name, preserving first-seen order.
-    field_to_columns: Dict[str, list] = {}
-    for col in df.columns:
-        match = CLIENT_COLUMN_PATTERN.match(col)
-        if not match:
-            continue
-        field_name = match.group(2)
-        field_to_columns.setdefault(field_name, []).append(col)
-
-    if not field_to_columns:
-        return df
-
-    result = df.copy()
-
-    for field_name, cols in field_to_columns.items():
-        subset = df[cols]
-
-        # Determine numeric-ness by checking each contributing column's dtype.
-        all_numeric = all(pd.api.types.is_numeric_dtype(df[c]) for c in cols)
-
-        if all_numeric:
-            result[f"{field_name} Mean"] = subset.mean(axis=1, skipna=True)
-        else:
-            result[f"{field_name} Diversity"] = subset.nunique(axis=1)
-
-    return result
+    return aggregate_instance_columns(df, pattern=CLIENT_COLUMN_PATTERN.pattern)
 
 
 # --- Explicit field-role mapping (specific to THIS FL formulation) ---
@@ -114,12 +95,7 @@ def preprocess_fl(df: pd.DataFrame, config_name: str = None) -> pd.DataFrame:
     preprocessor signature check (it is unused here since FL's spec loads a
     single source file, not per-configuration files).
     """
-    aggregated = aggregate_per_client_columns(df)
-    new_columns = [c for c in aggregated.columns if c not in df.columns]
-    unroled = [c for c in new_columns if c.rsplit(" ", 1)[0] not in FIELD_ROLES]
-    if unroled:
-        aggregated = aggregated.drop(columns=unroled)
-    return aggregated
+    return aggregate_instance_columns(df, pattern=CLIENT_COLUMN_PATTERN.pattern, fields=FIELD_ROLES)
 
 
 __all__ = [

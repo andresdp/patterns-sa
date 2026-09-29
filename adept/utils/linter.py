@@ -11,6 +11,11 @@ from ..core.models import SystemDefinition
 # different cutoff.
 LOW_VARIANCE_THRESHOLD = 0.70
 
+# NaN share at or above which a non-optional parameter is flagged: such NaNs are
+# filled with 0.0 at load time, which is rarely the intended meaning
+# (docs/nan_strategy.md, "Threshold Warnings").
+NAN_WARNING_THRESHOLD = 0.50
+
 class LintIssue:
     def __init__(self, level: str, message: str, context: str):
         self.level = level  # ERROR, WARNING
@@ -54,6 +59,49 @@ class SystemLinter:
         # 8. Validate low-variance objectives/parameters (R3)
         issues.extend(self._validate_low_variance(sys_def, df))
 
+        # 9. Validate that NaNs have declared semantics (docs/nan_strategy.md)
+        issues.extend(self._validate_nan_semantics(sys_def, df))
+
+        return issues
+
+    def _validate_nan_semantics(self, sys_def: SystemDefinition, df: pd.DataFrame) -> List[LintIssue]:
+        """Flags NaNs whose meaning the spec does not declare.
+
+        * A non-optional parameter that is mostly NaN: its NaNs are filled with 0.0 at
+          load time; if NaN means "not selected", the parameter should be `optional`.
+        * An objective with NaNs and no explicit `nan_policy`: they are silently
+          treated as failures (the `worst_case` default).
+        """
+        issues = []
+        params = [(name, p, comp_name) for comp_name, comp in sys_def.system.components.items()
+                  for name, p in comp.parameters.items()]
+        params += [(name, p, None) for name, p in sys_def.system.parameters.items()]
+        for name, param, comp_name in params:
+            column = self._resolve_column(name, comp_name, df) if comp_name else (name if name in df.columns else None)
+            if column is None or param.optional or df.empty:
+                continue
+            share = float(df[column].isnull().mean())
+            if share >= NAN_WARNING_THRESHOLD:
+                where = f" (Component: {comp_name})" if comp_name else " (System)"
+                issues.append(LintIssue(
+                    "WARNING",
+                    f"Parameter '{name}'{where} is NaN in {share:.1%} of rows but is not declared "
+                    f"optional, so its NaNs will be filled with 0.0. If NaN means 'option not "
+                    f"selected', declare it with \"optional\": true.",
+                    "System.Components" if comp_name else "System.Parameters"
+                ))
+        for obj in sys_def.dataspace.quality_objectives:
+            if obj.name not in df.columns or 'nan_policy' in obj.model_fields_set:
+                continue
+            n_nan = int(df[obj.name].isnull().sum())
+            if n_nan:
+                issues.append(LintIssue(
+                    "WARNING",
+                    f"Quality Objective '{obj.name}' is NaN in {n_nan} row(s) and declares no "
+                    f"nan_policy, so those runs are treated as failures ('worst_case'). Declare "
+                    f"nan_policy ('worst_case', 'drop' or 'fixed_value') to make this explicit.",
+                    "Dataspace.QualityObjectives"
+                ))
         return issues
 
     def _iter_configs(self, sys_def: SystemDefinition):

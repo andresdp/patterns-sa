@@ -110,12 +110,25 @@ class TestApplySentinelTransformation(unittest.TestCase):
         self.assertLess(sentinels["p_num"], df["p_num"].min())
         self.assertEqual(out["p_num"].iloc[2], sentinels["p_num"])
 
-    def test_categorical_optional_column_becomes_binary_presence_flag(self):
+    def test_categorical_optional_column_becomes_codes_with_zero_for_not_selected(self):
         param = make_param("p_cat", optional=True)
         df = pd.DataFrame({"p_cat": ["x", None, "y"]})
         out, sentinels = SemanticNaNHandler.apply_sentinel_transformation(df, [param])
-        self.assertEqual(list(out["p_cat"]), [1.0, 0.0, 1.0])
+        self.assertEqual(list(out["p_cat"]), [1.0, 0.0, 2.0])
         self.assertEqual(sentinels["p_cat"], 0.0)
+
+    def test_single_valued_categorical_optional_column_is_a_presence_flag(self):
+        param = make_param("p_cat", optional=True)
+        df = pd.DataFrame({"p_cat": ["zlib", None, "zlib"]})
+        out, _ = SemanticNaNHandler.apply_sentinel_transformation(df, [param])
+        self.assertEqual(list(out["p_cat"]), [1.0, 0.0, 1.0])
+
+    def test_non_optional_categorical_column_is_encoded_without_sentinel(self):
+        param = make_param("p_model", optional=False)
+        df = pd.DataFrame({"p_model": ["squeezenet", "cnn", "cnn"]})
+        out, sentinels = SemanticNaNHandler.apply_sentinel_transformation(df, [param])
+        self.assertEqual(list(out["p_model"]), [2.0, 1.0, 1.0])
+        self.assertNotIn("p_model", sentinels)
 
     def test_non_optional_column_is_left_untouched(self):
         param = make_param("p_required", optional=False)
@@ -155,17 +168,14 @@ class TestApplySentinelTransformation(unittest.TestCase):
         self.assertEqual(list(out["p_cat"]), [0.0, 0.0, 0.0])
         self.assertEqual(sentinels["p_cat"], 0.0)
 
-    def test_fully_nan_numeric_optional_column_current_behavior(self):
-        # Documents actual behavior of the unmodified implementation: with an
-        # all-NaN numeric column, min()/max() are both NaN, so the computed
-        # sentinel is NaN and fillna(NaN) is a no-op -- the column stays all
-        # NaN. Unlike the categorical branch, this numeric edge case is NOT
-        # transformed into a usable sentinel by the current code. This test
-        # pins that real behavior rather than asserting an aspirational one.
+    def test_fully_nan_numeric_optional_column_gets_zero_sentinel(self):
+        # With no observed values there is no minimum to place the sentinel
+        # below, so "not selected" is encoded as 0.0 rather than left as NaN.
         param = make_param("p_num", optional=True)
         df = pd.DataFrame({"p_num": pd.Series([np.nan, np.nan, np.nan])})
         out, sentinels = SemanticNaNHandler.apply_sentinel_transformation(df, [param])
-        self.assertTrue(out["p_num"].isnull().all())
+        self.assertEqual(list(out["p_num"]), [0.0, 0.0, 0.0])
+        self.assertEqual(sentinels["p_num"], 0.0)
 
 
 if __name__ == "__main__":

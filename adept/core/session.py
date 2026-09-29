@@ -37,7 +37,10 @@ class PatternAnalysis:
             self.raw_df: Optional[pd.DataFrame] = None
             self.experiments_df: Optional[pd.DataFrame] = None
             self.outcomes_df: Optional[pd.DataFrame] = None
-            
+            # Untrimmed outcomes as loaded; outcomes_df may be narrowed by select_objectives()
+            self._all_outcomes_df: Optional[pd.DataFrame] = None
+            self.active_objectives: Optional[List[str]] = None
+
             # Tradeoff State
             self.discrete_df: Optional[pd.DataFrame] = None
             self.pareto_front: Optional[pd.DataFrame] = None
@@ -63,6 +66,8 @@ class PatternAnalysis:
         # 2. Load Data (using the definition to parse it)
         self.raw_df, self.experiments_df, self.outcomes_df = \
             self.coordinator.load_detailed_data(self.json_path, validate_integrity=validate_integrity, preprocessor=preprocessor)
+        self._all_outcomes_df = self.outcomes_df
+        self.active_objectives = None
 
         # 2.5. Run Comprehensive NaN Audit
         print("\n" + "="*60)
@@ -175,7 +180,7 @@ class PatternAnalysis:
         self._validate_tradeoff_params(method, params)
 
         # 2. Prepare kwargs based on method
-        kwargs = {'objectives': self.sys_def.dataspace.quality_objectives}
+        kwargs = {'objectives': self.get_outcomes()}
         if method in ['discretization', 'clustering']:
             kwargs.update({'n_bins': n_bins, 'all_labels': labels, 'ranges': ranges})
             if method == 'clustering':
@@ -365,6 +370,7 @@ class PatternAnalysis:
             **kwargs: Additional plotting parameters.
         """
         X, Y, _ = self._get_subset_data(subset)
+        X = self._encode_for_boxes(X)
         
         # 1. Create Box Mask
         mask = pd.Series(True, index=X.index)
@@ -462,6 +468,7 @@ class PatternAnalysis:
             **kwargs: Additional plotting arguments (figsize, s, alpha, bins, etc.)
         """
         X, _, discrete = self._get_subset_data(subset)
+        X = self._encode_for_boxes(X)
         
         policy_series = None
         if show_policies:
@@ -665,35 +672,39 @@ class PatternAnalysis:
         self, 
         boxes: List[Optional[Any]], 
         metric: str = 'starr', 
-        subset: str = 'all', 
-        min_samples: int = 1
+        subset: str = 'all',
+        min_samples: int = 1,
+        by: str = 'configuration'
     ) -> pd.DataFrame:
         """
         Computes a matrix of Policy vs. Tradeoff robustness under box constraints.
-        
+
         Args:
             boxes: List of Box objects (one per tradeoff in system.tradeoffs, or None).
             metric: 'starr' or 'regret'.
             subset: 'all', 'train', or 'test'.
             min_samples: Minimum points required to calculate the metric.
-            
+            by: Policy grouping of the rows: 'configuration' (default), 'decision' or a decision key.
+
         Returns:
-            pd.DataFrame: Policies as rows, Tradeoff names as columns.
+            pd.DataFrame: Policy groups as rows, Tradeoff names as columns.
         """
         from ..analysis.discovery import BoxEvaluator
-        
+
         X, Y, discrete = self._get_subset_data(subset)
-        config_col = self.sys_def.dataspace.configuration_identification.column
-        if not config_col:
-            raise RuntimeError("Configuration column not defined.")
-        
-        policy_series = X[config_col]
+        X = self._encode_for_boxes(X)
+        labels = self._policy_label_frame(by).loc[X.index]
         tradeoffs = self.get_tradeoffs()
-        
-        return BoxEvaluator.compute_policy_robustness_matrix(
-            X, Y, discrete, policy_series, tradeoffs, boxes, self.schemes,
-            metric=metric, stats=self.outcome_stats, min_samples=min_samples
-        )
+
+        # One matrix per grouping dimension (several only for by='decision')
+        matrices = [
+            BoxEvaluator.compute_policy_robustness_matrix(
+                X, Y, discrete, labels[col], tradeoffs, boxes, self.schemes,
+                metric=metric, stats=self.outcome_stats, min_samples=min_samples
+            )
+            for col in labels.columns
+        ]
+        return matrices[0] if len(matrices) == 1 else pd.concat(matrices)
 
     def show_policy_robustness_improvement_heatmap(
         self, 
@@ -724,11 +735,12 @@ class PatternAnalysis:
         improved_matrix: Optional[pd.DataFrame] = None,
         title: Optional[str] = None,
         figsize: Tuple[int, int] = (14, 12),
+        by: str = 'configuration',
         **kwargs
     ) -> plt.Figure:
         """
         Visualizes a vertical comparison of Baseline vs. Improved (Boxed) robustness.
-        
+
         Args:
             boxes: List of Box objects. Required if improved_matrix is None.
             metric: 'starr' or 'regret'.
@@ -737,18 +749,21 @@ class PatternAnalysis:
             improved_matrix: Pre-calculated improved DataFrame. If None, it will be computed using boxes.
             title: Custom plot title.
             figsize: Figure size.
+            by: Policy grouping for matrices computed here. Pre-calculated matrices must use
+                the same grouping as each other.
             **kwargs: Additional parameters for matrix calculation.
         """
         # 1. Get Baseline Matrix (Overall)
         if baseline_matrix is None:
-            baseline_matrix = self.get_robustness_report(metric=metric, subset=subset)
-        
+            baseline_matrix = self.get_robustness_report(metric=metric, subset=subset, by=by)
+
         # 2. Get Improved Matrix (What-If)
         if improved_matrix is None:
             if boxes is None:
                 raise ValueError("Either 'improved_matrix' or 'boxes' must be provided.")
-            improved_matrix = self.get_policy_robustness_improvement_matrix(boxes, metric=metric, subset=subset, **kwargs)
-        
+            improved_matrix = self.get_policy_robustness_improvement_matrix(boxes, metric=metric, subset=subset, by=by, **kwargs)
+        self._warn_policy_row_mismatch(baseline_matrix.index, improved_matrix.index, "improved matrix")
+
         # 3. Delegate to coordinator
         return self.coordinator.show_robustness_comparison_heatmap(
             baseline_matrix, improved_matrix, metric=metric, title=title, figsize=figsize
@@ -759,20 +774,23 @@ class PatternAnalysis:
         policy_name: str, 
         tradeoff_name: str, 
         metric: str = 'starr', 
-        subset: str = 'all', 
+        subset: str = 'all',
         matrix: Optional[pd.DataFrame] = None,
+        by: Optional[str] = None,
         **kwargs
     ) -> Dict[str, Any]:
         """
         Calculates a specific robustness metric for a policy relative to a tradeoff.
-        
+
         Args:
-            policy_name: Name of the policy.
+            policy_name: Policy-group label (a configuration, 'decision:policy', or a policy name).
             tradeoff_name: Name of the target tradeoff.
             metric: 'starr', 'regret', or 'stability_radius'.
             subset: 'all', 'train', or 'test'.
             matrix: Optional pre-calculated matrix to extract the value from.
-            
+            by: Grouping the label belongs to ('configuration', 'decision' or a decision key).
+                If None, the label is resolved automatically (see _policy_mask).
+
         Returns:
             Dict[str, Any]: Metric value and detailed computation information.
         """
@@ -781,9 +799,8 @@ class PatternAnalysis:
             return {'metric': metric, 'value': float(val), 'details': 'Extracted from matrix'}
 
         from ..analysis.robustness import RobustnessAnalyzer
-        from ..analysis.contingency import ContingencyAnalyzer
         from ..analysis.feature_importance import FeatureImportanceAnalyzer
-        
+
         # 1. Prepare Data Subsets
         # Fix: Get actual global indices for the subset to align with policy_map
         if subset == 'all':
@@ -795,22 +812,9 @@ class PatternAnalysis:
         else:
             raise ValueError(f"Invalid subset '{subset}' or data not split.")
         
-        # Filter for Policy
-        config_col = self.sys_def.dataspace.configuration_identification.column
-        analyzer_cont = ContingencyAnalyzer(self.sys_def)
-        policy_map = analyzer_cont.get_decision_policy_map(self.experiments_df, config_col)
-        
-        policy_col = None
-        for col in policy_map.columns:
-            if (policy_map[col] == policy_name).any():
-                policy_col = col
-                break
-        
-        if policy_col is None:
-            raise ValueError(f"Policy '{policy_name}' not found in any decision.")
-            
-        policy_mask = (policy_map[policy_col] == policy_name)
-        
+        # Filter for Policy group
+        policy_mask = self._policy_mask(policy_name, by=by)
+
         # Intersection of subset and policy using global indices
         final_indices = [idx for idx in subset_indices if policy_mask.iloc[idx]]
         
@@ -873,34 +877,30 @@ class PatternAnalysis:
         box: Any,
         tradeoff_name: str,
         metric: str = 'starr',
-        subset: str = 'all'
+        subset: str = 'all',
+        by: str = 'configuration'
     ) -> pd.DataFrame:
         """
-        Computes the robustness uplift (Baseline vs Boxed) per policy.
+        Computes the robustness uplift (Baseline vs Boxed) per policy group.
 
         Args:
             box: A Box object (e.g., from discover_scenarios) or a dict with limits.
             tradeoff_name: The target tradeoff defining 'Success'.
             metric: 'starr' or 'regret'.
             subset: 'all', 'train', or 'test'.
+            by: Policy grouping of the rows: 'configuration' (default), 'decision' or a decision key.
 
         Returns:
             pd.DataFrame: Columns [Policy, Baseline, Boxed, Uplift, Coverage, Count].
         """
         from ..analysis.robustness import RobustnessAnalyzer
-        from ..analysis.contingency import ContingencyAnalyzer
 
         # 1. Prepare Data
         X, Y, discrete = self._get_subset_data(subset)
-        
-        # 2. Identify Policies
-        config_col = self.sys_def.dataspace.configuration_identification.column
-        if not config_col:
-            raise RuntimeError("Configuration column not defined.")
-        
-        # We need the exact column(s) that define the policy.
-        # Usually, this is just the config_col in X.
-        design_vars = [config_col]
+        X = self._encode_for_boxes(X)
+
+        # 2. Identify Policy groups (one label column per grouping dimension)
+        labels = self._policy_label_frame(by).loc[X.index]
 
         # 3. Create Target Mask (Baseline Success)
         tradeoff = self.get_tradeoff(tradeoff_name)
@@ -937,17 +937,22 @@ class PatternAnalysis:
                     if q_bin:
                         boundaries[obj] = {'min': q_bin.min_value, 'max': q_bin.max_value}
 
-        # 6. Compute
-        return RobustnessAnalyzer.analyze_robustness_uplift(
-            experiments_df=X,
-            outcomes_df=Y,
-            is_target_mask=is_target_mask,
-            box_mask=box_mask,
-            design_vars=design_vars,
-            metric=metric,
-            boundaries=boundaries,
-            stats=stats
-        )
+        # 6. Compute (one pass per grouping dimension; the GLOBAL row is shared)
+        results = []
+        for col in labels.columns:
+            results.append(RobustnessAnalyzer.analyze_robustness_uplift(
+                experiments_df=X.assign(**{col: labels[col]}),
+                outcomes_df=Y,
+                is_target_mask=is_target_mask,
+                box_mask=box_mask,
+                design_vars=[col],
+                metric=metric,
+                boundaries=boundaries,
+                stats=stats
+            ))
+        if len(results) == 1:
+            return results[0]
+        return pd.concat([r.drop(index='GLOBAL') for r in results] + [results[0].loc[['GLOBAL']]])
 
     def show_robustness_uplift(
         self,
@@ -1029,47 +1034,43 @@ class PatternAnalysis:
         subset: str = 'all', 
         policy_names: Optional[List[str]] = None,
         matrix: Optional[pd.DataFrame] = None,
+        by: Optional[str] = None,
         **kwargs
     ) -> pd.DataFrame:
         """
-        Generates a consolidated robustness report for a set of policies.
-        
+        Generates a consolidated robustness report for a set of policy groups.
+
         Args:
-            decision_key: The decision (e.g., 'Comp:Dec') to analyze. 
-                          If None and policy_names is None, includes all policies.
-            tradeoff_names: List of tradeoffs to use as columns. 
+            decision_key: The decision (e.g., 'Comp:Dec') to analyze. Shorthand for by=decision_key.
+            tradeoff_names: List of tradeoffs to use as columns.
                             If None, targets all defined tradeoffs.
             metric: 'starr' or 'regret'.
             subset: 'all', 'train', or 'test'.
-            policy_names: Explicit list of policy names to include.
+            policy_names: Explicit list of policy-group labels to include.
             matrix: Pre-calculated DataFrame. If provided, it is returned directly.
-            
+            by: Policy grouping of the rows: 'configuration' (default), 'decision'
+                ('decision:policy' rows for every decision) or a decision key.
+
         Returns:
-            pd.DataFrame: Index=Policies, Columns=Tradeoffs, Values=Metric.
+            pd.DataFrame: Index=Policy groups, Columns=Tradeoffs, Values=Metric.
         """
         if matrix is not None:
             return matrix
 
-        from ..analysis.contingency import ContingencyAnalyzer
-        from ..analysis.contingency import ContingencyAnalyzer
-        config_col = self.sys_def.dataspace.configuration_identification.column
-        analyzer_cont = ContingencyAnalyzer(self.sys_def)
-        policy_map = analyzer_cont.get_decision_policy_map(self.experiments_df, config_col)
-        
+        if decision_key is not None and by is not None and by != decision_key:
+            raise ValueError("Pass either 'decision_key' or 'by', not both.")
+        grouping = by or decision_key  # None: explicit labels are resolved automatically
+
         # 1. Determine Policies
         if policy_names is not None:
             policies = policy_names
-        elif decision_key is not None:
-            if decision_key not in policy_map.columns:
-                raise ValueError(f"Decision '{decision_key}' not found.")
-            policies = [p for p in policy_map[decision_key].unique() if pd.notna(p)]
         else:
-            # All policies in the system
-            all_p = []
-            for col in policy_map.columns:
-                all_p.extend(policy_map[col].unique())
-            policies = sorted(list(set([p for p in all_p if pd.notna(p)])))
-            
+            grouping = grouping or 'configuration'
+            policies = self._policy_labels(grouping)
+        # Surface unknown or ambiguous labels instead of reporting them as NaN rows
+        for policy in policies:
+            self._policy_mask(policy, by=grouping)
+
         # 2. Determine Tradeoffs
         if tradeoff_names is None:
             tradeoff_names = [t.name for t in self.get_tradeoffs()]
@@ -1080,7 +1081,7 @@ class PatternAnalysis:
             row = {'policy': policy}
             for t_name in tradeoff_names:
                 try:
-                    res = self.compute_robustness(policy, t_name, metric=metric, subset=subset, **kwargs)
+                    res = self.compute_robustness(policy, t_name, metric=metric, subset=subset, by=grouping, **kwargs)
                     row[t_name] = res.get('value', 0.0)
                 except Exception:
                     # Policy might not exist in this context or tradeoff issues
@@ -1159,57 +1160,41 @@ class PatternAnalysis:
         self,
         boxes: List[Any],
         policy_name: Optional[str] = None,
-        subset: str = 'all'
+        subset: str = 'all',
+        by: Optional[str] = None
     ) -> pd.DataFrame:
         """
         Computes a matrix of Boxed Densities for all tradeoffs when specific boxes are applied.
-        
+
         Rows: The Tradeoff targeted by the Box.
         Columns: The Tradeoff being measured (Collateral impact).
         Values: The absolute density (0.0 - 1.0) of the column tradeoff within the box.
-        
+
         Args:
             boxes: List of Box objects.
-            policy_name: Specific policy to analyze. If None, uses Global data.
+            policy_name: Policy-group label to analyze. If None, uses Global data.
             subset: 'all', 'train', or 'test'.
-            
+            by: Grouping the label belongs to ('configuration', 'decision' or a decision key).
+                If None, the label is resolved automatically (see _policy_mask).
+
         Returns:
             pd.DataFrame: A square-ish matrix of densities.
         """
-        from ..analysis.contingency import ContingencyAnalyzer
-        
         # 1. Prepare Data
         X, _, discrete = self._get_subset_data(subset)
-        
-        # 2. Filter by Policy (if requested)
+        X = self._encode_for_boxes(X)
+
+        # 2. Filter by Policy group (if requested)
         if policy_name:
-            config_col = self.sys_def.dataspace.configuration_identification.column
-            if not config_col:
-                raise RuntimeError("Configuration column not defined.")
-            
-            analyzer_cont = ContingencyAnalyzer(self.sys_def)
-            policy_map = analyzer_cont.get_decision_policy_map(self.experiments_df, config_col)
-            
-            # Find matching indices
-            policy_col = None
-            for col in policy_map.columns:
-                if (policy_map[col] == policy_name).any():
-                    policy_col = col
-                    break
-            
-            if policy_col:
-                # Get global indices matching policy
-                global_mask = (policy_map[policy_col] == policy_name)
-                # Intersect with subset indices
-                subset_indices = self._filter_indices_for_subset(np.where(global_mask)[0], subset)
-                
-                if len(subset_indices) == 0:
-                    raise ValueError(f"No data found for policy '{policy_name}' in subset '{subset}'")
-                
-                X = X.iloc[subset_indices]
-                discrete = discrete.iloc[subset_indices]
-            else:
-                raise ValueError(f"Policy '{policy_name}' not found.")
+            global_mask = self._policy_mask(policy_name, by=by)
+            # Intersect with subset indices
+            subset_indices = self._filter_indices_for_subset(np.where(global_mask.values)[0], subset)
+
+            if len(subset_indices) == 0:
+                raise ValueError(f"No data found for policy '{policy_name}' in subset '{subset}'")
+
+            X = X.iloc[subset_indices]
+            discrete = discrete.iloc[subset_indices]
 
         # 3. Precompute Tradeoff Masks
         all_tradeoffs = self.get_tradeoffs()
@@ -1284,6 +1269,7 @@ class PatternAnalysis:
         """
         # 1. Prepare Data
         X, _, discrete = self._get_subset_data(subset)
+        X = self._encode_for_boxes(X)
         
         # 2. Precompute Tradeoff Masks & Totals (Denominators)
         all_tradeoffs = self.get_tradeoffs()
@@ -1381,6 +1367,7 @@ class PatternAnalysis:
         """
         # 1. Prepare Data
         X, _, discrete = self._get_subset_data(subset)
+        X = self._encode_for_boxes(X)
         
         # 2. Map Boxes to Tradeoffs
         # If multiple boxes target the same tradeoff, we take the first one
@@ -1624,17 +1611,19 @@ class PatternAnalysis:
         tradeoff_name: str, 
         metric: str = 'starr', 
         subset: str = 'all',
-        decision_key: Optional[str] = None
+        decision_key: Optional[str] = None,
+        by: Optional[str] = None
     ) -> List[Tuple[str, float]]:
         """
-        Returns a ranking of policies from most robust to least robust for a given tradeoff.
-        
+        Returns a ranking of policy groups from most robust to least robust for a given tradeoff.
+
         Args:
             tradeoff_name: The target tradeoff to analyze.
             metric: 'starr' (higher is better) or 'regret' (lower is better).
             subset: 'all', 'train', or 'test'.
             decision_key: Optional. If provided, limits ranking to policies within this decision.
-            
+            by: Policy grouping (see get_robustness_report). Defaults to 'configuration'.
+
         Returns:
             List[Tuple[str, float]]: List of (policy_name, score) pairs, sorted by robustness.
         """
@@ -1643,7 +1632,8 @@ class PatternAnalysis:
             decision_key=decision_key,
             tradeoff_names=[tradeoff_name],
             metric=metric,
-            subset=subset
+            subset=subset,
+            by=by
         )
         
         if report_df.empty or tradeoff_name not in report_df.columns:
@@ -1671,11 +1661,12 @@ class PatternAnalysis:
         matrix: Optional[pd.DataFrame] = None,
         title: Optional[str] = None,
         figsize: Optional[Tuple[int, int]] = None,
+        by: Optional[str] = None,
         **kwargs
     ) -> plt.Figure:
         """
         Visualizes the robustness report as a heatmap.
-        
+
         Args:
             metric: 'starr' or 'regret'.
             subset: Data subset to use.
@@ -1684,14 +1675,16 @@ class PatternAnalysis:
             matrix: Pre-calculated DataFrame. If None, it will be computed.
             title: Custom plot title.
             figsize: Figure size.
+            by: Policy grouping (see get_robustness_report). Defaults to 'configuration'.
             **kwargs: Additional plotting parameters.
         """
         if matrix is None:
             matrix = self.get_robustness_report(
-                decision_key=decision_key, 
-                tradeoff_names=tradeoff_names, 
-                metric=metric, 
-                subset=subset
+                decision_key=decision_key,
+                tradeoff_names=tradeoff_names,
+                metric=metric,
+                subset=subset,
+                by=by
             )
         
         if matrix.empty:
@@ -1704,48 +1697,36 @@ class PatternAnalysis:
         policy_name: str, 
         tradeoff_name: str, 
         objective_cols: Optional[Tuple[str, str]] = None,
-        subset: str = 'all', 
+        subset: str = 'all',
+        by: Optional[str] = None,
         **kwargs
     ) -> plt.Figure:
         """
         Visualizes the stability radius for a specific policy and tradeoff.
-        
-        This multi-panel plot shows the parameter space (MDS projection) and 
+
+        This multi-panel plot shows the parameter space (MDS projection) and
         the quality objective space, highlighting the nominal center and failure modes.
-        
+
         Args:
-            policy_name: Name of the policy to analyze.
+            policy_name: Policy-group label to analyze.
             tradeoff_name: Name of the target tradeoff region.
             objective_cols: Pair of outcome names for the objective space panel.
             subset: 'all', 'train', or 'test'.
+            by: Grouping the label belongs to (see compute_robustness).
             **kwargs: Plotting parameters (e.g. figsize, max_points).
         """
-        from ..analysis.contingency import ContingencyAnalyzer
         from ..analysis.feature_importance import FeatureImportanceAnalyzer
-        
+
         # 1. Get Radius Info
         radius_info = self.compute_robustness(
-            policy_name, tradeoff_name, metric='stability_radius', subset=subset, **kwargs
+            policy_name, tradeoff_name, metric='stability_radius', subset=subset, by=by, **kwargs
         )
         
         # 2. Extract Data for the policy
         X_full, Y_full, _ = self._get_subset_data(subset)
-        
-        config_col = self.sys_def.dataspace.configuration_identification.column
-        analyzer_cont = ContingencyAnalyzer(self.sys_def)
-        policy_map = analyzer_cont.get_decision_policy_map(self.experiments_df, config_col)
-        
-        policy_col = None
-        for col in policy_map.columns:
-            if (policy_map[col] == policy_name).any():
-                policy_col = col
-                break
-        
-        if policy_col is None:
-            raise ValueError(f"Policy '{policy_name}' not found.")
-            
-        policy_mask = (policy_map[policy_col] == policy_name)
-        
+
+        policy_mask = self._policy_mask(policy_name, by=by)
+
         # Fix: Filter the global policy_mask to match the subset indices
         if subset == 'all':
             subset_indices = self.experiments_df.index
@@ -1794,6 +1775,135 @@ class PatternAnalysis:
             
         indices = self.train_indices if subset == 'train' else self.test_indices
         return self.experiments_df.iloc[indices], self.outcomes_df.iloc[indices], self.discrete_df.iloc[indices]
+
+    def _fit_box_encoder(self) -> 'FeatureEncoder':
+        """The parameter encoding scenario discovery uses: fitted on the train slice."""
+        from ..analysis.feature_importance import FeatureImportanceAnalyzer
+        from ..utils.feature_encoding import FeatureEncoder
+
+        fit_df = self.experiments_df if self.train_indices is None else self.experiments_df.iloc[self.train_indices]
+        return FeatureEncoder.fit(fit_df, FeatureImportanceAnalyzer(self.sys_def)._get_all_parameters())
+
+    def _encode_for_boxes(self, X: pd.DataFrame) -> pd.DataFrame:
+        """Encodes parameters in X the way scenario discovery saw them.
+
+        Discovered box limits live in the encoded space fitted on the train slice
+        (categorical -> codes with 0 = not selected, numeric NaN -> sentinel), so raw
+        experiments must be encoded the same way before being compared against them.
+        """
+        return self._fit_box_encoder().transform(X)
+
+    def _annotate_box(self, box: Any, encoder: 'FeatureEncoder') -> None:
+        """Records how to read a box's encoded limits: category sets and "not selected" coverage."""
+        for param, lims in box.limits.items():
+            if param in encoder.categories:
+                box.categorical_levels[param] = encoder.categories[param]
+            if encoder.includes_not_selected(param, lims):
+                box.includes_na[param] = True
+
+    # --- Policy Grouping (robustness analysis) ---
+    #
+    # "Policy" means two different things in ADEPT:
+    #   * a configuration: one value of the configuration column (e.g. 'OFF,ON,OFF'),
+    #     i.e. the combination of policies chosen for every decision;
+    #   * a decision policy: the policy chosen for a single decision (e.g. 'ON' for hdh_pattern).
+    # Single-decision systems cannot tell them apart. In multi-decision systems plain policy
+    # names repeat across decisions ('ON'/'OFF'), so every robustness method maps labels to
+    # rows through these helpers, selected with a `by` argument:
+    #   by='configuration' (default) -> one group per configuration
+    #   by='decision'                -> one group per (decision, policy), labeled 'decision:policy'
+    #   by='<decision key>'          -> one group per policy of that decision, plain labels
+    # See docs/robustness_policy_grouping.md.
+
+    def _resolve_decision_key(self, decision_key: str, policy_map: pd.DataFrame) -> str:
+        """Maps a decision key ('Comp:Dec' or just 'Dec') to a policy_map column."""
+        if decision_key in policy_map.columns:
+            return decision_key
+        matches = [c for c in policy_map.columns if c.split(':')[-1] == decision_key]
+        if len(matches) == 1:
+            return matches[0]
+        reason = "is ambiguous" if matches else "not found"
+        raise ValueError(f"Decision '{decision_key}' {reason}. Available: {list(policy_map.columns)}")
+
+    def _policy_label_frame(self, by: str = 'configuration') -> pd.DataFrame:
+        """Returns the policy-group labels of every experiment for the given grouping.
+
+        One column per grouping dimension (a single column, except for by='decision', which
+        has one per decision), aligned with experiments_df. Labels are unique across columns.
+        """
+        from ..analysis.contingency import ContingencyAnalyzer
+
+        config_col = self.sys_def.dataspace.configuration_identification.column
+        if not config_col:
+            raise RuntimeError("Configuration column not defined.")
+        if by == 'configuration':
+            return self.experiments_df[[config_col]]
+
+        policy_map = ContingencyAnalyzer(self.sys_def).get_decision_policy_map(self.experiments_df, config_col)
+        if by == 'decision':
+            short = [c.split(':')[-1] for c in policy_map.columns]
+            names = short if len(set(short)) == len(short) else list(policy_map.columns)
+            return pd.DataFrame({
+                name: policy_map[col].map(lambda p, n=name: f"{n}:{p}" if pd.notna(p) else p)
+                for name, col in zip(names, policy_map.columns)
+            }, index=policy_map.index)
+        return policy_map[[self._resolve_decision_key(by, policy_map)]]
+
+    def _policy_labels(self, by: str = 'configuration') -> List[str]:
+        """Lists the policy-group labels for a grouping, in reporting order."""
+        frame = self._policy_label_frame(by)
+        if by == 'configuration':
+            return sorted(v for v in frame.iloc[:, 0].unique() if pd.notna(v))
+        if by == 'decision':
+            return [v for c in frame.columns for v in sorted(frame[c].dropna().unique())]
+        return [v for v in frame.iloc[:, 0].unique() if pd.notna(v)]
+
+    def _policy_mask(self, policy_name: str, by: Optional[str] = None) -> pd.Series:
+        """Boolean mask over experiments_df selecting the rows of one policy group.
+
+        With by=None the name is resolved as a configuration, then as a qualified
+        'decision:policy' label, then as a plain decision policy name. A plain name that
+        exists in several decisions (e.g. 'ON') is ambiguous and raises.
+        """
+        if by is not None:
+            frame = self._policy_label_frame(by)
+            for col in frame.columns:
+                mask = frame[col] == policy_name
+                if mask.any():
+                    return mask
+            raise ValueError(
+                f"Policy '{policy_name}' not found when grouping by '{by}'. "
+                f"Available: {self._policy_labels(by)}"
+            )
+
+        for grouping in ('configuration', 'decision'):
+            frame = self._policy_label_frame(grouping)
+            for col in frame.columns:
+                mask = frame[col] == policy_name
+                if mask.any():
+                    return mask
+
+        from ..analysis.contingency import ContingencyAnalyzer
+        config_col = self.sys_def.dataspace.configuration_identification.column
+        policy_map = ContingencyAnalyzer(self.sys_def).get_decision_policy_map(self.experiments_df, config_col)
+        hits = [c for c in policy_map.columns if (policy_map[c] == policy_name).any()]
+        if len(hits) == 1:
+            return policy_map[hits[0]] == policy_name
+        if hits:
+            example = hits[0].split(':')[-1]
+            raise ValueError(
+                f"Policy '{policy_name}' is ambiguous: it is a policy of decisions {hits}. "
+                f"Use a qualified label such as '{example}:{policy_name}', or pass by='{example}'."
+            )
+        raise ValueError(f"Policy '{policy_name}' not found.")
+
+    @staticmethod
+    def _warn_policy_row_mismatch(baseline_rows, other_rows, other_name: str) -> None:
+        """Warns when a baseline and another matrix were built with different policy groupings."""
+        if set(map(str, baseline_rows)) != set(map(str, other_rows)):
+            print(f"Warning: baseline rows {list(baseline_rows)} do not match the {other_name} rows "
+                  f"{list(other_rows)}. They were probably computed with different policy groupings "
+                  f"(see the 'by' argument).")
 
     def _filter_indices_for_subset(self, global_indices: np.ndarray, subset: str) -> np.ndarray:
         """
@@ -1857,9 +1967,59 @@ class PatternAnalysis:
         return policies
 
     def get_outcomes(self) -> List[Any]:
-        """Returns the list of quality objectives (outcomes)."""
+        """Returns the quality objectives (outcomes) currently under analysis.
+
+        All declared objectives, unless narrowed by select_objectives().
+        """
         if not self.sys_def: return []
-        return self.sys_def.dataspace.quality_objectives
+        objectives = self.sys_def.dataspace.quality_objectives
+        if self.active_objectives is None:
+            return objectives
+        by_name = {obj.name: obj for obj in objectives}
+        return [by_name[name] for name in self.active_objectives if name in by_name]
+
+    def select_objectives(self, objectives: Optional[List[str]] = None) -> None:
+        """Restricts the analysis to a subset of quality objectives.
+
+        Narrows outcomes_df (and thus discretization, tradeoff indices, data splits
+        stratification and feature scoring) to the given objectives. The system
+        definition itself is left untouched. Selections always start from the full
+        loaded outcomes, so a later call can widen or change the selection.
+
+        Args:
+            objectives: Objective names to keep, in order. None restores all objectives.
+        """
+        if self._all_outcomes_df is None:
+            raise RuntimeError("Data must be loaded before selecting objectives.")
+
+        if objectives is not None:
+            objectives = list(dict.fromkeys(objectives))
+            unknown = [o for o in objectives if o not in self._all_outcomes_df.columns]
+            if unknown:
+                raise ValueError(
+                    f"Unknown objectives {unknown}. Available: {list(self._all_outcomes_df.columns)}"
+                )
+            if len(objectives) == len(self._all_outcomes_df.columns):
+                objectives = None
+
+        if objectives == self.active_objectives:
+            return
+
+        if objectives is not None:
+            trimmed = [c for c in self._all_outcomes_df.columns if c not in objectives]
+            print(f"Warning: Analysis restricted to objectives {objectives}. "
+                  f"Excluded from outcomes: {trimmed}.")
+
+        self.active_objectives = objectives
+        self.outcomes_df = (
+            self._all_outcomes_df if objectives is None else self._all_outcomes_df[objectives]
+        )
+        # Previous tradeoff definitions and outcome statistics refer to the old columns
+        self.discrete_df = None
+        self.pareto_front = None
+        self.tradeoff_indices = {}
+        self.schemes = []
+        self.outcome_stats = None
 
     def get_tradeoffs(self, non_empty: bool = False, subset: str = 'all') -> List[Tradeoff]:
         """
@@ -1946,7 +2106,8 @@ class PatternAnalysis:
         """
         import itertools
         
-        # 1. Process data immediately
+        # 1. Process data immediately, restricted to the thresholded objectives
+        self.select_objectives(list(thresholds.keys()))
         self.define_tradeoffs(method='threshold', params={'thresholds': thresholds}, labels=labels)
         
         # 2. Build Grid
@@ -1986,7 +2147,8 @@ class PatternAnalysis:
         """
         import itertools
         
-        # 1. Process data
+        # 1. Process data (the Pareto front is computed over the selected objectives only)
+        self.select_objectives(objectives)
         self.define_tradeoffs(method='pareto', labels=labels)
         
         if objectives is None:
@@ -2014,7 +2176,8 @@ class PatternAnalysis:
         Returns:
             Tuple[List[Tradeoff], List[DiscretizationScheme]]: The created tradeoff objects and their schemes.
         """
-        # 1. Process data
+        # 1. Process data (the Pareto front is computed over the selected objectives only)
+        self.select_objectives(objectives)
         self.define_tradeoffs(method='pareto_epsilon', params={'epsilon': epsilon}, labels=labels)
         
         if objectives is None:
@@ -2037,18 +2200,27 @@ class PatternAnalysis:
             n_bins: Number of bins per objective (if labels not provided).
             labels: Dictionary mapping objective names to lists of labels.
             ranges: Optional dictionary mapping objective names to (min, max) tuples.
-            objectives: List of objective names to consider. If None, uses all defined outcomes.
+            objectives: List of objective names to consider. If None, uses the keys of
+                        'labels' when given, otherwise all defined outcomes. The session
+                        is narrowed to these objectives (see select_objectives).
             skip_definition: If True, assumes define_tradeoffs has already been called (used for clustering).
-            
+
         Returns:
             Tuple[List[Tradeoff], List[DiscretizationScheme]]: The created tradeoff objects and their schemes.
         """
         import itertools
-        
-        # 1. Process data (unless skipped)
+
+        # 1. Process data (unless skipped), restricted to the selected objectives
         if not skip_definition:
+            if objectives is None and labels:
+                objectives = list(labels.keys())
+            elif objectives is not None and labels:
+                extra = [o for o in labels if o not in objectives]
+                if extra:
+                    raise ValueError(f"Labels given for objectives {extra} not listed in 'objectives' {objectives}.")
+            self.select_objectives(objectives)
             self.define_tradeoffs(method='discretization', n_bins=n_bins, labels=labels, ranges=ranges)
-        
+
         if objectives is None:
             objectives = [obj.name for obj in self.get_outcomes()]
             
@@ -2097,7 +2269,8 @@ class PatternAnalysis:
         Returns:
             Tuple[List[Tradeoff], List[DiscretizationScheme]]: The created tradeoff objects and their schemes.
         """
-        # 1. Run Clustering Discretization
+        # 1. Run Clustering Discretization over the selected objectives
+        self.select_objectives(objectives)
         self.define_tradeoffs(method='clustering', params={'min_k': min_k, 'max_k': max_k})
         
         # 2. Extract Labels from Schemes
@@ -2174,8 +2347,9 @@ class PatternAnalysis:
         Args:
             method: 'discretization', 'threshold', 'pareto', 'pareto_epsilon', or 'clustering'.
             **kwargs: Arguments passed to the underlying helper method:
-                - For 'discretization': 'n_bins', 'labels', 'ranges', 'objectives'.
-                - For 'threshold': 'thresholds' (Required), 'labels'.
+                - For 'discretization': 'n_bins', 'labels', 'ranges', 'objectives'
+                  (if 'objectives' is omitted, the keys of a 'labels' dict select them).
+                - For 'threshold': 'thresholds' (Required; its keys select the objectives), 'labels'.
                 - For 'pareto': 'objectives', 'labels'.
                 - For 'pareto_epsilon': 'epsilon' (Required), 'objectives', 'labels'.
                 - For 'clustering': 'min_k', 'max_k', 'objectives'.
@@ -2512,11 +2686,11 @@ class PatternAnalysis:
                     tradeoff_labels.append("unknown")
 
         # Dataset bounds (restricted to analyzed parameters)
+        # Encoded like the box limits, so optional categorical parameters get 0/1 flag bounds
         valid_params = [p for p in parameter_names if p in self.experiments_df.columns]
-        target_df = self.experiments_df[valid_params]
-            
-        agg_results = target_df.select_dtypes(include=[np.number]).agg(['min', 'max'])
-        min_max_dict = agg_results.to_dict()
+        target_df = self._encode_for_boxes(self.experiments_df[valid_params])
+        numeric_df = target_df.select_dtypes(include=[np.number])
+        min_max_dict = numeric_df.agg(['min', 'max']).to_dict() if not numeric_df.empty else {}
 
         # Update kwargs with the explicit controls
         kwargs['threshold'] = threshold
@@ -2579,12 +2753,7 @@ class PatternAnalysis:
             y_test_map[row_str] = (self.discrete_df.iloc[self.test_indices].astype(str).agg(','.join, axis=1) == row_str)
 
         # Preprocessing
-        current_stats = None
-        if standardize:
-             X_train, _, stats = analyzer_fi.preprocess_features(X_train, standardize=True)
-             current_stats = stats
-             X_test_arr = stats['scaler'].transform(X_test[stats['numeric_cols']])
-             X_test = pd.DataFrame(X_test_arr, index=X_test.index, columns=stats['numeric_cols'])
+        X_train, X_test, current_stats, encoder = self._prepare_discovery_features(X_train, X_test, standardize)
 
         print(f"Running CART global discovery for all tradeoff combinations ...")
         discovery_kwargs = kwargs.copy()
@@ -2631,6 +2800,7 @@ class PatternAnalysis:
             # De-standardize
             if standardize and current_stats:
                 self._destandardize_box(box, current_stats)
+            self._annotate_box(box, encoder)
             
             boxes.append(box)
                 
@@ -2678,12 +2848,7 @@ class PatternAnalysis:
         prevalence = y_train.sum() / len(y_train) if len(y_train) > 0 else 0.0
 
         # Preprocessing
-        current_stats = None
-        if standardize:
-             X_train, _, stats = analyzer.preprocess_features(X_train, standardize=True)
-             current_stats = stats
-             X_test_arr = stats['scaler'].transform(X_test[stats['numeric_cols']])
-             X_test = pd.DataFrame(X_test_arr, index=X_test.index, columns=stats['numeric_cols'])
+        X_train, X_test, current_stats, encoder = self._prepare_discovery_features(X_train, X_test, standardize)
 
         print(f"Running Combined PRIM discovery for: {tradeoff_names} ...")
         discovery_kwargs = kwargs.copy()
@@ -2706,6 +2871,7 @@ class PatternAnalysis:
             
             if standardize and current_stats:
                 self._destandardize_box(box, current_stats)
+            self._annotate_box(box, encoder)
             
             final_boxes.append(box)
             
@@ -2746,12 +2912,7 @@ class PatternAnalysis:
         prevalence = y_train.sum() / len(y_train) if len(y_train) > 0 else 0.0
 
         # Preprocessing
-        current_stats = None
-        if standardize:
-             X_train, _, stats = analyzer.preprocess_features(X_train, standardize=True)
-             current_stats = stats
-             X_test_arr = stats['scaler'].transform(X_test[stats['numeric_cols']])
-             X_test = pd.DataFrame(X_test_arr, index=X_test.index, columns=stats['numeric_cols'])
+        X_train, X_test, current_stats, encoder = self._prepare_discovery_features(X_train, X_test, standardize)
 
         print(f"Running PRIM discovery for: {tradeoff_name} ...")
         discovery_kwargs = kwargs.copy()
@@ -2777,10 +2938,26 @@ class PatternAnalysis:
             
             if standardize and current_stats:
                 self._destandardize_box(box, current_stats)
+            self._annotate_box(box, encoder)
             
             final_boxes.append(box)
             
         return final_boxes
+
+    def _prepare_discovery_features(self, X_train: pd.DataFrame, X_test: pd.DataFrame, standardize: bool):
+        """Encodes (and optionally standardizes) the train/test features used for discovery.
+
+        Returns (X_train, X_test, stats, encoder); stats is None unless standardize.
+        """
+        from ..analysis.feature_importance import FeatureImportanceAnalyzer
+        from ..utils.feature_encoding import FeatureEncoder
+
+        analyzer = FeatureImportanceAnalyzer(self.sys_def)
+        if standardize:
+            X_train, _, stats = analyzer.preprocess_features(X_train, standardize=True)
+            return X_train, FeatureImportanceAnalyzer.transform_features(X_test, stats), stats, stats['encoder']
+        encoder = FeatureEncoder.fit(X_train, analyzer._get_all_parameters())
+        return encoder.transform(X_train), encoder.transform(X_test), None, encoder
 
     def _destandardize_box(self, box, stats):
         """Helper to convert box limits back to original scales."""
@@ -2865,14 +3042,24 @@ class PatternAnalysis:
             selected_indices = selected_indices[:k]
         return selected_indices
 
-    def _compute_impacts(self, boxes: List[Any], method: str, subset: str='test') -> pd.DataFrame:
+    def _compute_impacts(self, boxes: List[Any], method: str, subset: str='test', by: str='configuration') -> pd.DataFrame:
+
+        # Declared configuration order for the default grouping; reporting order otherwise
+        policy_names = list(self.get_policies().keys()) if by == 'configuration' else self._policy_labels(by)
+        subset_positions = set(range(len(self.experiments_df))) if subset == 'all' else set(
+            self.train_indices if subset == 'train' else self.test_indices)
 
         all_impacts_df = []
-        for policy_name in self.get_policies().keys():
+        for policy_name in policy_names:
+            group_positions = np.where(self._policy_mask(policy_name, by=by).values)[0]
+            if not subset_positions.intersection(group_positions):
+                print(f"Warning: policy group '{policy_name}' has no data in subset '{subset}'; skipped.")
+                continue
             impact_df = self.get_tradeoff_impact_matrix(
-                boxes=boxes, 
-                policy_name=policy_name, # Optional: analyze a specific policy
-                subset=subset                  # 'all', 'train', or 'test'
+                boxes=boxes,
+                policy_name=policy_name, # Optional: analyze a specific policy group
+                subset=subset,                 # 'all', 'train', or 'test'
+                by=by
             )
             impact_df['policy'] = policy_name
             all_impacts_df.append(impact_df)
@@ -2884,17 +3071,32 @@ class PatternAnalysis:
         
         return all_impacts_df
 
-    def get_robustness_results(self, prim_boxes: List[Any], cart_boxes: List[Any], baseline: pd.DataFrame = None, method: str='test set', metric: str='starr'):
-        
-        prim_all_impacts_df = self._compute_impacts(prim_boxes, 'prim') # These are usually computed on the test set
-        cart_all_impacts_df = self._compute_impacts(cart_boxes, 'cart') # These are usually computed on the test set
-        prim_all_impacts_df.reset_index(inplace=True) # 'policy' is the old index
-        cart_all_impacts_df.reset_index(inplace=True) # 'policy' is the old index
+    def get_robustness_results(self, prim_boxes: List[Any], cart_boxes: List[Any], baseline: pd.DataFrame = None, method: str='test set', metric: str='starr', by: str='configuration'):
+        """
+        Combines baseline robustness with the box-constrained impacts of PRIM and CART boxes.
+
+        Args:
+            prim_boxes, cart_boxes: Discovered boxes.
+            baseline: Pre-calculated robustness report. Must use the same policy grouping as `by`.
+            method: Label for the baseline rows.
+            metric: Metric for the baseline when it is computed here.
+            by: Policy grouping of the rows: 'configuration' (default), 'decision' or a decision key.
+                See docs/robustness_policy_grouping.md.
+
+        Returns:
+            pd.DataFrame: Columns [method, policy, target, <tradeoffs>...].
+        """
+        prim_all_impacts_df = self._compute_impacts(prim_boxes, 'prim', by=by) # These are usually computed on the test set
+        cart_all_impacts_df = self._compute_impacts(cart_boxes, 'cart', by=by) # These are usually computed on the test set
 
         if baseline is not None:
             base_matrix = baseline.copy()
+            self._warn_policy_row_mismatch(base_matrix.index, prim_all_impacts_df.index.unique(), "box impact")
         else:
-            base_matrix = self.get_robustness_report(metric=metric, subset='test')
+            base_matrix = self.get_robustness_report(metric=metric, subset='test', by=by)
+
+        prim_all_impacts_df.reset_index(inplace=True) # 'policy' is the old index
+        cart_all_impacts_df.reset_index(inplace=True) # 'policy' is the old index
         base_matrix['method'] = method
         base_matrix['target'] = '' # No target here
         base_matrix.reset_index(inplace=True) # 'policy' is the old index

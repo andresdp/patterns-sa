@@ -691,11 +691,12 @@ def show_box_diagnostics(
     limits = getattr(box, 'limits', box)
     dataset_bounds = getattr(box, 'dataset_bounds', {}) or {}
     
-    # Extract includes_na flags from box limits metadata
-    includes_na = {}
+    # "Not selected" coverage per parameter: Box.includes_na (legacy: a flag inside each limit)
+    includes_na = dict(getattr(box, 'includes_na', {}) or {})
     if isinstance(limits, dict):
         for p, lims in limits.items():
-            includes_na[p] = lims.get('includes_na', False)
+            includes_na[p] = includes_na.get(p, False) or bool(lims.get('includes_na', False))
+    categorical_levels = getattr(box, 'categorical_levels', {}) or {}
     
     if isinstance(limits, dict):
         params = []
@@ -719,8 +720,10 @@ def show_box_diagnostics(
                 
                 p_name = p['name']
                 if includes_na.get(p_name):
-                    # Sentinel is at the beginning. N/A region is approx [0, 0.09]
-                    na_end = 0.1 / 1.1
+                    # "Not selected" sits at the low end: code 0 for categorical parameters
+                    # (half-way to code 1), a sentinel 10% of the range below the minimum otherwise
+                    n_levels = len(categorical_levels.get(p_name, []))
+                    na_end = 0.5 / n_levels if n_levels else 0.1 / 1.1
                     # Draw N/A region with hatch if included
                     ax_bars.broken_barh([(0, min(norm_max, na_end))], (i - 0.25, 0.5), 
                                         facecolor=actual_box_color, alpha=0.5, hatch='///')

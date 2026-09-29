@@ -245,11 +245,16 @@ class DiscretizationScheme(BaseModel):
     method: str = Field(default="equal_width", description="Method used to calculate boundaries.")
 
 
+# Label of the "not selected" state (NaN of an optional parameter) in readable box limits
+NOT_SELECTED_LABEL = "(not selected)"
+
+
 class Box(BaseModel):
     """Represents a discovered region in parameter space."""
     name: str = Field(default="", description="Human-readable name for the box.")
     limits: Dict[str, Dict[str, float]] = Field(..., description="Parameter bounds {param: {min, max}}.")
     includes_na: Dict[str, bool] = Field(default_factory=dict, description="Whether NaN values are included for each parameter.")
+    categorical_levels: Dict[str, List[str]] = Field(default_factory=dict, description="Category labels of categorical parameters, in code order (code i+1 = levels[i], 0 = not selected).")
     dataset_bounds: Dict[str, Dict[str, float]] = Field(default_factory=dict, description="Original data ranges.")
     metrics: Dict[str, float] = Field(default_factory=dict, description="Discovery performance (density, coverage).")
     target_tradeoff: Optional[str] = Field(default=None, description="ID of the targeted tradeoff.")
@@ -275,6 +280,28 @@ class Box(BaseModel):
                         actual_limits[param]['min'] = self.dataset_bounds[param]['min']
         return actual_limits
     
+    def readable_limits(self) -> Dict[str, Dict[str, Any]]:
+        """Box limits in the parameters' own terms.
+
+        Numeric parameters keep {'min', 'max'}; categorical parameters become
+        {'in': [categories]}, listing '(not selected)' first when covered. Either gets
+        'includes_na': True when the box also covers the "not selected" state of an
+        optional parameter.
+        """
+        readable = {}
+        for param, lims in self.limits.items():
+            levels = self.categorical_levels.get(param)
+            if levels is not None:
+                entry = {'in': [lvl for i, lvl in enumerate(levels) if lims['min'] <= i + 1 <= lims['max']]}
+                if self.includes_na.get(param):
+                    entry['in'].insert(0, NOT_SELECTED_LABEL)
+            else:
+                entry = {'min': lims['min'], 'max': lims['max']}
+            if self.includes_na.get(param):
+                entry['includes_na'] = True
+            readable[param] = entry
+        return readable
+
     # @property
     def is_empty(self) -> bool:
         if self.metrics.get('targets_in_box', 0) < 1:
@@ -388,6 +415,19 @@ class ConfigurationIdentification(BaseModel):
         return values
 
 
+class InstanceAggregation(BaseModel):
+    """Summarizes per-instance columns (e.g. one per FL client) into system-level columns.
+
+    See adept/utils/aggregation.py. Produces `<field> <Statistic>` columns, e.g. `CPU Mean`.
+    """
+    pattern: str = Field(default=r"^Client (\d+) (.+)$", description="Regex for per-instance columns: group 1 = instance id, group 2 = field.")
+    numeric: List[str] = Field(default_factory=lambda: ["mean"], description="Statistics for numeric fields: mean, std, min, max, median.")
+    categorical: List[str] = Field(default_factory=lambda: ["nunique"], description="Statistics for categorical fields: nunique (reported as '<field> Diversity').")
+    fields: Optional[List[str]] = Field(default=None, description="Fields to aggregate (default: every matched field).")
+
+    model_config = {"extra": "allow", "validate_assignment": True}
+
+
 class DataSpace(BaseModel):
     """Configuration for data loading and interpretation.
     
@@ -399,6 +439,7 @@ class DataSpace(BaseModel):
     traces_path: Optional[str] = Field(default=None, description="Path to behavioral trace datasets.")
     column_renames: Dict[str, str] = Field(default_factory=dict, description="Mapping of CSV names to internal IDs.")
     discovery_options: Dict[str, Any] = Field(default_factory=dict, description="Global defaults for scenario discovery.")
+    aggregations: List[InstanceAggregation] = Field(default_factory=list, description="Per-instance column summaries computed at load time.")
 
     model_config = {"extra": "allow", "validate_assignment": True}
     

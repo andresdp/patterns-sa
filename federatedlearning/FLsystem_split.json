@@ -330,7 +330,16 @@
       "Avg Training Time": "avg_training_time",
       "Avg Communication Time": "avg_communication_time"
     },
-    
+
+    "aggregations": [
+      {
+        "pattern": "^Client (\\d+) (.+)$",
+        "numeric": ["mean"],
+        "categorical": ["nunique"],
+        "fields": ["CPU", "RAM", "Alpha Dirichlet", "JSD", "Data Distribution", "Data Persistence", "CPU Usage Avg", "RAM Usage Avg"]
+      }
+    ],
+
     "quality_objectives": [
       {
         "name": "best_val_f1",

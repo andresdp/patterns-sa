@@ -7,6 +7,7 @@ import warnings
 import inspect
 from .models import SystemDefinition, DataSpace, BehavioralTrace
 from ..utils.linter import SystemLinter
+from ..utils.aggregation import aggregate_instance_columns
 
 class DataLoader(ABC):
     """Abstract base class for data loaders.
@@ -347,6 +348,13 @@ class GenericDataLoader(DataLoader):
 
         # --- MOMENT 3: Final Declarative Steps ---
         # (Preprocessor removed from here as it is now applied per-file)
+
+        # 1. Summarize per-instance columns (e.g. one per FL client) into system-level ones
+        for aggregation in sys_def.dataspace.aggregations:
+            df = aggregate_instance_columns(
+                df, pattern=aggregation.pattern, numeric=aggregation.numeric,
+                categorical=aggregation.categorical, fields=aggregation.fields
+            )
 
         # 2. Apply declarative column renames (if not handled by preprocessor)
         if sys_def.dataspace.column_renames:

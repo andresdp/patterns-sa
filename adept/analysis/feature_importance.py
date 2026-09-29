@@ -6,7 +6,7 @@ from sklearn.ensemble import RandomForestRegressor
 from sklearn.base import clone
 from feature_engine.selection import SmartCorrelatedSelection
 from ..core.models import SystemDefinition, Tradeoff, ParameterType, Parameter
-from ..utils.nan_handler import SemanticNaNHandler
+from ..utils.feature_encoding import FeatureEncoder
 
 from sklearn.preprocessing import StandardScaler
 
@@ -54,7 +54,7 @@ class FeatureImportanceAnalyzer:
                  if param.name in df.columns:
                      valid_cols.append(param.name)
                      
-        return list(set(valid_cols))
+        return list(dict.fromkeys(valid_cols))  # declaration order: deterministic across runs
 
     def preprocess_features(
         self, 
@@ -78,11 +78,11 @@ class FeatureImportanceAnalyzer:
                 - mask: Boolean mask of rows kept.
                 - stats: Dict with 'scaler' for de-standardization.
         """
-        # --- NEW: Semantic NaN Handling ---
-        # Apply sentinel transformation to optional parameters BEFORE scaling
-        all_params = self._get_all_parameters()
-        df_trans, _ = SemanticNaNHandler.apply_sentinel_transformation(df, all_params)
-        
+        # Numeric encoding of categorical/optional parameters BEFORE scaling
+        # (NaN -> "not selected"; see utils/feature_encoding.py)
+        encoder = FeatureEncoder.fit(df, self._get_all_parameters())
+        df_trans = encoder.transform(df)
+
         # Ensure we work with numeric data
         numeric_cols = df_trans.select_dtypes(include=[np.number]).columns
             
@@ -114,11 +114,53 @@ class FeatureImportanceAnalyzer:
         stats = {
             'scaler': scaler,
             'standardized': standardize,
-            'numeric_cols': numeric_cols.tolist()
+            'numeric_cols': numeric_cols.tolist(),
+            'encoder': encoder
         }
-            
+
         return df_processed, mask, stats
 
+    @staticmethod
+    def transform_features(df: pd.DataFrame, stats: Dict[str, Any]) -> pd.DataFrame:
+        """
+        Standardizes new data (e.g. a test set) with the state fitted by preprocess_features.
+
+        Reuses the fitted encoder rather than re-fitting one, so categorical and optional
+        parameters are encoded exactly as in the fitted data.
+
+        Returns:
+            DataFrame with the Z-scores of stats['numeric_cols'].
+        """
+        df_trans = stats['encoder'].transform(df) if 'encoder' in stats else df
+        numeric_cols = stats['numeric_cols']
+        X = df_trans[numeric_cols].fillna(0.0)
+        return pd.DataFrame(stats['scaler'].transform(X), index=df.index, columns=numeric_cols)
+
+
+    @staticmethod
+    def _stable_features_to_drop(X: pd.DataFrame, y: pd.Series, selector: "SmartCorrelatedSelection") -> set:
+        """Features to drop after correlated-feature selection, with deterministic ties.
+
+        feature-engine ranks each correlated group while iterating a Python set, so when
+        several features perform exactly alike (e.g. all settings of one pattern, which
+        only encode "pattern on/off") the one it keeps depends on the process hash seed.
+        Each group is re-scored in sorted order: the best-performing feature is kept, and
+        exact ties go to the alphabetically first feature, so results are reproducible.
+        """
+        from feature_engine.selection.base_selection_functions import single_feature_performance
+
+        to_drop = set(selector.features_to_drop_)
+        for kept, dropped in getattr(selector, 'correlated_feature_dict_', {}).items():
+            group = sorted({kept, *dropped})
+            performance, _ = single_feature_performance(
+                X=X, y=y, variables=group, estimator=selector.estimator,
+                cv=selector.cv, scoring=selector.scoring, groups=getattr(selector, 'groups', None)
+            )
+            best = max(performance.values())
+            representative = min(f for f in group if performance[f] >= best - 1e-12)
+            to_drop.update(group)
+            to_drop.discard(representative)
+        return to_drop
 
     def compute_importance(
         self, 
@@ -138,19 +180,18 @@ class FeatureImportanceAnalyzer:
         Returns:
             pd.Series: Importance scores indexed by feature name.
         """
-        # --- NEW: Semantic NaN Handling ---
-        all_params = self._get_all_parameters()
-        X_train, _ = SemanticNaNHandler.apply_sentinel_transformation(X_train, all_params)
+        # Numeric encoding of categorical/optional parameters (see utils/feature_encoding.py)
+        X_train = FeatureEncoder.fit(X_train, self._get_all_parameters()).transform(X_train)
         # Fill any remaining non-optional NaNs
         X_train = X_train.fillna(0.0)
         
-        # Filter to only numeric columns (Random Forest can't handle categorical)
+        # Keep numeric columns (every declared parameter is numeric after encoding)
         numeric_cols = X_train.select_dtypes(include=[np.number]).columns.tolist()
         X_train = X_train[numeric_cols]
         
         # 1. Selection (Optional)
         features_to_use = X_train.columns.tolist()
-        print(f"Original features (numeric only): {features_to_use}")
+        print(f"Original features (numerically encoded): {features_to_use}")
         
         if use_smart_correlation:
             # SmartCorrelatedSelection groups correlated features and selects one.
@@ -167,11 +208,10 @@ class FeatureImportanceAnalyzer:
                 scoring="r2"
             )
             sel.fit(X_train, y_train)
-            features_to_use = [col for col in X_train.columns if col not in sel.features_to_drop_]
+            to_drop = self._stable_features_to_drop(X_train, y_train, sel)
+            features_to_use = [col for col in X_train.columns if col not in to_drop]
             print(f"Features selected: {features_to_use}")
-            # feature-engine transforms X.
-            X_train_transformed = sel.transform(X_train)
-            features_to_use = X_train_transformed.columns.tolist()
+            X_train_transformed = X_train[features_to_use]
         else:
             X_train_transformed = X_train
 

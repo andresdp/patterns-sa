@@ -72,11 +72,13 @@ This object links the abstract system definition to concrete data.
   "policy_identification": { ... },
   "quality_objectives": [ ... ],
   "source_file": "path/to/data.csv", // Optional
-  "column_renames": { ... } // Optional
+  "column_renames": { ... }, // Optional
+  "aggregations": [ ... ] // Optional
 }
 ```
 
-*   **`quality_objectives`**: A list defining the quality metrics being measured.
+*   **`quality_objectives`**: A list defining the quality metrics being measured. Each may declare a `nan_policy` for failed runs (see [nan_strategy.md](nan_strategy.md)).
+*   **`aggregations`**: Summaries of per-instance columns (e.g. one column per federated-learning client) into system-level columns such as `CPU Mean` (see [instance_aggregation.md](instance_aggregation.md)).
 *   **`policy_identification`**: A critical object that defines the system-level policies and maps them to the policies of the individual components. It has two main modes, specified by the `from` key.
 
 #### 3.2.1 Policy Identification: `from: "column"`

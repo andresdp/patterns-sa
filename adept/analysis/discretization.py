@@ -9,6 +9,8 @@ from sklearn.metrics import silhouette_score
 from ..core.models import QualityBin, DiscretizationScheme, QualityObjective
 from ..utils.nan_handler import SemanticNaNHandler
 
+# Bin label of runs whose outcome is NaN under nan_policy='worst_case' (discretization only)
+FAILURE_LABEL = 'FAILURE'
 
 class DataProcessor:
     """Handles the definition of tradeoff regions in the outcome space.
@@ -35,18 +37,32 @@ class DataProcessor:
             - tradeoff_indices: Dictionary mapping tradeoff labels (comma-separated) to numpy arrays of row indices.
             - pareto_front_df: DataFrame containing only Pareto front (if applicable).
         """
-        # --- NEW: Semantic NaN Imputation ---
+        # --- Semantic NaN handling of outcomes (see docs/nan_strategy.md) ---
         objectives = kwargs.pop('objectives', None)  # Pop to remove from kwargs
+        failure_masks, drop_masks = DataProcessor._outcome_nan_masks(df, objectives)
+        observed_df = df
         if objectives:
-            # We impute NaNs according to their nan_policy before any segmentation
-            df = SemanticNaNHandler.impute_outcomes(df, objectives)
+            # Impute NaNs according to their nan_policy before any segmentation. 'drop' cells
+            # get a temporary worst-case value so every method can run; their runs are
+            # removed from all tradeoff regions afterwards.
+            compute_objectives = [
+                o.model_copy(update={'nan_policy': 'worst_case'}) if o.name in drop_masks else o
+                for o in objectives
+            ]
+            df = SemanticNaNHandler.impute_outcomes(df, compute_objectives)
         
         labeled_df = None
         schemes = []
         pareto_front = None
 
         if method == 'discretization':
-            labeled_df, schemes = DataProcessor._discretize(df, **kwargs)
+            # Bins are computed from observed values only, so failed/dropped runs do not
+            # stretch the range; failed runs get a dedicated FAILURE bin instead.
+            observed_df = df.copy()
+            for col, mask in {**failure_masks, **drop_masks}.items():
+                observed_df.loc[mask, col] = np.nan
+            labeled_df, schemes = DataProcessor._discretize(observed_df, **kwargs)
+            labeled_df = DataProcessor._label_failures(labeled_df, schemes, df, failure_masks)
         elif method == 'clustering':
             labeled_df, schemes = DataProcessor._discretize_kmeans(df, **kwargs)
         elif method in ['pareto', 'pareto_nadir']:
@@ -62,10 +78,52 @@ class DataProcessor:
         else:
             raise NotImplementedError(f"Tradeoff definition method '{method}' not implemented.")
 
+        labeled_df = DataProcessor._exclude_dropped(labeled_df, drop_masks)
+
         # Precompute indices for all labels found in the space
         indices = DataProcessor.get_tradeoff_indices(labeled_df)
         
         return labeled_df, schemes, indices, pareto_front
+
+    @staticmethod
+    def _outcome_nan_masks(df: pd.DataFrame, objectives) -> Tuple[Dict[str, pd.Series], Dict[str, pd.Series]]:
+        """NaN masks of outcomes whose nan_policy is 'worst_case' (failures) or 'drop'."""
+        failure_masks, drop_masks = {}, {}
+        for obj in objectives or []:
+            if obj.name not in df.columns or not df[obj.name].isnull().any():
+                continue
+            mask = df[obj.name].isnull()
+            if obj.nan_policy == 'drop':
+                drop_masks[obj.name] = mask
+                print(f"Note: {int(mask.sum())} run(s) with no '{obj.name}' value are excluded from all tradeoffs (nan_policy='drop').")
+            elif obj.nan_policy == 'worst_case':
+                failure_masks[obj.name] = mask
+        return failure_masks, drop_masks
+
+    @staticmethod
+    def _label_failures(labeled_df: pd.DataFrame, schemes: List[DiscretizationScheme],
+                        imputed_df: pd.DataFrame, failure_masks: Dict[str, pd.Series]) -> pd.DataFrame:
+        """Assigns failed runs (worst-case imputed outcomes) to a dedicated FAILURE bin."""
+        for col, mask in failure_masks.items():
+            if col not in labeled_df.columns:
+                continue
+            labeled_df[col] = labeled_df[col].astype(object)
+            labeled_df.loc[mask, col] = FAILURE_LABEL
+            worst = float(imputed_df.loc[mask, col].iloc[0])
+            scheme = next((sc for sc in schemes if sc.objective_name == col), None)
+            if scheme is not None:
+                scheme.bins.append(QualityBin(label=FAILURE_LABEL, min_value=worst, max_value=worst))
+            print(f"Note: {int(mask.sum())} failed run(s) with no '{col}' value are labelled '{FAILURE_LABEL}'.")
+        return labeled_df
+
+    @staticmethod
+    def _exclude_dropped(labeled_df: pd.DataFrame, drop_masks: Dict[str, pd.Series]) -> pd.DataFrame:
+        """Clears the labels of runs whose outcome is NaN under nan_policy='drop'."""
+        for col, mask in drop_masks.items():
+            if col in labeled_df.columns:
+                labeled_df[col] = labeled_df[col].astype(object)
+                labeled_df.loc[mask, col] = np.nan
+        return labeled_df
 
     @staticmethod
     def get_tradeoff_indices(df: pd.DataFrame, separator: str = ',') -> Dict[str, np.ndarray]:
@@ -497,7 +555,7 @@ class DataProcessor:
     @staticmethod
     def get_bins(col: pd.Series, n: int, min_max: Tuple[Optional[float], Optional[float]] = (None, None)) -> list:
         """Calculates bin boundaries for a given numeric column."""
-        unique_values = sorted((set(col.values)))
+        unique_values = sorted(set(col.dropna().values))  # NaN (failed/dropped runs) never sets a bin edge
         if min_max == (None, None):
             min_x = np.min(unique_values)
             max_x = np.max(unique_values)
