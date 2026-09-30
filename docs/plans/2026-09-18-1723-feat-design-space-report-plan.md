@@ -93,6 +93,23 @@ sanity check run before any data exists.
   the same directories), not just the FL split system it was designed
   against.
 
+- R8. *(Proposed 2026-09-30, pending approval.)* The report includes a
+  **conceptual-model instance diagram**: the ADEPT conceptual model
+  (`docs/paper_adept_formal_extension.md` §1.1) instantiated for the given
+  spec, like the FL example in §1.2 of that document. The **JSON-only part**
+  is always rendered:
+  - system, components, decisions and policies, with bindings shown as counts
+    per KTD5;
+  - parameters grouped by role, with their `optional` flag;
+  - aggregations and the parameters/objectives they derive;
+  - objectives with their direction and missing-outcome treatment;
+  - declared vs. observed configurations (from R3).
+
+  With a CSV (R5), parameter domains (numeric/categorical) are added. With an
+  analysis session (optional input), tradeoffs and the discovered boxes with
+  their conditions and readings are also added. This part is out of scope for
+  v1 unless approved.
+
 ### Key Decisions
 
 - **Reuse `SystemLinter` and `summarize_system` rather than reimplementing
@@ -451,6 +468,20 @@ only has the OpenWiki refresh); running the above locally is the done signal.
 ---
 
 ## Deferred / Open Questions
+
+### From 2026-09-30 (paper extension)
+
+- **Conceptual-model instance diagram (R8).** Decide whether R8 joins v1:
+  - *JSON-only part:* extends U3 with a third diagram kind (`flowchart LR`,
+    one node per concept instance, labelled «Concept»). It reuses the data U3
+    already walks, so the cost is low.
+  - *Session-aware part* (tradeoffs, boxes): needs a new optional input (a
+    `PatternAnalysis` session or saved boxes), which fits more naturally
+    with U5 or a later version.
+
+  The generic model and a hand-written FL instance live in
+  `docs/paper_adept_formal_extension.md` §1.1-1.2, and serve as the
+  expected output for a test on `FLsystem_split.json`.
 
 ### From 2026-09-18 review
 
