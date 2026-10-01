@@ -20,9 +20,9 @@ Rows in the order of the base paper. **New** rows are concepts that do not exist
 | **Configuration** (new) | Implicit: one decision = one configuration. | One policy per decision (an element of the product of the decisions' policy sets), identified by a configuration column. Analyses must state whether they group runs **by configuration** or **by decision policy**. | `ON,OFF,OFF` = selector ON, compressor OFF, HDH OFF |
 | **Component instance** (new) | — | A component replicated *n* times per run (*n* may vary between runs). Its per-instance values are summarized by **aggregation** into system-level parameters or metrics. | Clients 1..5; `CPU Mean`, `Data Distribution Diversity`, `CPU Usage Avg Mean` |
 | Configuration space → **Design space** | All feasible combinations of decisions and parameter values. | All feasible combinations of configurations and parameter values, where the domain of a pattern's settings includes ⊥ exactly when the pattern is not applied (a **structural** dependency between decisions and parameters). | HDH settings are ⊥ iff `hdh_pattern` = OFF |
-| Quality metric | A quality objective that measures a configuration. | Unchanged, plus a **missing-outcome treatment** that states what a run without a value for the metric means: a **failure** of that run (`worst_case`, the default), a **non-observation** to be left out (`drop`), or a **known substitute value** (`fixed_value`). See §3.6. The analysis may be **restricted** to a subset of objectives. | `best_val_f1`, `avg_total_time` (the notebook restricts to these two); a crashed training run has no F1 → failure |
+| Quality metric | A quality objective that measures a configuration. | Unchanged, plus a **missing-outcome treatment** that states what a run without a value for the metric means: a **failure** of that run (`worst_case`, the default), a **non-observation** to be left out (`drop`), or a **known substitute value** (`fixed_value`). See §3.6. The analysis may be **restricted** to a subset of objectives. | `final_val_accuracy`, `avg_total_time`: the target tradeoff (the notebook restricts the analysis to these two); a crashed training run has no accuracy → failure |
 | Quality space | All metric values of the evaluated configurations. | Unchanged, but a metric can be missing for some runs (see above). | — |
-| Tradeoff | A region of the quality space. | Unchanged, plus a **`FAILURE`** category per objective: runs that produced no value for the objective, under the failure treatment. It is ranked below the objective's worst observed category, and tradeoffs containing it (e.g. `FAILURE-S`) are regions like any other, so ADEPT can also explain **when runs fail**. See §3.6. | `L-M` (high F1, medium time); `FAILURE-M` (training crashed at medium time) |
+| Tradeoff | A region of the quality space. | Unchanged, plus a **`FAILURE`** category per objective: runs that produced no value for the objective, under the failure treatment. It is ranked below the objective's worst observed category, and tradeoffs containing it (e.g. `FAILURE-S`) are regions like any other, so ADEPT can also explain **when runs fail**. See §3.6. | `L-M` (high accuracy, medium time); `FAILURE-M` (training crashed at medium time) |
 | Box (constraints) | Rules, each defining the **range** of allowed values for a pattern parameter. | A **condition over the design space** under which a tradeoff holds: per dimension, a range (numeric), a **set of categories** (categorical), and whether ⊥ is included (optional). Dimensions can be decisions (through their settings), levers or uncertainties, giving the three readings of plan §2.1: prescriptive, operating envelope, conditional prescription. | `Model` ∈ {`squeezenet1_1`} ∧ `Client Selector Criteria` ∈ {`CPU`} (i.e. selector ON) → `L-M` |
 | **Encoding** (new, internal) | — (not needed: data is already numeric) | The map from the mixed design space to ℝᵖ that the ML components work on, fitted on the training set and reused everywhere boxes are learned or evaluated (§3.3). | `Model`: `CNN 16k` → 1, `squeezenet1_1` → 2 |
 
@@ -123,7 +123,7 @@ How to read the key relationships:
 
 ### 1.2 Instantiation for the FL system
 
-The same model instantiated for `federatedlearning/FLsystem_split.json` and the current FL results. Node labels give the concept in «guillemets». The instance follows the structure diagram's rule of the design-space report plan (KTD5): bindings of large policies appear as a count, not one edge per parameter.
+The same model instantiated for `federatedlearning/FLsystem_split.json` and the current FL results. The analysis uses the paper's target tradeoff, model accuracy × total round time (`final_val_accuracy` × `avg_total_time`, plan §4.1); the box is the CART leaf for `L-M` from the notebook re-run with accuracy. Node labels give the concept in «guillemets». The instance follows the structure diagram's rule of the design-space report plan (KTD5): bindings of large policies appear as a count, not one edge per parameter.
 
 ```mermaid
 flowchart LR
@@ -155,12 +155,12 @@ flowchart LR
     AGG -->|derives| O3
 
     subgraph RES["Analysis"]
-        O1["«Quality objective»<br/>best_val_f1: maximize, worst_case"]
+        O1["«Quality objective»<br/>final_val_accuracy: maximize, worst_case"]
         O2["«Quality objective»<br/>avg_total_time: minimize, worst_case"]
         O3["«Quality objective»<br/>CPU/RAM Usage Avg Mean + 4 more (not selected)"]
         SCH["«Categories»<br/>S, M, L (+ FAILURE if a run has no value)"]
-        T["«Tradeoff»<br/>L-M: high F1, medium time"]
-        B["«Box» CART, test density 1.0, lift 0.91<br/>reading: prescriptive"]
+        T["«Tradeoff»<br/>L-M: high accuracy, medium time"]
+        B["«Box» CART, test density 1.0, lift 0.86<br/>reading: prescriptive"]
         C1["«Condition»<br/>Model in {squeezenet1_1}"]
         C2["«Condition»<br/>Client Selector Criteria in {CPU}<br/>= selector ON"]
         O1 & O2 --> SCH --> T

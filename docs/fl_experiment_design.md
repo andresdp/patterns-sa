@@ -17,6 +17,22 @@
 
 With a constant environment, ADEPT can only produce prescriptive boxes (conditions on decisions). Varying the environment makes operating-envelope and conditional boxes possible, which is the paper's main claim (plan §2.1).
 
+### Response variables: model accuracy × total round time
+
+The campaign targets one tradeoff, the classic one in FL (plan §4.1):
+
+| Role | Metric | Column | Direction |
+|:---|:---|:---|:---|
+| **Primary** | Model accuracy after the last round | `Final Val Accuracy` | maximize |
+| **Primary** | Total round time (training + communication, per round; × `N Rounds` = total wall-clock time) | `Avg Total Round Time` | minimize |
+| Explanatory | Round-time components | `Avg Training Time`, `Avg Communication Time` | — |
+| Robustness check | F1 (last round and best) | `Final Val F1 (Last Round)`, `Final Val F1 (Best)` | — |
+| **Needed if missing** | Accuracy at the 25/50/75% checkpoints (today only F1 is logged there) | suggested: `Val Accuracy 25%`, `Val Accuracy 50%`, `Val Accuracy 75%` | — |
+
+The checkpoint accuracies allow a *time-to-accuracy* view (an open question in plan §9). Runs that crash or time out must still produce a row, with the missing metrics left empty: ADEPT labels them `FAILURE` (formal doc §3.6).
+
+The factors below are chosen because each is expected to move configurations along one or both axes of this plane (§4).
+
 ## 2. Factors and Levels
 
 All factors map onto AP4FED configuration parameters (AP4FED paper, Table 1).
@@ -87,8 +103,8 @@ Single-pattern ablations on `squeezenet1_1` need Tier 3: in Tier 2 a single-patt
 
 | ID | Hypothesis | Factors | Expected ADEPT output |
 |:---|:---|:---|:---|
-| H1 | The client selector's F1 gain grows with the share of low-resource clients, and vanishes when all clients are capable. | D1, P1, U2 | conditional box: D1 = ON ∧ U2 ≥ x → high-F1 region |
-| H2 | HDH improves F1 only under high heterogeneity (low α, many non-IID clients); otherwise it only costs training time. | D3, U4, U5 | conditional box on D3, U4, U5 |
+| H1 | The client selector's accuracy gain grows with the share of low-resource clients, and vanishes when all clients are capable. | D1, P1, U2 | conditional box: D1 = ON ∧ U2 ≥ x → high-accuracy region |
+| H2 | HDH improves accuracy only under high heterogeneity (low α, many non-IID clients); otherwise it only costs training time. | D3, U4, U5 | conditional box on D3, U4, U5 |
 | H3 | The message compressor pays off only when communication is a significant share of the round (more clients, larger model). | D2, U1, L1 | conditional box on D2, U1 |
 | H4 | For a fixed configuration, round time stays in the fast tier while the number of clients and the resource spread stay within bounds. | U1-U3 | operating-envelope box per configuration |
 | H5 | Selector and HDH interact: excluding weak non-IID clients removes the data HDH would repair. | D1 × D3, U4 | boxes on combinations; configuration-level robustness (`by='configuration'`); A1 transfer check (an A1-alone box loses density when the pattern is composed) |
@@ -104,7 +120,7 @@ Keep the current CSV layout so the existing specification, aggregation and noteb
 - **Pattern settings:** as now (`Client Selector Strategy/Criteria/Value`, `Message Compressor Alg`, `HDH ...`), empty when the pattern is OFF. `Client Selector Value` carries P1 and must stay **numeric** (`1`, `2`), as in the current data (2.0), not strings such as `">2"`. Strings are encoded in alphabetical order, which would put `">10"` before `">2"` and break the threshold's order in the boxes (formal doc §4.1; alternatively, declare the order in the spec, TODO T4). The same applies to any other ordered setting (RAM, CPUs).
 - **Per-client columns:** `Client <N> <field>` for N = 1..nC (fields `ID`, `CPU`, `RAM`, `Data Distribution`, `Data Persistence`, `Alpha Dirichlet`, `JSD`, `CPU Usage Avg`, `RAM Usage Avg`). Columns of clients beyond nC stay empty; the declared aggregation skips them.
 - **New columns:** `Run ID`, `Environment Point`, `Repetition`, `Seed`, and optionally `Host Cores`.
-- **Run-level settings and metrics:** unchanged (`N Rounds`, `Total Clients`, `Model`, ..., F1/accuracy, round/training/communication times, 25/50/75% checkpoints).
+- **Run-level settings and metrics:** unchanged (`N Rounds`, `Total Clients`, `Model`, ..., accuracy/F1, round/training/communication times, 25/50/75% checkpoints, adding accuracy at the checkpoints; see §1).
 
 Keep clients that the selector excludes in the CSV with empty usage columns, as in the current data: this is how their exclusion becomes observable.
 
@@ -121,7 +137,7 @@ Keep clients that the selector excludes in the CSV with empty usage columns, as 
 | Declare `Repetition`/`Seed` as non-analyzed columns; noise-floor analysis per cell | notebook | To do |
 | Stratified analyses (per model, per decision) next to pooled ones | `discover_scenarios` option (plan §6.2) + notebook | To do |
 | Slices with pooled tradeoff labels (A1, A2-fix) | today: row filter in the `preprocessor` + `create_tradeoffs(ranges=...)`; later a `restrict` option | Workaround available |
-| Relative outcomes: F1 gain and time ratio over the baseline of the same model and `Environment Point`, averaged over its replicates (A2-normalize) | `preprocessor` (derived columns declared as objectives) | To do |
+| Relative outcomes: accuracy gain and time ratio over the baseline of the same model and `Environment Point`, averaged over its replicates (A2-normalize) | `preprocessor` (derived columns declared as objectives) | To do |
 
 ## 7. Acceptance Checks on Delivered Data
 

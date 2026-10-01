@@ -70,10 +70,17 @@ Box limits live in the encoded space. After discovery (with or without `standard
 *   `box.includes_na[param] = True` when the box covers the parameter's "not selected" value (sentinel or code `0`).
 *   `box.categorical_levels[param]` lists the categories in code order.
 *   `box.readable_limits()` returns limits in the parameters' own terms: `{'in': [categories]}` for categorical parameters (with `'(not selected)'` listed first when covered), `{'min', 'max'}` otherwise, plus `'includes_na': True` where relevant.
+*   `box.describe_limits()` returns one string per parameter for labels and summaries: `'{squeezenet1_1}'`, `'{(not selected), zlib}'`, `'(not selected) or <= 0.60'`, `'[1.00, 3.00]'`.
 
 ## 6. Visualization Strategy
 
 *   **`show_box_diagnostics` (restriction bars and pair plots):** when `box.includes_na[param]` is true, the "not selected" end of the bar is hatched (`///`), and so are the pair-plot regions. For categorical parameters the hatched part spans code `0` up to half-way to code `1`.
+*   **Original values instead of codes (`show_original_values=True`, the default)** in `show_box_diagnostics` and `show_box_impact_objective_space`:
+    *   restriction bars of categorical and optional parameters are labelled with `box.describe_limits()` (e.g. `{CNN 16k}`, `{(not selected)}`) instead of encoded min/max values;
+    *   pair-plot and histogram axes of categorical parameters get one tick per category, plus `N/A` at code `0` when optional; numeric optional parameters keep their numeric ticks plus an `N/A` tick at the sentinel;
+    *   the what-if constraint summary (`show_box_summary=True`) lists the same decoded conditions.
+
+    Points and box rectangles stay in the encoded space, so the geometry is unchanged; only labels differ. Pass `show_original_values=False` to see the codes the boxes were learned on.
 *   **`show_quality_objective_space`:** not yet specialized; runs with a NaN objective are simply not drawn (the imputation only feeds tradeoff definition, `outcomes_df` keeps the NaN).
 *   **`show_importance_heatmap`:** unchanged; encoded importance scores are directly comparable.
 
@@ -87,7 +94,7 @@ Box limits live in the encoded space. After discovery (with or without `standard
 | **Parameter encoding** | ✅ | `FeatureEncoder` (§5A), fitted on train and shared by scoring, discovery, box evaluation and plots. |
 | **Outcome policies** | ✅ | `worst_case` with `FAILURE` bin, `drop`, `fixed_value` (§5C). |
 | **Boxes** | ✅ | `includes_na` and category decoding for standardized and non-standardized discovery (§5D). |
-| **Visuals** | ✅ / ⚠️ | Box diagnostics hatching works; a dedicated failure marker in the objective-space scatter is not implemented. |
+| **Visuals** | ✅ / ⚠️ | Box diagnostics hatching and original-value labels (`show_original_values`) work; a dedicated failure marker in the objective-space scatter is not implemented. |
 | **Testing** | ✅ | `tests/test_nan_handler.py`, `test_feature_encoding.py`, `test_outcome_nan_policies.py`, `test_box_encoding.py`, `test_feature_importance.py`. |
 
 ## 8. Known Limitations

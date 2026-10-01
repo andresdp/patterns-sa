@@ -85,6 +85,26 @@ class TestReadableLimits(unittest.TestCase):
                   categorical_levels={"alg": ["zlib"]}, includes_na={"alg": True})
         self.assertEqual(box.readable_limits(), {"alg": {"in": ["(not selected)"], "includes_na": True}})
 
+    def test_describe_limits_uses_original_values(self):
+        box = Box(
+            limits={
+                "Model": {"min": 1.5, "max": 2.0},
+                "alg": {"min": -np.inf, "max": 1.0},
+                "rate": {"min": 0.35, "max": 0.6},
+                "n": {"min": 2.0, "max": np.inf},
+                "m": {"min": 1.0, "max": 3.0},
+            },
+            categorical_levels={"Model": ["CNN 16k", "squeezenet1_1"], "alg": ["zlib"]},
+            includes_na={"alg": True, "rate": True},
+        )
+        self.assertEqual(box.describe_limits(), {
+            "Model": "{squeezenet1_1}",
+            "alg": "{(not selected), zlib}",
+            "rate": "(not selected) or <= 0.60",
+            "n": ">= 2.00",
+            "m": "[1.00, 3.00]",
+        })
+
 
 class TestCategoricalParametersInAnalysis(unittest.TestCase):
     """FL: `Model` (categorical, always present) and optional pattern parameters."""
@@ -126,6 +146,40 @@ class TestCategoricalParametersInAnalysis(unittest.TestCase):
         hatches = [c.get_hatch() for ax in fig.axes for c in ax.collections + ax.patches]
         plt.close(fig)
         self.assertIn("///", hatches)
+
+    @staticmethod
+    def _figure_texts(fig):
+        texts = [t.get_text() for ax in fig.axes for t in ax.texts]
+        for ax in fig.axes:
+            texts += [t.get_text() for t in ax.get_xticklabels() + ax.get_yticklabels()]
+        return texts
+
+    def test_diagnostics_show_original_values(self):
+        box = next(b for b in self.cart if b.includes_na.get("Client Selector Value"))
+        fig = self.session.show_box_diagnostics(box=box, subset="all", figsize=(8, 5))
+        fig.canvas.draw()
+        texts = self._figure_texts(fig)
+        plt.close(fig)
+        self.assertTrue(any("CNN 16k" in t or "squeezenet1_1" in t for t in texts), texts)
+        self.assertTrue(any("(not selected)" in t or t == "N/A" for t in texts), texts)
+
+    def test_diagnostics_can_show_codes(self):
+        box = next(b for b in self.cart if b.includes_na.get("Client Selector Value"))
+        fig = self.session.show_box_diagnostics(box=box, subset="all", figsize=(8, 5),
+                                                show_original_values=False)
+        fig.canvas.draw()
+        texts = self._figure_texts(fig)
+        plt.close(fig)
+        self.assertFalse(any("squeezenet1_1" in t or "CNN 16k" in t or t == "N/A" for t in texts), texts)
+
+    def test_impact_summary_shows_original_values(self):
+        box = self.cart[0]
+        fig = self.session.show_box_impact_objective_space(
+            box=box, x_metric="best_val_f1", y_metric="avg_total_time", show_box_summary=True)
+        texts = [t.get_text() for ax in fig.axes for t in ax.texts] + [t.get_text() for t in fig.texts]
+        plt.close(fig)
+        summary = next(t for t in texts if "Constraints:" in t)
+        self.assertIn("Model: {", summary)
 
 
 if __name__ == "__main__":

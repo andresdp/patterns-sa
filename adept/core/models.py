@@ -302,6 +302,33 @@ class Box(BaseModel):
             readable[param] = entry
         return readable
 
+    def describe_limits(self, digits: int = 2) -> Dict[str, str]:
+        """One human-readable condition per parameter, for plot labels and summaries.
+
+        Categorical: '{a, b}' (with '(not selected)' when covered). Numeric: '[min, max]',
+        or, when the box also covers "not selected", '(not selected) or <= max': the
+        not-selected value lies below every observed value, so such a range starts at
+        the observed minimum.
+        """
+        described = {}
+        for param, entry in self.readable_limits().items():
+            if 'in' in entry:
+                described[param] = "{" + ", ".join(str(v) for v in entry['in']) + "}"
+                continue
+            lo, hi = entry['min'], entry['max']
+            if entry.get('includes_na'):
+                rest = "any value" if hi == np.inf else f"<= {hi:.{digits}f}"
+                described[param] = f"{NOT_SELECTED_LABEL} or {rest}"
+            elif lo == -np.inf and hi == np.inf:
+                described[param] = "any value"
+            elif lo == -np.inf:
+                described[param] = f"<= {hi:.{digits}f}"
+            elif hi == np.inf:
+                described[param] = f">= {lo:.{digits}f}"
+            else:
+                described[param] = f"[{lo:.{digits}f}, {hi:.{digits}f}]"
+        return described
+
     # @property
     def is_empty(self) -> bool:
         if self.metrics.get('targets_in_box', 0) < 1:

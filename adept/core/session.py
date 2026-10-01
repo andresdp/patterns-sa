@@ -350,6 +350,7 @@ class PatternAnalysis:
         subset: str = 'all', 
         background_alpha: float = 0.6,
         show_box_summary: bool = False,
+        show_original_values: bool = True,
         **kwargs
     ) -> plt.Figure:
         """
@@ -367,6 +368,9 @@ class PatternAnalysis:
             subset: 'all', 'train', or 'test'.
             background_alpha: Alpha for gray background points.
             show_box_summary: Whether to display a text box with parameter constraints.
+            show_original_values: In the summary, write categorical and optional parameters
+                with their original values (e.g. '{squeezenet1_1}', '(not selected)')
+                instead of their numeric codes.
             **kwargs: Additional plotting parameters.
         """
         X, Y, _ = self._get_subset_data(subset)
@@ -421,8 +425,10 @@ class PatternAnalysis:
             lines.append(f"- Coverage: {coverage:.2f}")
             lines.append("")
             lines.append("Constraints:")
+            described = box.describe_limits() if show_original_values else {}
             for param, lims in box.limits.items():
-                lines.append(f"- {param}: [{lims['min']:.2f}, {lims['max']:.2f}]")
+                condition = described.get(param, f"[{lims['min']:.2f}, {lims['max']:.2f}]")
+                lines.append(f"- {param}: {condition}")
             annotation_text = "\n".join(lines)
 
         # 5. Delegate to standard plotter
@@ -447,6 +453,7 @@ class PatternAnalysis:
         show_diagonal: bool = False,
         box_eps: float = 0.02,
         show_policies: bool = False,
+        show_original_values: bool = True,
         **kwargs
     ) -> plt.Figure:
         """
@@ -465,10 +472,14 @@ class PatternAnalysis:
             show_diagonal: Whether to show frequency plots on the diagonal.
             box_eps: Epsilon factor to pad the box rectangles in pair plots.
             show_policies: If True, uses colors for policies and markers for target satisfaction.
+            show_original_values: Label categorical and optional parameters with their
+                original values (category names, 'N/A' for not selected) instead of the
+                numeric codes the box limits are expressed in.
             **kwargs: Additional plotting arguments (figsize, s, alpha, bins, etc.)
         """
         X, _, discrete = self._get_subset_data(subset)
-        X = self._encode_for_boxes(X)
+        encoder = self._fit_box_encoder()
+        X = encoder.transform(X)
         
         policy_series = None
         if show_policies:
@@ -495,10 +506,12 @@ class PatternAnalysis:
              mask = pd.Series(True, index=discrete.index)
              
         return self.coordinator.show_box_diagnostics(
-            box, X, mask, 
-            show_diagonal=show_diagonal, 
-            box_eps=box_eps, 
+            box, X, mask,
+            show_diagonal=show_diagonal,
+            box_eps=box_eps,
             policy_series=policy_series,
+            show_original_values=show_original_values,
+            encoder=encoder,
             **kwargs
         )
 

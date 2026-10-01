@@ -30,9 +30,9 @@ The scenario-discovery machinery is unchanged (PRIM, CART, density/coverage/lift
 
 | The box constrains… | Reading | What it tells the architect | FL instance |
 |:---|:---|:---|:---|
-| **Decisions and levers** (controlled by the architect) | **Prescriptive** | which choices achieve the tradeoff | "`squeezenet1_1` and client selector ON" → high F1, medium time (`L-M`) |
+| **Decisions and levers** (controlled by the architect) | **Prescriptive** | which choices achieve the tradeoff | "`squeezenet1_1` and client selector ON" → high accuracy, medium time (`L-M`) |
 | **Uncertain parameters** (environment, workload) | **Operating envelope** | under which conditions a decision keeps its tradeoff | base paper: short-services-offloaded stays in `<XS,M>` while `N_B` ∈ [2.5, 23]; FL: *to be produced by the new experiments* |
-| **Both** | **Conditional prescription** | which choice works in which environment | FL target: "client selector ON keeps F1 in the top bin as long as ≥ k clients have ≥ 2 CPUs" (hypothesis, §4.3) |
+| **Both** | **Conditional prescription** | which choice works in which environment | FL target: "client selector ON keeps accuracy in the top bin as long as ≥ k clients have ≥ 2 CPUs" (hypothesis, §4.3) |
 
 The base paper's "controlling parameter variability" is the operating-envelope reading. "Explaining decisions" is not a new aim: it is the base paper's goal (i), now answered by the same boxes when they fall on decisions.
 
@@ -48,7 +48,7 @@ With one pattern, analyzing one M_D at a time is natural. With several interacti
 
 ### 2.3 A diagnostic by-product: unexplained variability
 
-When runs of the *same* decisions and parameter values fall into different tradeoff regions, no box can separate them, and ADEPT reports a low-density box. In the current FL data this happens (e.g. one `squeezenet1_1` baseline run lands in `M-L` while its four twins land in `M-M`; PRIM's `M-L` box has density 0.25). The reading is actionable: **the specification misses a factor** (here, most likely training randomness), and the architect should either model it or treat it as noise. Replicated runs make this measurable: the current data already has 5 runs per model and configuration (2 for `squeezenet1_1` + HDH), without a seed column; the new campaign records seeds explicitly.
+When runs of the *same* decisions and parameter values fall into different tradeoff regions, no box can separate them, and ADEPT reports a low-density box. In the current FL data this happens: the five `squeezenet1_1` baseline runs, identical in every modeled factor, spread over `M-M` (2), `L-M` (2) and `L-L` (1), and neither PRIM nor CART finds a box for that cell (§4.2). The reading is actionable: **the specification misses a factor** (here, most likely training randomness), and the architect should either model it or treat it as noise. Replicated runs make this measurable: the current data already has 5 runs per model and configuration (2 for `squeezenet1_1` + HDH), without a seed column; the new campaign records seeds explicitly.
 
 ### 2.4 Storyline: a three-layer conceptual model
 
@@ -69,6 +69,7 @@ How the layers structure the paper:
   - Layer 2: data sufficiency and noise (campaign size, replication, failures).
   - Layer 3: method validity (encoding, discretization, dominant factors, ablations).
 - **Running example.** The FL instance of the model is introduced once, then revisited layer by layer: the spec (layer 1), the AP4FED runs and client aggregation (layer 2), and the boxes and their readings (layer 3).
+- **One tradeoff throughout: model accuracy × total round time** (§4.1). It is the classic FL tradeoff, so the paper needs no motivation for it. It is introduced with the quality objectives (layer 1), measured in the runs (layer 2), and every box, hypothesis and ablation is stated in its terms (layer 3). Every pattern is characterized by how it moves a configuration in this plane.
 
 ## 3. Framework Extensions (implementation status)
 
@@ -94,18 +95,41 @@ How the layers structure the paper:
 
 `fl_system` composes three ON/OFF pattern decisions: **client selector** (resource-based: only clients meeting a CPU criterion train), **message compressor** (zlib), and **heterogeneous data handler (HDH)** (DCGAN data augmentation for non-IID clients). Levers: model architecture and training hyperparameters. Uncertainties: per-client resources and data heterogeneity, aggregated over the clients. Objectives: predictive quality (F1, accuracy) and system cost (round, training and communication time; CPU/RAM usage).
 
+**Target tradeoff: model accuracy × total round time.** The paper focuses on one tradeoff, the classic one in federated learning: how accurate the global model gets versus how long training takes (wall-clock time per round, often summarized as *time-to-accuracy*).
+
+| Objective | Column (spec name) | Direction | Why this choice |
+|:---|:---|:---|:---|
+| **Model accuracy** | `Final Val Accuracy` (`final_val_accuracy`) | maximize | The standard FL quality measure (CIFAR-10 is class-balanced, so accuracy is not misleading). The **final** round's value is what the trained model delivers. The *best* value over rounds (used so far, `best_val_f1`) selects a round on the validation set, which is optimistic. |
+| **Total round time** | `Avg Total Round Time` (`avg_total_time`) | minimize | The wall-clock cost of a round: local training plus communication, including waiting for the slowest client. With `num_Rounds` fixed at 10, total training time is 10 × this value, so the ranking is the same. |
+
+Why this tradeoff carries the storyline:
+- **Every pattern moves the system in this one plane, through different mechanisms.** This makes the patterns' effects directly comparable, in the architect's terms:
+  - the **client selector** acts on *both* axes: it removes stragglers (time) and weak or skewed clients (accuracy);
+  - the **message compressor** acts on the *communication share* of time;
+  - **HDH** trades *training time* for *accuracy under non-IID data*.
+- **The two objectives are in real tension** (Spearman ρ = 0.62 between accuracy and round time on the current data, driven by the model). So the tradeoff regions are not trivially ordered, and "better accuracy at no time cost" (the selector's `M-S`/`L-M` boxes) is a meaningful finding.
+- **The other metrics become explanatory, not targets.** Training and communication time decompose round time and explain *why* a box holds (e.g. H3 on communication). F1 is a robustness check. CPU/RAM usage stays out of scope for the tradeoffs.
+
+**Relation to the earlier analysis.** The notebook first used `best_val_f1` × `avg_total_time`. It now uses `final_val_accuracy` × `avg_total_time` and was re-run (2026-09-30). Accuracy and F1 rank the runs almost identically (Spearman ρ = 0.985), so the main findings are unchanged. The re-run also shows two differences, both instructive (§4.2).
+
 ### 4.2 What the current dataset shows (prescriptive reading)
 
-The published AP4FED dataset used so far (32 runs, `federatedlearning/FLwithAP_MLdata_split.csv`) covers 4 of 8 decision combinations (baseline plus each pattern alone), two models, and a **constant client environment** (4 clients with 3 CPUs, 1 client with 1 CPU; 2 of 5 clients non-IID). With the tradeoff `best_val_f1` × `avg_total_time` (3 bins each), PRIM and CART agree on a 2x2 prescriptive map:
+The published AP4FED dataset used so far (32 runs, `federatedlearning/FLwithAP_MLdata_split.csv`) covers 4 of 8 decision combinations (baseline plus each pattern alone), two models, and a **constant client environment** (4 clients with 3 CPUs, 1 client with 1 CPU; 2 of 5 clients non-IID). With the tradeoff `final_val_accuracy` × `avg_total_time` (3 bins each), PRIM and CART agree on a prescriptive map in which three of the four model × selector cells have a region of their own:
 
 | | client selector OFF | client selector ON |
 |:---|:---|:---|
-| `CNN 16k` | `S-S` (fast, low F1) | `M-S` (one F1 bin better, same speed) |
-| `squeezenet1_1` | `M-M` (better F1, ~9x time) | `L-M` (top F1, ~18% shorter rounds) |
+| `CNN 16k` | `S-S` (fast, low accuracy; PRIM and CART, lift 0.45) | `M-S` (same speed, accuracy +0.013 at the edge of the next bin; lift 0.41, test density 0.5) |
+| `squeezenet1_1` | no region: the baseline's 5 runs spread over `M-M` (2), `L-M` (2) and `L-L` (1) | `L-M` (top accuracy in every run, ~18% shorter rounds; lift 0.86, test density 1.0) |
 
-Architectural reading: model capacity trades accuracy for compute; resource-based client selection removes the 1-CPU, non-IID straggler (it records no activity in selector runs), gaining accuracy at no cost; HDH adds generator training time without an F1 gain in this environment; compression has little to save (communication ≈ 2 s per round). Details: `federatedlearning/analysis-fl.ipynb`, Sections 8-9.
+PRIM adds a fifth box, **HDH ON → `M-L`**: on `squeezenet1_1`, HDH lowers accuracy (-0.016) and slows rounds by 58%, so its runs alone form the medium-accuracy, slow region.
 
-**Limits:** no envelope or conditional boxes are possible, because no uncertain parameter varies; pattern interactions are unobserved (4 of 8 combinations); 1-4 test runs per box.
+Architectural reading: model capacity trades accuracy for compute; resource-based client selection removes the 1-CPU, non-IID straggler (it records no activity in selector runs), gaining accuracy at no cost; HDH adds generator training time, and on the large model it lowers accuracy in this environment; compression has little to save (communication ≈ 2 s per round). Details: `federatedlearning/analysis-fl.ipynb`, Sections 3, 8 and 9.
+
+**Differences with the F1-based analysis, and what they teach:**
+- **Bin-edge sensitivity.** With F1, the `squeezenet1_1` baseline was a clean `M-M` cell (CART lift 0.36). With accuracy, its runs (0.447-0.465) straddle the `M`/`L` edge at 0.460, so identical configurations land in three regions and no box can describe them. Two metrics that rank runs almost identically can still produce different boxes when an equal-width edge cuts through a cluster. This is a concrete argument for the static grid with meaningful edges (§4.5), and an instance of the unexplained-variability diagnostic (§2.3).
+- **HDH becomes visible.** With F1, HDH's accuracy drop on the large model did not change bins. With accuracy it does, and PRIM describes it by a condition on the pattern alone. This strengthens the "HDH is a cost in this environment" reading.
+
+**Limits:** no envelope or conditional boxes are possible, because no uncertain parameter varies; pattern interactions are unobserved (4 of 8 combinations); 2-4 test runs per box.
 
 ### 4.3 What the new experiments must show (envelope and conditional readings)
 
@@ -113,8 +137,8 @@ Architectural reading: model capacity trades accuracy for compute; resource-base
 
 | ID | Hypothesis | Reading it would illustrate |
 |:---|:---|:---|
-| H1 | The client selector's F1 gain grows with the share of low-resource clients, and vanishes when all clients are capable. | conditional prescription |
-| H2 | HDH improves F1 only when data heterogeneity is high (low Dirichlet α, many non-IID clients); otherwise it only adds training time. | conditional prescription |
+| H1 | The client selector's accuracy gain grows with the share of low-resource clients, and vanishes when all clients are capable. | conditional prescription |
+| H2 | HDH improves accuracy only when data heterogeneity is high (low Dirichlet α, many non-IID clients); otherwise it only adds training time. | conditional prescription |
 | H3 | The message compressor pays off only when communication is a significant share of the round (more clients, larger models). | conditional prescription |
 | H4 | For a fixed configuration, round time stays in the fast tier while the number of clients and the resource spread stay below identifiable bounds. | operating envelope |
 | H5 | Some pattern combinations interact (e.g. selector + HDH: excluding non-IID clients removes the data HDH would repair). | prescriptive, on combinations |
@@ -145,12 +169,12 @@ The pooled analysis (all configurations, both models) answers RQ1, but it hides 
 
 #### A2. Model ablation: removing the dominant lever
 
-**Motivation.** On the current data `Model` takes about 0.97 (F1) and 0.89 (time) of the feature importance. The key-parameter threshold had to be lowered to 0.03 for any pattern to be selected, and the time bins mostly separate the two models. Pattern and environment effects are real, but they are an order of magnitude smaller: `Model` **shadows** them. There are three ways to take the model out, and they are not equivalent:
+**Motivation.** On the current data `Model` takes about 0.98 (accuracy) and 0.89 (time) of the feature importance. The key-parameter threshold had to be lowered to 0.03 for any pattern to be selected, and the time bins mostly separate the two models. Pattern and environment effects are real, but they are an order of magnitude smaller: `Model` **shadows** them. There are three ways to take the model out, and they are not equivalent:
 
 | Variant | How | Tradeoff labels | What it shows |
 |:---|:---|:---|:---|
 | **A2-fix** (stratify) | Analyze each model separately (`Model` = `CNN 16k`, then `squeezenet1_1`) | **Static per model** (§4.5): with the all-model grid every `CNN 16k` run falls in the fast bin, leaving nothing to explain. Tradeoffs are then relative to the model's tier. | Key parameters and boxes of the patterns and the environment for a given model; whether they differ between models (e.g. the selector speeds up `squeezenet1_1` rounds by 18% but slows `CNN 16k` rounds by 6%) |
-| **A2-normalize** (relative outcomes) | Replace each outcome by its value relative to the baseline configuration **of the same model at the same environment point**: F1 gain (difference), time ratio (quotient). Pool both models; `Model` is removed from the features. | Pooled bins on the relative outcomes, e.g. "F1 gain ≥ 0.02 at ≤ 10% extra time" | Pattern effects in a model-independent unit ("what does enabling the pattern buy, and at what cost?"). **Validity check:** `Model` should score ≈ 0 when scored on the relative outcomes. If it does not, the pattern effects depend on the model, which is itself a finding. |
+| **A2-normalize** (relative outcomes) | Replace each outcome by its value relative to the baseline configuration **of the same model at the same environment point**: accuracy gain (difference), time ratio (quotient). Pool both models; `Model` is removed from the features. | Pooled bins on the relative outcomes, e.g. "accuracy gain ≥ 0.02 at ≤ 10% extra time" | Pattern effects in a model-independent unit ("what does enabling the pattern buy, and at what cost?"). **Validity check:** `Model` should score ≈ 0 when scored on the relative outcomes. If it does not, the pattern effects depend on the model, which is itself a finding. |
 | **A2-drop** (naive) | Leave `Model` out of the features, keep raw outcomes | Pooled bins | A **control**, not an analysis: the model's effect turns into variability the boxes cannot explain (low-density boxes). This is the RQ4 diagnostic "a factor is missing from the spec", with a known answer. |
 
 **Protocol.**
@@ -169,7 +193,7 @@ The ablations compare boxes and densities across slices, so a tradeoff label mus
 2. Reuse the frozen edges, unchanged, in the pooled analysis and every slice, and in any later data addition (e.g. Tier 3).
 3. Make the outer bins open-ended (`(-∞, e₁]`, `(e₂, +∞)`), so a run outside the frozen range is still labelled with the extreme bin instead of being left out.
 4. Drop the ±0.1 padding for frozen edges. It is added in objective units, so on F1 it widens the range by 0.2, for data spanning 0.16. On the current data the padded edges are 0.136 / 0.255 / 0.374 / 0.493, which gives an `S` bin that effectively starts at the lowest observed F1 (0.236) and is much narrower in practice than `M`.
-5. Once frozen, edges may be rounded to values meaningful to the architect (e.g. F1 0.25 / 0.30 / 0.35, or round times of 60 s / 300 s), which turns the grid into a documented requirement rather than a statistical artifact.
+5. Once frozen, edges may be rounded to values meaningful to the architect (e.g. accuracy 0.35 / 0.40 / 0.45, or round times of 60 s / 300 s), which turns the grid into a documented requirement rather than a statistical artifact.
 
 **One grid is not enough when a factor spans an order of magnitude.** Round time goes from 17-51 s (`CNN 16k`) to 182-552 s (`squeezenet1_1`) in the current data. With 3 static bins over the whole range (linear edges ~196 s and ~374 s, or log-scaled ~55 s and ~174 s), **every** `CNN 16k` run falls in the first time bin. The within-model effects (e.g. HDH's +32% on `CNN 16k`) are then invisible. The comparison population therefore determines the grid:
 
@@ -177,7 +201,7 @@ The ablations compare boxes and densities across slices, so a tradeoff label mus
 |:---|:---|
 | Pooled analysis, A1 (patterns within the composed system), A2-drop | all runs |
 | A2-fix, and A1 × A2-fix (the base paper's setting) | all runs **of that model** (one frozen grid per model) |
-| A2-normalize | all runs, on the **relative** outcomes (F1 gain, time ratio). Model-independent, so one grid covers both models, and edges have a direct reading (e.g. ratio 1.0 / 1.1 / 1.25). |
+| A2-normalize | all runs, on the **relative** outcomes (accuracy gain, time ratio). Model-independent, so one grid covers both models, and edges have a direct reading (e.g. ratio 1.0 / 1.1 / 1.25). |
 
 Within each family the grid is static, so densities and boxes are comparable across all slices of that family. Across families, compare the key parameters and the box conditions, not the densities.
 
@@ -204,7 +228,7 @@ To resolve before, or as part of, the extension (either update the text or the c
 - **Dominant factors.** `Model` explains ~90% of feature importance; pattern effects only surface with a low key-parameter threshold. Mitigation: the model ablation A2 (§4.4), reported next to the pooled analysis (RQ3).
 - **Encoded categorical parameters.** PRIM and CART run on ordinal codes. The boxes and their metrics are valid under any fixed encoding, but for nominal parameters with three or more values the search is restricted to contiguous code ranges and depends on the code order. This is lossless for FL: every categorical dimension has at most two encoded values, or an intrinsic order. Argument and mitigations in the formal doc §4.1.
 - **Small slices.** Ablations analyze subsets: a single-pattern slice for one model has 36 runs in Tier 1 of the experiment design. Mitigation: the extra replicates proposed there for the baseline and single-pattern cells; bootstrap intervals for box density and coverage.
-- **Tradeoff definition.** Equal-width bins cut through clusters (the `CNN 16k` F1 cluster straddles the `S`/`M` edge). Mitigation: repeat with threshold- and Pareto-based tradeoffs, as in the base paper's RQ3.
+- **Tradeoff definition.** Equal-width bins cut through clusters (the accuracy edges at 0.336 and 0.460 cut through the `CNN 16k` cluster and the `squeezenet1_1` baseline runs; with F1 the boxes differed, §4.2). Mitigation: repeat with threshold- and Pareto-based tradeoffs, as in the base paper's RQ3.
 - **Real vs. simulated data.** FL runs are real training executions (with noise), unlike the base paper's queueing models; replication makes the noise explicit.
 - **Host resources.** AP4FED runs share one host; resource contention can confound time metrics. Mitigation: the campaign caps allocated cores (see the experiment design).
 
@@ -214,7 +238,7 @@ To resolve before, or as part of, the extension (either update the text or the c
 |:---|:---|:---|:---|
 | P1 | Conceptual framing (§2), three-layer storyline (§2.4), generalized concept table and conceptual-model figure | - | Draft (this document; formal doc §1) |
 | P2 | Resolve alignment items (§6) | - | To do |
-| P3 | FL analysis on current data (prescriptive reading, RQ1, RQ3 partial) | ADEPT extensions (§3) | Done in `analysis-fl.ipynb`; to be condensed for the paper |
+| P3 | FL analysis on current data (prescriptive reading, RQ1, RQ3 partial) | ADEPT extensions (§3) | Done in `analysis-fl.ipynb`, switched to and re-run with `final_val_accuracy` × `avg_total_time` (2026-09-30, §4.2); to be condensed for the paper |
 | P4 | Run the AP4FED campaign | [fl_experiment_design.md](fl_experiment_design.md) | To do (AP4FED operators) |
 | P5 | Ingest new data: spec update, aggregation statistics, notebook | P4, §3 "to do" rows | To do |
 | P6 | RQ2 and RQ4 analyses; H1-H5 | P5 | To do |
@@ -226,6 +250,6 @@ To resolve before, or as part of, the extension (either update the text or the c
 ## 9. Open Questions
 
 - Should the extension keep the five microservice patterns as a baseline section, or focus on FL with the microservices results summarized?
-- Which FL tradeoffs matter most to the architect: `best_val_f1` × `avg_total_time`, or also resource usage (CPU/RAM) and communication?
+- ~~Which FL tradeoffs matter most to the architect?~~ Resolved (2026-09-30): model accuracy × total round time (§4.1); communication and training time as explanatory metrics, CPU/RAM out of scope. Open: add *time-to-accuracy* (rounds or seconds to reach a target accuracy) as a second view? It needs per-round accuracy logging (experiment design §5).
 - Are the client cluster and multi-task model trainer patterns in scope (AP4FED supports them), or only the three analyzed so far?
 - Is the design-space report (P8) part of this paper's contribution or a separate tool paper?
