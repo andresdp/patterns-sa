@@ -162,7 +162,7 @@ class PatternAnalysis:
             'numeric_cols': numeric_cols
         }
 
-    def define_tradeoffs(self, method: str = 'discretization', n_bins: int = 3, labels: Optional[Union[Dict[str, List[str]], List[str]]] = None, ranges: Optional[Dict[str, Tuple[float, float]]] = None, params: Optional[Dict[str, Any]] = None) -> Tuple[pd.DataFrame, List[DiscretizationScheme]]:
+    def define_tradeoffs(self, method: str = 'discretization', n_bins: int = 3, labels: Optional[Union[Dict[str, List[str]], List[str]]] = None, ranges: Optional[Dict[str, Tuple[float, float]]] = None, params: Optional[Dict[str, Any]] = None, edges: Optional[Dict[str, List[float]]] = None) -> Tuple[pd.DataFrame, List[DiscretizationScheme]]:
         """Defines tradeoff regions in the outcome space.
         
         Args:
@@ -172,6 +172,7 @@ class PatternAnalysis:
                     or List [labels] for others.
             ranges: Optional fixed ranges for bins.
             params: Dict of parameters for specific methods.
+            edges: Optional exact bin edges per objective (discretization only).
         """
         if self.outcomes_df is None or self.sys_def is None:
             raise RuntimeError("Data must be loaded before defining tradeoffs.")
@@ -183,6 +184,8 @@ class PatternAnalysis:
         kwargs = {'objectives': self.get_outcomes()}
         if method in ['discretization', 'clustering']:
             kwargs.update({'n_bins': n_bins, 'all_labels': labels, 'ranges': ranges})
+            if method == 'discretization' and edges:
+                kwargs['edges'] = edges
             if method == 'clustering':
                 kwargs['params'] = params
         else:
@@ -2205,7 +2208,7 @@ class PatternAnalysis:
         # 3. Generate Combinatorial Tradeoffs
         return self.create_discretization_tradeoffs(labels=labels_map, objectives=objectives, skip_definition=True)
 
-    def create_discretization_tradeoffs(self, n_bins: int = 3, labels: Optional[Dict[str, List[str]]] = None, ranges: Optional[Dict[str, Tuple[float, float]]] = None, objectives: Optional[List[str]] = None, skip_definition: bool = False) -> Tuple[List[Tradeoff], List[DiscretizationScheme]]:
+    def create_discretization_tradeoffs(self, n_bins: int = 3, labels: Optional[Dict[str, List[str]]] = None, ranges: Optional[Dict[str, Tuple[float, float]]] = None, objectives: Optional[List[str]] = None, skip_definition: bool = False, edges: Optional[Dict[str, List[float]]] = None) -> Tuple[List[Tradeoff], List[DiscretizationScheme]]:
         """
         Generates all combinatorial tradeoffs based on discretization bins.
         
@@ -2217,11 +2220,22 @@ class PatternAnalysis:
                         'labels' when given, otherwise all defined outcomes. The session
                         is narrowed to these objectives (see select_objectives).
             skip_definition: If True, assumes define_tradeoffs has already been called (used for clustering).
+            edges: Optional bin edges per objective, {objective: [e0, e1, ..., en]} for n
+                   bins, used instead of detecting them from the data (the default). n_bins
+                   and ranges are then ignored for those objectives, and 'labels' must name
+                   their n bins. Fixed edges keep the tradeoff regions identical across
+                   sessions, e.g. a filtered dataset and the full one.
 
         Returns:
             Tuple[List[Tradeoff], List[DiscretizationScheme]]: The created tradeoff objects and their schemes.
         """
         import itertools
+
+        if edges:
+            unlabelled = [o for o in edges if not (labels and o in labels)]
+            if unlabelled:
+                raise ValueError(f"Fixed edges need labels for the same objectives; missing labels for {unlabelled}. "
+                                 f"Without edges, the bins are detected from the data.")
 
         # 1. Process data (unless skipped), restricted to the selected objectives
         if not skip_definition:
@@ -2232,7 +2246,7 @@ class PatternAnalysis:
                 if extra:
                     raise ValueError(f"Labels given for objectives {extra} not listed in 'objectives' {objectives}.")
             self.select_objectives(objectives)
-            self.define_tradeoffs(method='discretization', n_bins=n_bins, labels=labels, ranges=ranges)
+            self.define_tradeoffs(method='discretization', n_bins=n_bins, labels=labels, ranges=ranges, edges=edges)
 
         if objectives is None:
             objectives = [obj.name for obj in self.get_outcomes()]
@@ -2360,8 +2374,10 @@ class PatternAnalysis:
         Args:
             method: 'discretization', 'threshold', 'pareto', 'pareto_epsilon', or 'clustering'.
             **kwargs: Arguments passed to the underlying helper method:
-                - For 'discretization': 'n_bins', 'labels', 'ranges', 'objectives'
+                - For 'discretization': 'n_bins', 'labels', 'ranges', 'edges', 'objectives'
                   (if 'objectives' is omitted, the keys of a 'labels' dict select them).
+                  'edges' (with 'labels' for the same objectives) fixes the bin edges
+                  instead of detecting them from the data.
                 - For 'threshold': 'thresholds' (Required; its keys select the objectives), 'labels'.
                 - For 'pareto': 'objectives', 'labels'.
                 - For 'pareto_epsilon': 'epsilon' (Required), 'objectives', 'labels'.
@@ -2670,7 +2686,12 @@ class PatternAnalysis:
             parameter_names = analyzer_fi.get_parameter_columns(self.experiments_df)
         else:
             parameter_names = parameters
-            
+        if not parameter_names:
+            # E.g. no key parameter passed the importance threshold (every parameter is
+            # constant in a filtered dataset): there is no dimension to build a box on.
+            print("Warning: no parameters to discover scenarios over; no boxes returned.")
+            return []
+
         # Get Parameter objects for those names (required for NaN sentinel logic)
         all_param_objs = []
         for comp in self.sys_def.system.components.values():
@@ -3061,9 +3082,14 @@ class PatternAnalysis:
         policy_names = list(self.get_policies().keys()) if by == 'configuration' else self._policy_labels(by)
         subset_positions = set(range(len(self.experiments_df))) if subset == 'all' else set(
             self.train_indices if subset == 'train' else self.test_indices)
+        observed = set(self._policy_labels(by))
 
         all_impacts_df = []
         for policy_name in policy_names:
+            if policy_name not in observed:
+                # Declared in the spec but absent from the data (e.g. a filtered dataset)
+                print(f"Warning: policy group '{policy_name}' has no runs in the data; skipped.")
+                continue
             group_positions = np.where(self._policy_mask(policy_name, by=by).values)[0]
             if not subset_positions.intersection(group_positions):
                 print(f"Warning: policy group '{policy_name}' has no data in subset '{subset}'; skipped.")

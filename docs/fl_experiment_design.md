@@ -136,7 +136,7 @@ Keep clients that the selector excludes in the CSV with empty usage columns, as 
 | Declared category order for any ordered setting delivered as strings (formal doc T4) | `Parameter` model, `FeatureEncoder` | To do (only if the data keeps strings) |
 | Declare `Repetition`/`Seed` as non-analyzed columns; noise-floor analysis per cell | notebook | To do |
 | Stratified analyses (per model, per decision) next to pooled ones | `discover_scenarios` option (plan §6.2) + notebook | To do |
-| Slices with pooled tradeoff labels (A1, A2-fix) | today: row filter in the `preprocessor` + `create_tradeoffs(ranges=...)`; later a `restrict` option | Workaround available |
+| Slices with pooled tradeoff labels (A1, A2-fix) | `federatedlearning/fl_slices.py` + `make_slice_notebooks.py`; on the new data, re-run the base notebook (it detects the edges) and regenerate the slice notebooks (they get the same edges); later a `restrict` option in ADEPT | ✅ for single-pattern and baseline slices; per-model slices (A2-fix) to add |
 | Relative outcomes: accuracy gain and time ratio over the baseline of the same model and `Environment Point`, averaged over its replicates (A2-normalize) | `preprocessor` (derived columns declared as objectives) | To do |
 
 ## 7. Acceptance Checks on Delivered Data

@@ -514,27 +514,43 @@ class DataProcessor:
         return discrete_df, schemes
 
     @staticmethod
-    def _discretize(df: pd.DataFrame, n_bins: int = 3, ranges: Optional[Dict[str, Tuple[float, float]]] = None, all_labels: Optional[Dict] = None) -> Tuple[pd.DataFrame, List[DiscretizationScheme]]:
-        """Internal implementation of discretization logic."""
+    def _discretize(df: pd.DataFrame, n_bins: int = 3, ranges: Optional[Dict[str, Tuple[float, float]]] = None, all_labels: Optional[Dict] = None, edges: Optional[Dict[str, List[float]]] = None) -> Tuple[pd.DataFrame, List[DiscretizationScheme]]:
+        """Internal implementation of discretization logic.
+
+        edges: optional {objective: [e0, e1, ..., en]} fixing the bin edges exactly (e.g. the
+        grid of another analysis, see PatternAnalysis.save_tradeoff_grid); it takes
+        precedence over n_bins and ranges for that objective.
+        """
         discrete_df = df.copy()
         schemes = []
         all_labels = all_labels or {}
         ranges = ranges or {}
-        
+        edges = edges or {}
+
         for idx, c in enumerate(df.columns):
             qa = df[c]
-            min_max = ranges.get(c, (None, None))
-            
-            qa_bins = DataProcessor.get_bins(qa, n_bins, min_max=min_max)
-            
+
+            if c in edges:
+                qa_bins = [float(e) for e in edges[c]]
+                if len(qa_bins) < 2 or any(b <= a for a, b in zip(qa_bins, qa_bins[1:])):
+                    raise ValueError(f"Edges for '{c}' must be at least two strictly increasing values: {qa_bins}.")
+                n_col = len(qa_bins) - 1
+                outside = ((qa < qa_bins[0]) | (qa > qa_bins[-1])).sum()
+                if outside:
+                    print(f"Warning: {int(outside)} run(s) of '{c}' fall outside the fixed edges "
+                          f"[{qa_bins[0]:g}, {qa_bins[-1]:g}] and get no label.")
+            else:
+                n_col = n_bins
+                qa_bins = DataProcessor.get_bins(qa, n_bins, min_max=ranges.get(c, (None, None)))
+
             if c in all_labels:
                 labels = all_labels[c]
-                if len(labels) != n_bins:
-                    raise ValueError(f"Number of labels for '{c}' ({len(labels)}) must match n_bins ({n_bins}).")
+                if len(labels) != n_col:
+                    raise ValueError(f"Number of labels for '{c}' ({len(labels)}) must match its number of bins ({n_col}).")
             else:
-                labels = [f"level_{i+1}" for i in range(n_bins)]
-            
-            qa_labels = pd.cut(qa, bins=qa_bins, labels=labels)
+                labels = [f"level_{i+1}" for i in range(n_col)]
+
+            qa_labels = pd.cut(qa, bins=qa_bins, labels=labels, include_lowest=c in edges)
             discrete_df[c] = qa_labels
             
             bins = []
