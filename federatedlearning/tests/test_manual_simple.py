@@ -13,6 +13,7 @@ os.chdir('/Users/adiazpace/Documents/GitHub/patterns-sa/federatedlearning')
 
 # Import
 from adept import PatternAnalysis
+from preprocess_fl_clients import preprocess_fl
 
 print("=" * 60)
 print("TEST 1: Load Data")
@@ -26,7 +27,7 @@ except Exception as e:
     sys.exit(1)
 
 try:
-    session.load()
+    session.load(preprocessor=preprocess_fl)
     print("✓ Data loaded")
     print(f"  Experiments shape: {session.experiments_df.shape}")
     print(f"  Outcomes shape: {session.outcomes_df.shape}")

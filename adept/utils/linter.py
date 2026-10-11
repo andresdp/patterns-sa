@@ -1,6 +1,20 @@
-from typing import List, Dict, Set, Any
+import itertools
+from typing import List, Dict, Optional, Set, Tuple, Any
 import pandas as pd
 from ..core.models import SystemDefinition
+
+# Concentration (most-common-value share) at or above which a declared quality
+# objective or parameter is flagged as low-variance (R3). Calibrated against
+# the observed 78%-concentrated `RAM Usage Avg Mean` case in FL's aggregated
+# telemetry data (AE4) -- not derived from any broader statistical analysis,
+# so a future pattern with different data characteristics may need a
+# different cutoff.
+LOW_VARIANCE_THRESHOLD = 0.70
+
+# NaN share at or above which a non-optional parameter is flagged: such NaNs are
+# filled with 0.0 at load time, which is rarely the intended meaning
+# (docs/nan_strategy.md, "Threshold Warnings").
+NAN_WARNING_THRESHOLD = 0.50
 
 class LintIssue:
     def __init__(self, level: str, message: str, context: str):
@@ -36,7 +50,74 @@ class SystemLinter:
         # 5. Validate System Configurations against Patterns
         issues.extend(self._validate_configuration_references(sys_def))
 
+        # 6. Validate multi-decision configuration completeness (R1)
+        issues.extend(self._validate_multi_decision_completeness(sys_def))
+
+        # 7. Validate policy-combination coverage (R2)
+        issues.extend(self._validate_policy_combination_coverage(sys_def))
+
+        # 8. Validate low-variance objectives/parameters (R3)
+        issues.extend(self._validate_low_variance(sys_def, df))
+
+        # 9. Validate that NaNs have declared semantics (docs/nan_strategy.md)
+        issues.extend(self._validate_nan_semantics(sys_def, df))
+
         return issues
+
+    def _validate_nan_semantics(self, sys_def: SystemDefinition, df: pd.DataFrame) -> List[LintIssue]:
+        """Flags NaNs whose meaning the spec does not declare.
+
+        * A non-optional parameter that is mostly NaN: its NaNs are filled with 0.0 at
+          load time; if NaN means "not selected", the parameter should be `optional`.
+        * An objective with NaNs and no explicit `nan_policy`: they are silently
+          treated as failures (the `worst_case` default).
+        """
+        issues = []
+        params = [(name, p, comp_name) for comp_name, comp in sys_def.system.components.items()
+                  for name, p in comp.parameters.items()]
+        params += [(name, p, None) for name, p in sys_def.system.parameters.items()]
+        for name, param, comp_name in params:
+            column = self._resolve_column(name, comp_name, df) if comp_name else (name if name in df.columns else None)
+            if column is None or param.optional or df.empty:
+                continue
+            share = float(df[column].isnull().mean())
+            if share >= NAN_WARNING_THRESHOLD:
+                where = f" (Component: {comp_name})" if comp_name else " (System)"
+                issues.append(LintIssue(
+                    "WARNING",
+                    f"Parameter '{name}'{where} is NaN in {share:.1%} of rows but is not declared "
+                    f"optional, so its NaNs will be filled with 0.0. If NaN means 'option not "
+                    f"selected', declare it with \"optional\": true.",
+                    "System.Components" if comp_name else "System.Parameters"
+                ))
+        for obj in sys_def.dataspace.quality_objectives:
+            if obj.name not in df.columns or 'nan_policy' in obj.model_fields_set:
+                continue
+            n_nan = int(df[obj.name].isnull().sum())
+            if n_nan:
+                issues.append(LintIssue(
+                    "WARNING",
+                    f"Quality Objective '{obj.name}' is NaN in {n_nan} row(s) and declares no "
+                    f"nan_policy, so those runs are treated as failures ('worst_case'). Declare "
+                    f"nan_policy ('worst_case', 'drop' or 'fixed_value') to make this explicit.",
+                    "Dataspace.QualityObjectives"
+                ))
+        return issues
+
+    def _iter_configs(self, sys_def: SystemDefinition):
+        """Normalize `configuration_identification.configurations` -- a dict
+        keyed by config id, or (legacy) a plain list -- into an iterable of
+        SystemConfiguration objects. Shared by every check below that walks
+        declared configurations."""
+        configs = sys_def.dataspace.configuration_identification.configurations
+        return configs.values() if isinstance(configs, dict) else configs
+
+    def _resolve_column(self, param_name: str, comp_name: str, df: pd.DataFrame) -> Optional[str]:
+        """Resolve a component parameter to its actual data column: mirrors
+        GenericDataLoader, checking the bare name first and the
+        component-prefixed name second. Returns None if neither is present."""
+        candidates = [param_name, f"{comp_name}_{param_name}"]
+        return next((c for c in candidates if c in df.columns), None)
 
     def _validate_objectives(self, sys_def: SystemDefinition, df: pd.DataFrame) -> List[LintIssue]:
         issues = []
@@ -53,9 +134,8 @@ class SystemLinter:
         issues = []
         for comp_name, comp in sys_def.system.components.items():
             for param_name, param in comp.parameters.items():
-                # Logic mirrors GenericDataLoader: check exact name or prefixed name
-                candidates = [param_name, f"{comp_name}_{param_name}"]
-                if not any(c in df.columns for c in candidates):
+                if self._resolve_column(param_name, comp_name, df) is None:
+                    candidates = [param_name, f"{comp_name}_{param_name}"]
                     issues.append(LintIssue(
                         "WARNING",
                         f"Parameter '{param_name}' (Component: {comp_name}) not found in data columns. Checked: {candidates}",
@@ -113,8 +193,7 @@ class SystemLinter:
     def _validate_configuration_references(self, sys_def: SystemDefinition) -> List[LintIssue]:
         issues = []
         
-        configs = sys_def.dataspace.configuration_identification.configurations
-        config_iterator = configs.values() if isinstance(configs, dict) else configs
+        config_iterator = self._iter_configs(sys_def)
 
         for config in config_iterator:
             for ref in config.pattern_policy_references:
@@ -167,9 +246,156 @@ class SystemLinter:
                     
                     if not found:
                         issues.append(LintIssue(
-                            "ERROR", 
-                            f"Configuration '{config.name}' references undefined policy '{pol_name}' in component '{comp_name}'.", 
+                            "ERROR",
+                            f"Configuration '{config.name}' references undefined policy '{pol_name}' in component '{comp_name}'.",
                             "Dataspace.Configurations"
                         ))
+
+        return issues
+
+    def _validate_multi_decision_completeness(self, sys_def: SystemDefinition) -> List[LintIssue]:
+        """R1: every declared configuration must reference every decision of a
+        multi-decision component exactly once. A component with a single
+        decision is exempt -- there is nothing to check, it is trivially
+        complete."""
+        issues = []
+
+        config_iterator = self._iter_configs(sys_def)
+
+        for comp_name, comp in sys_def.system.components.items():
+            decision_names = list(comp.decisions.keys())
+            if len(decision_names) <= 1:
+                continue
+
+            for config in config_iterator:
+                ref_counts: Dict[str, int] = {}
+                for ref in config.pattern_policy_references:
+                    if ref.component != comp_name:
+                        continue
+                    ref_counts[ref.decision] = ref_counts.get(ref.decision, 0) + 1
+
+                missing = [d for d in decision_names if ref_counts.get(d, 0) == 0]
+                duplicated = [d for d, count in ref_counts.items() if count > 1]
+
+                for decision_name in missing:
+                    issues.append(LintIssue(
+                        "ERROR",
+                        f"Configuration '{config.name}' does not reference decision "
+                        f"'{decision_name}' of multi-decision component '{comp_name}'.",
+                        "Dataspace.Configurations"
+                    ))
+
+                for decision_name in duplicated:
+                    issues.append(LintIssue(
+                        "ERROR",
+                        f"Configuration '{config.name}' references decision '{decision_name}' "
+                        f"of component '{comp_name}' more than once "
+                        f"({ref_counts[decision_name]} times).",
+                        "Dataspace.Configurations"
+                    ))
+
+        return issues
+
+    def _validate_policy_combination_coverage(self, sys_def: SystemDefinition) -> List[LintIssue]:
+        """R2: for each multi-decision component, compare the declared
+        configurations' decision->policy combinations against the theoretical
+        cross-product of policies across its decisions, and WARN naming any
+        undeclared combinations. A single-decision component's cross-product
+        is trivially 1-of-1 (its one decision's policies each form their own
+        size-1 "combination"), so this never fires for one (R5)."""
+        issues = []
+
+        config_iterator = self._iter_configs(sys_def)
+
+        for comp_name, comp in sys_def.system.components.items():
+            decision_names = list(comp.decisions.keys())
+            if len(decision_names) <= 1:
+                continue
+
+            policy_lists = [list(comp.decisions[d].policies.keys()) for d in decision_names]
+            if any(len(policies) == 0 for policies in policy_lists):
+                # A decision with zero declared policies has no valid
+                # combination to cover; completeness (R1) already flags this
+                # component's configs with an ERROR, so skip coverage here
+                # rather than reporting a vacuous "0 of 0" pass.
+                continue
+
+            all_combos: Set[Tuple[str, ...]] = set(itertools.product(*policy_lists))
+
+            declared_combos: Set[Tuple[str, ...]] = set()
+            for config in config_iterator:
+                per_decision: Dict[str, str] = {}
+                is_well_formed = True
+                for ref in config.pattern_policy_references:
+                    if ref.component != comp_name:
+                        continue
+                    if ref.decision in per_decision:
+                        # Duplicate reference -- already reported by the
+                        # completeness check; skip this config for coverage
+                        # purposes since its combination is ambiguous.
+                        is_well_formed = False
+                        break
+                    per_decision[ref.decision] = ref.policy
+
+                if is_well_formed and all(d in per_decision for d in decision_names):
+                    declared_combos.add(tuple(per_decision[d] for d in decision_names))
+
+            missing_combos = all_combos - declared_combos
+            if missing_combos:
+                missing_strs = sorted(",".join(combo) for combo in missing_combos)
+                issues.append(LintIssue(
+                    "WARNING",
+                    f"Component '{comp_name}' has incomplete policy-combination coverage: "
+                    f"{len(declared_combos)} of {len(all_combos)} combinations declared "
+                    f"(decisions: {', '.join(decision_names)}). "
+                    f"Missing combinations: {', '.join(missing_strs)}.",
+                    "Dataspace.Configurations"
+                ))
+
+        return issues
+
+    def _validate_low_variance(self, sys_def: SystemDefinition, df: pd.DataFrame) -> List[LintIssue]:
+        """R3: flag declared quality objectives and parameters whose data is
+        near-constant/low-variance, so an architect decides whether to keep
+        them declared rather than the pipeline silently deciding upfront."""
+        issues = []
+
+        def _concentration(col: str) -> float:
+            # NaN is treated as its own distinct value for concentration
+            # purposes (dropna=False): a column that is NaN-dominated (e.g.
+            # an optional pattern parameter that is absent whenever its
+            # pattern is OFF) is just as low-signal/near-constant as one
+            # dominated by a single non-null value, so it should surface the
+            # same way rather than being silently excluded from the count.
+            counts = df[col].value_counts(normalize=True, dropna=False)
+            return float(counts.max()) if not counts.empty else 0.0
+
+        def _check(label: str, column: str, context: str) -> None:
+            concentration = _concentration(column)
+            if concentration >= LOW_VARIANCE_THRESHOLD:
+                issues.append(LintIssue(
+                    "WARNING",
+                    f"{label} is low-variance: "
+                    f"{concentration:.1%} of values are concentrated on a single value "
+                    f"(threshold {LOW_VARIANCE_THRESHOLD:.0%}).",
+                    context
+                ))
+
+        # Quality objectives
+        for obj in sys_def.dataspace.quality_objectives:
+            if obj.name in df.columns:
+                _check(f"Quality Objective '{obj.name}'", obj.name, "Dataspace.QualityObjectives")
+
+        # System-level parameters
+        for param_name in sys_def.system.parameters.keys():
+            if param_name in df.columns:
+                _check(f"Parameter '{param_name}' (System)", param_name, "System.Parameters")
+
+        # Component (pattern) parameters
+        for comp_name, comp in sys_def.system.components.items():
+            for param_name in comp.parameters.keys():
+                col = self._resolve_column(param_name, comp_name, df)
+                if col is not None:
+                    _check(f"Parameter '{param_name}' (Component: {comp_name})", col, "System.Components")
 
         return issues

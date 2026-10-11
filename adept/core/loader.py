@@ -7,6 +7,7 @@ import warnings
 import inspect
 from .models import SystemDefinition, DataSpace, BehavioralTrace
 from ..utils.linter import SystemLinter
+from ..utils.aggregation import aggregate_instance_columns
 
 class DataLoader(ABC):
     """Abstract base class for data loaders.
@@ -282,25 +283,37 @@ class GenericDataLoader(DataLoader):
 
         # --- MOMENT 1: Loading individual files ---
         if sys_def.dataspace.source_file:
-            path = sys_def.dataspace.source_file
-            if not os.path.isabs(path):
-                path = os.path.join(base_path, path)
-            
-            print(f"Loading single source file: {path}")
-            
-            # Check for CSV delimiter in discovery options
+            sources = sys_def.dataspace.source_file
+            paths = [sources] if isinstance(sources, str) else list(sources)
+            paths = [p if os.path.isabs(p) else os.path.join(base_path, p) for p in paths]
+
+            # CSV delimiter from discovery options (a dict in the spec)
             csv_args = {}
-            if hasattr(sys_def.dataspace, 'discovery_options') and sys_def.dataspace.discovery_options:
-                if hasattr(sys_def.dataspace.discovery_options, 'csv_delimiter'):
-                    csv_args['sep'] = sys_def.dataspace.discovery_options.csv_delimiter
-                    print(f"Using CSV delimiter: '{csv_args['sep']}'")
-            
-            df = pd.read_csv(path, **csv_args)
-            print(f"Loaded {len(df)} rows.")
-            
+            options = getattr(sys_def.dataspace, 'discovery_options', None) or {}
+            delimiter = options.get('csv_delimiter') if isinstance(options, dict) else getattr(options, 'csv_delimiter', None)
+            if delimiter:
+                csv_args['sep'] = delimiter
+                print(f"Using CSV delimiter: '{delimiter}'")
+
+            frames = []
+            for path in paths:
+                print(f"Loading source file: {path}")
+                frame = pd.read_csv(path, **csv_args)
+                print(f"Loaded {len(frame)} rows.")
+                frames.append(frame)
+            if len(frames) > 1:
+                columns = list(frames[0].columns)
+                mismatched = [p for p, f in zip(paths[1:], frames[1:]) if set(f.columns) != set(columns)]
+                if mismatched:
+                    raise ValueError(f"Source files must have the same columns as {paths[0]}; they differ in: {mismatched}")
+                df = pd.concat([f[columns] for f in frames], ignore_index=True)
+                print(f"Concatenated {len(frames)} files: {len(df)} rows.")
+            else:
+                df = frames[0]
+
             # Apply hook immediately
             if preprocessor:
-                print("Applying preprocessor hook to single file...")
+                print("Applying preprocessor hook to source data...")
                 df = _apply_pp(df, conf_name=None)
             
         elif sys_def.dataspace.configuration_identification.from_ == "file":
@@ -347,6 +360,13 @@ class GenericDataLoader(DataLoader):
 
         # --- MOMENT 3: Final Declarative Steps ---
         # (Preprocessor removed from here as it is now applied per-file)
+
+        # 1. Summarize per-instance columns (e.g. one per FL client) into system-level ones
+        for aggregation in sys_def.dataspace.aggregations:
+            df = aggregate_instance_columns(
+                df, pattern=aggregation.pattern, numeric=aggregation.numeric,
+                categorical=aggregation.categorical, fields=aggregation.fields
+            )
 
         # 2. Apply declarative column renames (if not handled by preprocessor)
         if sys_def.dataspace.column_renames:

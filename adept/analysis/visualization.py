@@ -90,6 +90,7 @@ def show_quality_objective_space(
     draw_rectangles: bool = False,
     eps: float = 0.01,
     background_alpha: float = 0.6,
+    overall_color: str = 'gray',
     annotation_text: Optional[str] = None,
     annotation_loc: str = 'auto',
     **kwargs
@@ -114,13 +115,13 @@ def show_quality_objective_space(
     if coloring_by_policy and show_overall:
         sns.scatterplot(
             data=outcomes_df, x=x_metric, y=y_metric, 
-            ax=ax, color='gray', alpha=background_alpha, s=s, zorder=0
+            ax=ax, color=overall_color, alpha=background_alpha, s=s, zorder=0
         )
     elif not coloring_by_policy:
          sns.scatterplot(
             data=outcomes_df, x=x_metric, y=y_metric, 
             ax=ax, 
-            color='gray' if show_overall else 'white', 
+            color=overall_color if show_overall else 'white',
             alpha=background_alpha if show_overall else 0, 
             label='Overall' if show_overall else None, 
             s=s
@@ -646,9 +647,38 @@ def show_multiple_robustness_uplifts(
         ax.legend(by_label.values(), by_label.keys(), title="Policy (Tradeoff)", bbox_to_anchor=(1.02, 1), loc='upper left', borderaxespad=0.)
     plt.tight_layout(); return fig
 
+NOT_SELECTED_TICK = "N/A"
+
+
+def _label_encoded_axis(axis: Any, param: str, categorical_levels: Dict[str, List[str]],
+                        encoder: Any = None) -> None:
+    """Labels an axis of an encoded parameter with its original values.
+
+    Categorical parameters get one tick per category (plus 'N/A' at code 0 when the
+    parameter is optional); numeric optional parameters keep their numeric ticks plus
+    an 'N/A' tick at the not-selected sentinel. Other parameters are left unchanged.
+    """
+    from matplotlib.ticker import FixedLocator
+
+    not_selected = encoder.not_selected_value(param) if encoder is not None else None
+    levels = categorical_levels.get(param) or (encoder.categories.get(param) if encoder is not None else None)
+    if levels:
+        ticks = ([not_selected] if not_selected is not None else []) + [float(i + 1) for i in range(len(levels))]
+        labels = ([NOT_SELECTED_TICK] if not_selected is not None else []) + list(levels)
+    elif not_selected is not None:
+        lo, hi = axis.get_view_interval()
+        numeric = [t for t in axis.get_majorticklocs() if lo <= t <= hi and t > not_selected]
+        ticks = [not_selected] + numeric
+        labels = [NOT_SELECTED_TICK] + [f"{t:g}" for t in numeric]
+    else:
+        return
+    axis.set_major_locator(FixedLocator(ticks))
+    axis.set_ticklabels(labels, fontsize=8)
+
+
 def show_box_diagnostics(
-    box: Any, 
-    experiments_df: pd.DataFrame, 
+    box: Any,
+    experiments_df: pd.DataFrame,
     outcome_mask: pd.Series,
     figsize: Tuple[int, int] = (16, 12),
     title: Optional[str] = None,
@@ -660,8 +690,17 @@ def show_box_diagnostics(
     box_eps: float = 0.02,
     box_color: str = '#55a868',
     policy_series: Optional[pd.Series] = None,
-    palette: Optional[Union[str, Dict]] = None
+    palette: Optional[Union[str, Dict]] = None,
+    show_original_values: bool = True,
+    encoder: Any = None
 ) -> plt.Figure:
+    """Constraint bars, metrics and pair plots of a discovered box.
+
+    experiments_df holds the encoded parameters (the space the box limits live in).
+    With show_original_values, categorical and optional parameters are labelled with
+    their original values (category names, 'N/A' for not selected) instead of codes;
+    pass the fitted FeatureEncoder as encoder to also label numeric not-selected values.
+    """
     from matplotlib.ticker import MaxNLocator
     import matplotlib.cm as cm
     import matplotlib.colors as mcolors
@@ -691,12 +730,22 @@ def show_box_diagnostics(
     limits = getattr(box, 'limits', box)
     dataset_bounds = getattr(box, 'dataset_bounds', {}) or {}
     
-    # Extract includes_na flags from box limits metadata
-    includes_na = {}
+    # "Not selected" coverage per parameter: Box.includes_na (legacy: a flag inside each limit)
+    includes_na = dict(getattr(box, 'includes_na', {}) or {})
     if isinstance(limits, dict):
         for p, lims in limits.items():
-            includes_na[p] = lims.get('includes_na', False)
-    
+            includes_na[p] = includes_na.get(p, False) or bool(lims.get('includes_na', False))
+    categorical_levels = getattr(box, 'categorical_levels', {}) or {}
+    described = {}
+    if show_original_values and hasattr(box, 'describe_limits'):
+        # Only parameters whose codes differ from their values need a decoded label
+        described = {p: d for p, d in box.describe_limits().items()
+                     if p in categorical_levels or includes_na.get(p)}
+
+    def decode_axis(axis, param):
+        if show_original_values:
+            _label_encoded_axis(axis, param, categorical_levels, encoder)
+
     if isinstance(limits, dict):
         params = []
         for p, lims in limits.items():
@@ -719,8 +768,10 @@ def show_box_diagnostics(
                 
                 p_name = p['name']
                 if includes_na.get(p_name):
-                    # Sentinel is at the beginning. N/A region is approx [0, 0.09]
-                    na_end = 0.1 / 1.1
+                    # "Not selected" sits at the low end: code 0 for categorical parameters
+                    # (half-way to code 1), a sentinel 10% of the range below the minimum otherwise
+                    n_levels = len(categorical_levels.get(p_name, []))
+                    na_end = 0.5 / n_levels if n_levels else 0.1 / 1.1
                     # Draw N/A region with hatch if included
                     ax_bars.broken_barh([(0, min(norm_max, na_end))], (i - 0.25, 0.5), 
                                         facecolor=actual_box_color, alpha=0.5, hatch='///')
@@ -733,8 +784,11 @@ def show_box_diagnostics(
                 else:
                     ax_bars.broken_barh([(norm_min, norm_max - norm_min)], (i - 0.25, 0.5), facecolor=actual_box_color, alpha=0.8)
                 
-                ax_bars.text(norm_min, i, f"{p['min']:.2f} ", ha='right', va='center', fontsize=9)
-                ax_bars.text(norm_max, i, f" {p['max']:.2f}", ha='left', va='center', fontsize=9)
+                if p_name in described:
+                    ax_bars.text(norm_max, i, f" {described[p_name]}", ha='left', va='center', fontsize=9)
+                else:
+                    ax_bars.text(norm_min, i, f"{p['min']:.2f} ", ha='right', va='center', fontsize=9)
+                    ax_bars.text(norm_max, i, f" {p['max']:.2f}", ha='left', va='center', fontsize=9)
             ax_bars.text(-0.05, i, f"{p['name']}", ha='right', va='center', fontsize=10, transform=ax_bars.get_yaxis_transform())
         ax_bars.set_yticks([]); ax_bars.set_xticks([0, 1]); ax_bars.set_xticklabels(['Min', 'Max'])
         ax_bars.set_title("Normalized constraints (Full bar = Parameter range)", fontsize=10)
@@ -781,6 +835,7 @@ def show_box_diagnostics(
                 p_x = top_params_info[0]; eps_x = p_x['d_range'] * box_eps
                 ax_sub.add_patch(patches.Rectangle((p_x['min'] - eps_x, -0.2), (p_x['max'] - p_x['min']) + 2*eps_x, 0.4, linewidth=2, edgecolor=actual_box_color, facecolor='none', linestyle='--'))
             ax_sub.set_ylim(-0.3, 0.3); ax_sub.set_yticks([]); ax_sub.set_ylabel("Fictitious Axis (1D)", fontsize=9, color='gray'); ax_sub.set_xlabel(top_params[0], fontsize=9)
+            decode_axis(ax_sub.xaxis, top_params[0])
         else:
             grid_size = len(top_params) if show_diagonal else len(top_params) - 1
             if grid_size > 0:
@@ -812,10 +867,12 @@ def show_box_diagnostics(
                                      facecolor='none', linestyle='--', hatch=hatch
                                  ))
                         ax_sub.xaxis.set_major_locator(MaxNLocator(nbins=4)); ax_sub.yaxis.set_major_locator(MaxNLocator(nbins=4))
+                        decode_axis(ax_sub.xaxis, col_var)
+                        if i != j: decode_axis(ax_sub.yaxis, row_var)
                         if grid_i == grid_size - 1: ax_sub.set_xlabel(col_var, fontsize=9)
-                        else: ax_sub.set_xlabel(""); ax_sub.set_xticklabels([])
+                        else: ax_sub.set_xlabel(""); ax_sub.tick_params(axis='x', labelbottom=False)
                         if grid_j == 0: ax_sub.set_ylabel(row_var, fontsize=9)
-                        else: ax_sub.set_ylabel(""); ax_sub.set_yticklabels([])
+                        else: ax_sub.set_ylabel(""); ax_sub.tick_params(axis='y', labelleft=False)
         legend_elements = [patches.Patch(facecolor='none', edgecolor=actual_box_color, linestyle='--', linewidth=2, label='Box limits')]
         if any(includes_na.values()):
             legend_elements.append(patches.Patch(facecolor='none', edgecolor=actual_box_color, hatch='///', label='Includes N/A'))
@@ -826,7 +883,7 @@ def show_box_diagnostics(
                 for i, (p_name, color) in enumerate(current_palette.items()):
                     if i >= 5: break
                     legend_elements.append(Line2D([0], [0], marker='s', color='w', label=f"{p_name}", markerfacecolor=color, markersize=8))
-                if len(current_palette) > 5: legend_elements.append(Line2D([0], [0], color='w', label="... and more policies", fontsize=8))
+                if len(current_palette) > 5: legend_elements.append(Line2D([0], [0], color="w", label="... and more policies"))
         else:
             legend_elements.extend([Line2D([0], [0], marker='o', color='w', label=label_success, markerfacecolor='red', markersize=10), Line2D([0], [0], marker='D', color='w', label=label_failure, markerfacecolor='blue', markersize=10)])
         fig.legend(handles=legend_elements, loc='lower center', bbox_to_anchor=(0.5, 0.0), ncol=3, fontsize=10, frameon=False); plt.subplots_adjust(bottom=0.2)

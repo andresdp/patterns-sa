@@ -81,6 +81,7 @@ Robustness Analysis quantifies the stability of performance under parameter unce
 ### Tools & Methods
 *   **Metrics**: STARR (Success Rate), REGRET (Distance to target), Stability Radius (Distance to failure).
 *   **Visuals**: MDS Parameter Projection vs. Objective Space (Dual-Panel), Robustness Comparison Heatmaps.
+*   **Policy grouping**: rows are system configurations by default. For systems with several decisions, pass `by='decision'` or `by='<decision>'` to report per decision policy instead (see [robustness_policy_grouping.md](robustness_policy_grouping.md)).
 
 ---
 
