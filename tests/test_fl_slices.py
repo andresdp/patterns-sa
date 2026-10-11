@@ -1,6 +1,7 @@
 """Focused slices of the FL dataset (federatedlearning/fl_slices.py, make_slice_notebooks.py)."""
 import contextlib
 import io
+import json
 import os
 import sys
 import unittest
@@ -117,10 +118,11 @@ class TestGenerator(unittest.TestCase):
         exec(params, {}, ns)
         self.assertEqual(ns["TRADEOFF_EDGES"], make_slice_notebooks.full_dataset_edges(ns["SPEC"], ns["TRADEOFF_LABELS"]))
         self.assertIn("Focused analysis", sources[1])
-        tagged = [s for c, s in zip(nb["cells"], sources)
-                  if make_slice_notebooks.INTERPRETATION_TAG in c["metadata"].get("tags", [])]
-        self.assertTrue(tagged)
-        self.assertTrue(all("Interpretation to be written for this slice" in s for s in tagged))
+        # The base notebook's markdown is generic, so it is kept unchanged
+        with open(make_slice_notebooks.BASE_NOTEBOOK) as f:
+            base = json.load(f)
+        markdown = lambda cells: ["".join(c["source"]) for c in cells if c["cell_type"] == "markdown"]
+        self.assertEqual(markdown(nb["cells"][:1] + nb["cells"][2:]), markdown(base["cells"]))
         self.assertTrue(all(not c.get("outputs") for c in nb["cells"] if c["cell_type"] == "code"))
         self.assertEqual(make_slice_notebooks.output_name("hdh", True), "analysis-fl-hdh-vs-baseline.ipynb")
 

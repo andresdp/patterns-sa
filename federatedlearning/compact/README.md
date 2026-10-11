@@ -99,9 +99,12 @@ effects:
 ### Generating and editing
 
 The pattern and stress notebooks are **generated** from `analysis-fl.ipynb` by
-`make_slice_notebooks.py`. Only their `parameters` cell differs, plus a header. Markdown
-cells that interpret the overview's results are replaced by placeholders. Edit the overview
-notebook and regenerate, rather than editing a generated notebook:
+`make_slice_notebooks.py`. Only their `parameters` cell differs, plus a header. Their
+markdown is the overview's, unchanged: it explains what each step computes and how to read
+it, but never describes particular results (counts, ranges, boxes), so it stays valid for
+any slice and after the data changes. The results are the cell outputs. Cells tagged
+`reading-guide` are the ones that explain how to read a result. Edit the overview notebook
+and regenerate, rather than editing a generated notebook:
 
 ```bash
 # from federatedlearning/

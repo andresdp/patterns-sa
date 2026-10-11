@@ -14,10 +14,9 @@ Two families of notebooks, each the base notebook with its `parameters` cell set
   By default they keep only the environment points shared by every configuration
   (ENVIRONMENT = 'common'), so configurations are compared under the same conditions.
 
-In every generated notebook, the markdown cells tagged `full-dataset-interpretation` are
-replaced by placeholders (their text interprets the base notebook's results; section
-titles are kept), a header explains the slice, and outputs are cleared (or recomputed with
---execute).
+Every generated notebook keeps the base notebook's markdown unchanged: it explains how to
+read each result without describing particular results, so it applies to any slice. A
+header explains the slice, and outputs are cleared (or recomputed with --execute).
 
 Generated notebooks are outputs: edit analysis-fl.ipynb and regenerate, e.g. after the
 dataset grows.
@@ -41,7 +40,6 @@ from typing import Any, Dict, List, Optional
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 BASE_NOTEBOOK = os.path.join(HERE, "analysis-fl.ipynb")
-INTERPRETATION_TAG = "full-dataset-interpretation"
 
 PATTERN_SPEC = "./compact/FLsystem_compact_individual.json"  # baseline + single patterns
 STRESS_SPEC = "./compact/FLsystem_compact_all.json"          # all configurations
@@ -133,16 +131,6 @@ def _set_parameters(cell: dict, values: Dict[str, Any], edges: Optional[Dict[str
     cell["source"] = src.splitlines(keepends=True)
 
 
-def _placeholder(cell: dict) -> None:
-    lines = "".join(cell["source"]).splitlines()
-    title = lines[0] if lines and lines[0].startswith("#") else ""
-    text = (f"{title}\n\n" if title else "") + (
-        "> *Interpretation to be written for this slice.* The corresponding text in "
-        "`analysis-fl.ipynb` interprets the base notebook's results and does not apply here."
-    )
-    cell["source"] = text.splitlines(keepends=True)
-
-
 def _header(text: str) -> dict:
     return {"cell_type": "markdown", "id": "slice-header", "metadata": {"tags": ["slice-header"]},
             "source": text.splitlines(keepends=True)}
@@ -155,8 +143,6 @@ def _build(values: Dict[str, Any], header: str, edges: Optional[Dict[str, List[f
     for cell in nb["cells"]:
         if cell["cell_type"] == "code":
             cell["outputs"], cell["execution_count"] = [], None
-        elif INTERPRETATION_TAG in cell.get("metadata", {}).get("tags", []):
-            _placeholder(cell)
     nb["cells"].insert(1, _header(header))
     return nb
 
