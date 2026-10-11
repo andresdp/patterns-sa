@@ -9,7 +9,7 @@ from adept import PatternAnalysis
 
 REPO_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 FL_DIR = os.path.join(REPO_ROOT, "federatedlearning")
-SPEC = os.path.join(FL_DIR, "FLsystem_split.json")
+SPEC = os.path.join(FL_DIR, "naive", "FLsystem_split.json")
 sys.path.insert(0, FL_DIR)
 
 import fl_slices  # noqa: E402
@@ -43,8 +43,8 @@ class TestSliceFilter(unittest.TestCase):
         with self.assertRaises(ValueError):
             fl_slices.config_id(["unknown"])
 
-    def test_all_has_no_filter(self):
-        self.assertIsNone(fl_slices.slice_filter("all"))
+    def test_all_keeps_every_run(self):
+        self.assertEqual(len(load("all").raw_df), 32)
 
     def test_slices_keep_only_their_configurations(self):
         expected = {"baseline": {"OFF,OFF,OFF"}, "client_selector": {"ON,OFF,OFF"},

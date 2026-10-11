@@ -97,7 +97,7 @@ class TestMultiDecisionGrouping(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls):
-        cls.session = load_session(os.path.join(FL_DIR, "FLsystem_split.json"), preprocess_fl,
+        cls.session = load_session(os.path.join(FL_DIR, "naive", "FLsystem_split.json"), preprocess_fl,
                                    ["best_val_f1", "avg_total_time"], test_size=0.3)
         target = cls.session.get_tradeoffs(non_empty=True)[0].name
         cls.target = target

@@ -18,7 +18,7 @@ class TestObjectiveSelection(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls):
-        cls.session = PatternAnalysis(os.path.join(FL_DIR, "FLsystem_split.json"))
+        cls.session = PatternAnalysis(os.path.join(FL_DIR, "naive", "FLsystem_split.json"))
         cls.session.load(preprocessor=preprocess_fl)
         cls.all_objectives = list(cls.session.outcomes_df.columns)
 

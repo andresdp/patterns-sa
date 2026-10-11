@@ -90,6 +90,7 @@ def show_quality_objective_space(
     draw_rectangles: bool = False,
     eps: float = 0.01,
     background_alpha: float = 0.6,
+    overall_color: str = 'gray',
     annotation_text: Optional[str] = None,
     annotation_loc: str = 'auto',
     **kwargs
@@ -114,13 +115,13 @@ def show_quality_objective_space(
     if coloring_by_policy and show_overall:
         sns.scatterplot(
             data=outcomes_df, x=x_metric, y=y_metric, 
-            ax=ax, color='gray', alpha=background_alpha, s=s, zorder=0
+            ax=ax, color=overall_color, alpha=background_alpha, s=s, zorder=0
         )
     elif not coloring_by_policy:
          sns.scatterplot(
             data=outcomes_df, x=x_metric, y=y_metric, 
             ax=ax, 
-            color='gray' if show_overall else 'white', 
+            color=overall_color if show_overall else 'white',
             alpha=background_alpha if show_overall else 0, 
             label='Overall' if show_overall else None, 
             s=s
@@ -882,7 +883,7 @@ def show_box_diagnostics(
                 for i, (p_name, color) in enumerate(current_palette.items()):
                     if i >= 5: break
                     legend_elements.append(Line2D([0], [0], marker='s', color='w', label=f"{p_name}", markerfacecolor=color, markersize=8))
-                if len(current_palette) > 5: legend_elements.append(Line2D([0], [0], color='w', label="... and more policies", fontsize=8))
+                if len(current_palette) > 5: legend_elements.append(Line2D([0], [0], color="w", label="... and more policies"))
         else:
             legend_elements.extend([Line2D([0], [0], marker='o', color='w', label=label_success, markerfacecolor='red', markersize=10), Line2D([0], [0], marker='D', color='w', label=label_failure, markerfacecolor='blue', markersize=10)])
         fig.legend(handles=legend_elements, loc='lower center', bbox_to_anchor=(0.5, 0.0), ncol=3, fontsize=10, frameon=False); plt.subplots_adjust(bottom=0.2)

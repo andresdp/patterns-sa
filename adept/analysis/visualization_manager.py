@@ -47,7 +47,7 @@ class VisualizationManager:
         except Exception as e:
             raise VisualizationError(f"Failed to plot tradeoff distribution: {str(e)}")
     
-    def show_quality_objective_space(self, outcomes_df: pd.DataFrame, x_metric: str, y_metric: str, schemes: List[Dict], eps: float = 0.01, background_alpha: float = 0.6, annotation_text: Optional[str] = None, **kwargs) -> plt.Figure:
+    def show_quality_objective_space(self, outcomes_df: pd.DataFrame, x_metric: str, y_metric: str, schemes: List[Dict], eps: float = 0.01, background_alpha: float = 0.6, overall_color: str = 'gray', annotation_text: Optional[str] = None, **kwargs) -> plt.Figure:
         """Plots a 2D scatter of outcomes with tradeoff overlays.
         
         Args:
@@ -57,6 +57,7 @@ class VisualizationManager:
             schemes: List of discretization schemes
             eps: Epsilon factor to enlarge tradeoff rectangles
             background_alpha: Alpha for gray background points
+            overall_color: Color for the overall/background points (default: 'gray')
             annotation_text: Optional text to display in a box inside the plot
             **kwargs: Additional plotting parameters
             
@@ -76,6 +77,7 @@ class VisualizationManager:
             return show_quality_objective_space(
                 outcomes_df, x_metric, y_metric, schemes, 
                 eps=eps, background_alpha=background_alpha, 
+                overall_color=overall_color,
                 annotation_text=annotation_text, **kwargs
             )
         except Exception as e:

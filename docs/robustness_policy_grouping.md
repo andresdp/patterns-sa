@@ -38,8 +38,13 @@ Every robustness method now maps a policy label to experiment rows through one h
 | `'configuration'` (default) | one per configuration | `OFF,OFF,OFF`, `ON,OFF,OFF`, `OFF,ON,OFF`, `OFF,OFF,ON` | `no-offloading`, ... |
 | `'decision'` | one per (decision, policy), labeled `decision:policy` | `client_selector_pattern:ON`, ..., `hdh_pattern:OFF` | `offloading_strategy:no-offloading`, ... |
 | a decision key | one per policy of that decision, plain labels | `by='hdh_pattern'` gives `ON`, `OFF` | `by='offloading_strategy'` gives `no-offloading`, ... |
+| an experiment column | one per value of that column, labeled `column=value`, in value order | `by='Pattern Types Active'` gives `Pattern Types Active=0`, ..., `=3` | any declared parameter, e.g. `by='N_B'` |
 
 Decision keys may be written as `'Component:Decision'` or just `'Decision'` when unambiguous.
+A name that is both a decision key and a column is read as the decision. Column groups are
+meant for attributes that summarize or condition configurations, such as the derived
+pattern-stress level of FL (`federatedlearning/pattern_stress.py`); a group then mixes the
+configurations that share the value, so read it next to the per-configuration rows.
 
 ### Resolving a label without `by`
 
@@ -80,6 +85,10 @@ Compute both with the same `by`.
   Groups are larger (`OFF` pools every configuration where X is off), but rows overlap across
   decisions and each row mixes different states of the *other* decisions. This matches the
   per-decision contingency analysis (`show_policy_contingency(decision_key=...)`).
+
+* **an experiment column** answers *"how does robustness change with this attribute?"*,
+  e.g. with the number of active patterns. Groups are disjoint, but each pools several
+  configurations, with weights given by their number of runs.
 
 ## Backward Compatibility
 

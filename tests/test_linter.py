@@ -384,7 +384,7 @@ class TestRealSpecRegression(unittest.TestCase):
             sys.path.insert(0, fl_dir)
         from preprocess_fl_clients import preprocess_fl
 
-        json_path = os.path.join(fl_dir, "FLsystem_split.json")
+        json_path = os.path.join(fl_dir, "naive", "FLsystem_split.json")
         loader = GenericDataLoader()
         sys_def = loader.load_system_definition(json_path)
         raw_df, _experiments_df, _outcomes_df = loader.load_data(json_path, validate_integrity=False)

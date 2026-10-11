@@ -299,7 +299,7 @@ class PatternAnalysis:
             self.outcomes_df, self.schemes, tradeoff=tradeoff, highlight_indices=highlight_indices, **kwargs
         )
 
-    def show_quality_objective_space(self, x_metric: str, y_metric: str, highlight_tradeoffs: Optional[List[Tradeoff]] = None, highlight_policies: Optional[List[str]] = None, show_overall: bool = True, color_points: bool = True, draw_rectangles: bool = False, subset: str = 'all', eps: float = 0.01, background_alpha: float = 0.6, **kwargs) -> plt.Figure:
+    def show_quality_objective_space(self, x_metric: str, y_metric: str, highlight_tradeoffs: Optional[List[Tradeoff]] = None, highlight_policies: Optional[List[str]] = None, show_overall: bool = True, color_points: bool = True, draw_rectangles: bool = False, subset: str = 'all', eps: float = 0.01, background_alpha: float = 0.6, overall_color: str = 'gray', **kwargs) -> plt.Figure:
         """Plots a 2D scatter of outcomes with tradeoff overlays and highlighting.
         
         Args:
@@ -313,6 +313,7 @@ class PatternAnalysis:
             subset: 'all' (default), 'train', or 'test'.
             eps: Epsilon factor to enlarge tradeoff rectangles.
             background_alpha: Alpha for gray background points.
+            overall_color: Color for the overall/background points (default: 'gray').
         """
         X, Y, _ = self._get_subset_data(subset)
         
@@ -341,7 +342,8 @@ class PatternAnalysis:
             policy_series=policy_series,
             show_overall=show_overall, 
             color_points=color_points, draw_rectangles=draw_rectangles, 
-            eps=eps, background_alpha=background_alpha, **kwargs
+            eps=eps, background_alpha=background_alpha,
+            overall_color=overall_color, **kwargs
         )
 
     def show_box_impact_objective_space(
@@ -1829,6 +1831,9 @@ class PatternAnalysis:
     #   by='configuration' (default) -> one group per configuration
     #   by='decision'                -> one group per (decision, policy), labeled 'decision:policy'
     #   by='<decision key>'          -> one group per policy of that decision, plain labels
+    #   by='<column>'                -> one group per value of an experiment column that is
+    #                                   not a decision (e.g. a derived 'Pattern Types Active'),
+    #                                   labeled '<column>=<value>'
     # See docs/robustness_policy_grouping.md.
 
     def _resolve_decision_key(self, decision_key: str, policy_map: pd.DataFrame) -> str:
@@ -1863,7 +1868,38 @@ class PatternAnalysis:
                 name: policy_map[col].map(lambda p, n=name: f"{n}:{p}" if pd.notna(p) else p)
                 for name, col in zip(names, policy_map.columns)
             }, index=policy_map.index)
+        if self._is_column_grouping(by, policy_map):
+            return self.experiments_df[[by]].apply(lambda col: col.map(lambda v, n=by: self._column_group_label(n, v)))
         return policy_map[[self._resolve_decision_key(by, policy_map)]]
+
+    def _is_column_grouping(self, by: str, policy_map: Optional[pd.DataFrame] = None) -> bool:
+        """Whether `by` names an experiment column rather than a decision (decisions win)."""
+        from ..analysis.contingency import ContingencyAnalyzer
+
+        if by in ('configuration', 'decision'):
+            return False
+        if policy_map is None:
+            config_col = self.sys_def.dataspace.configuration_identification.column
+            policy_map = ContingencyAnalyzer(self.sys_def).get_decision_policy_map(self.experiments_df, config_col)
+        try:
+            self._resolve_decision_key(by, policy_map)
+            return False
+        except ValueError:
+            if by in self.experiments_df.columns:
+                return True
+            raise ValueError(
+                f"Grouping '{by}' is neither 'configuration', 'decision', a decision key "
+                f"({list(policy_map.columns)}) nor an experiment column."
+            )
+
+    @staticmethod
+    def _column_group_label(column: str, value: Any) -> Any:
+        """Label of a column-value group, e.g. 'Pattern Types Active=2' (NaN stays NaN)."""
+        if pd.isna(value):
+            return value
+        if isinstance(value, float) and value.is_integer():
+            value = int(value)
+        return f"{column}={value}"
 
     def _policy_labels(self, by: str = 'configuration') -> List[str]:
         """Lists the policy-group labels for a grouping, in reporting order."""
@@ -1872,6 +1908,10 @@ class PatternAnalysis:
             return sorted(v for v in frame.iloc[:, 0].unique() if pd.notna(v))
         if by == 'decision':
             return [v for c in frame.columns for v in sorted(frame[c].dropna().unique())]
+        if self._is_column_grouping(by):
+            # Column groups in the order of the column's values (numeric order for numbers)
+            values = sorted(v for v in self.experiments_df[by].unique() if pd.notna(v))
+            return [self._column_group_label(by, v) for v in values]
         return [v for v in frame.iloc[:, 0].unique() if pd.notna(v)]
 
     def _policy_mask(self, policy_name: str, by: Optional[str] = None) -> pd.Series:

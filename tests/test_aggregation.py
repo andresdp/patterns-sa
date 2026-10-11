@@ -55,7 +55,7 @@ class TestDeclaredAggregation(unittest.TestCase):
     """FL's spec declares its client aggregation, so no preprocessor is needed."""
 
     def test_declared_aggregation_matches_the_fl_preprocessor(self):
-        json_path = os.path.join(FL_DIR, "FLsystem_split.json")
+        json_path = os.path.join(FL_DIR, "naive", "FLsystem_split.json")
         with contextlib.redirect_stdout(io.StringIO()):
             declared = PatternAnalysis(json_path)
             declared.load()

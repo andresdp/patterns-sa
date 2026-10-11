@@ -205,6 +205,17 @@ The ablations compare boxes and densities across slices, so a tradeoff label mus
 
 Within each family the grid is static, so densities and boxes are comparable across all slices of that family. Across families, compare the key parameters and the box conditions, not the densities.
 
+### 4.6 Pattern stress (compact campaign)
+
+The compact AP4FED campaign (`federatedlearning/compact/`) covers all 8 configurations at 4, 8 and 10 clients, for two tasks (image: CIFAR-10 + CNN 16k; text: AG_NEWS + MLP). It enables a new analysis dimension: **pattern stress**, how much patterning a system carries.
+
+- **S_types**: the number of active pattern types (0-3), fixed by the configuration.
+- **S_inst**: the number of deployed pattern instances. The same pattern type can have several instances (e.g. one compressor per participating client), so S_inst also depends on the environment and on the other decisions: the client selector removes clients and their instances, so `ON,ON,ON` can carry fewer instances than `OFF,ON,ON`.
+
+Protocol: one notebook per client count and task (the system structure changes with the number of clients, and the task dominates accuracy), restricted to the environment point shared by all configurations, (25%, 25%, 25%) low-spec/non-IID/delay, where the design is a balanced full factorial. Analyses: tradeoff shares per stress level (`by='Pattern Types Active'`), objectives vs. S_inst, and PRIM boxes over the stress measures. The instance counts rely on deployment assumptions (A1-A3) that are listed, with open questions, in `federatedlearning/compact/README.md`.
+
+Reading for the paper: boxes on S_types are prescriptive ("how many patterns"); boxes on S_inst are conditional prescriptions, since instances depend on the environment.
+
 ## 5. Research Questions for the Extension
 
 - **RQ1 (composed decisions).** Can ADEPT explain which decisions, and combinations of decisions, of a composed-pattern system achieve a given tradeoff? *(prescriptive boxes; current and new FL data)*

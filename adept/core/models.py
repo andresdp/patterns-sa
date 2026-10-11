@@ -462,7 +462,7 @@ class DataSpace(BaseModel):
     """
     configuration_identification: ConfigurationIdentification = Field(..., description="Logic for policy mapping.")
     quality_objectives: List[QualityObjective] = Field(default_factory=list, description="Target metrics.")
-    source_file: Optional[str] = Field(default=None, description="Primary CSV data file.")
+    source_file: Optional[Union[str, List[str]]] = Field(default=None, description="Primary CSV data file, or a list of CSV files with the same columns, concatenated in order.")
     traces_path: Optional[str] = Field(default=None, description="Path to behavioral trace datasets.")
     column_renames: Dict[str, str] = Field(default_factory=dict, description="Mapping of CSV names to internal IDs.")
     discovery_options: Dict[str, Any] = Field(default_factory=dict, description="Global defaults for scenario discovery.")
