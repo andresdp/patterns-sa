@@ -52,11 +52,24 @@ It must therefore be loaded through `fl_slices.slice_filter(...)`, as every note
 ## 3. Notebooks and their rationale
 
 The retained analysis set has six scenario notebooks, covering each client count (4, 8, 10)
-and task (image or text). Each notebook contains two views of the same scenario: the common
-environment points shared by all configurations, and all available environment points.
-The second view includes unevenly sampled conditions, so observed configuration differences
-can reflect both design choices and environmental composition. The views are nested and
-must not be counted as independent evidence.
+and task (image or text). Each notebook contains two views of the same task/client-count
+scenario: **same-environment** (called `common` in the notebook filter) and
+**all-environment**.
+
+- **Same-environment / common:** keeps only the single environment point shared by all
+  eight pattern configurations: 25% low-spec clients, 25% non-IID clients, and 25% delayed
+  clients. This compares configurations under the same recorded environment settings, with
+  ten `partition_seed` runs per configuration (80 runs per task/client-count slice). It is
+  useful for a like-for-like descriptive comparison, but represents only that one point and
+  often has too little outcome variation for scenario discovery.
+- **All-environment:** keeps every available run for the selected task and client count,
+  including the shared point and additional environment points. Environmental coverage is
+  not fully crossed: some configurations have different numbers or mixes of available
+  conditions. This view broadens the observed operating envelope, but configuration
+  differences can reflect both pattern choices and environmental composition.
+
+The same-environment rows are included in the all-environment view. Treat the views as
+complementary analyses of overlapping data, not as independent replications.
 
 | Notebooks | Scenario | Questions |
 |:---|:---|:---|
