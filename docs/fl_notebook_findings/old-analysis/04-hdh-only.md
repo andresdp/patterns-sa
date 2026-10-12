@@ -1,6 +1,6 @@
 # HDH only
 
-**Notebook:** [analysis-fl-hdh.ipynb](../../federatedlearning/analysis-fl-hdh.ipynb)  
+**Notebook:** [analysis-fl-hdh.ipynb](../../../federatedlearning/old-analysis/analysis-fl-hdh.ipynb)  
 **Saved execution:** perfmodels; 51 code cells; no notebook cell errors.
 
 **Main association:** HDH-configured runs include substantial low-accuracy image support; the matched comparison gives no general accuracy advantage.
@@ -38,7 +38,7 @@ Scores below are shares of the fitted forest’s training impurity reduction, no
 
 The leading feature is unchanged over five forest seeds for both objectives, with training rows and correlation pruning held fixed. This checks model randomness, not stability across new partitions or deployments. Discovery keeps 5 parameters under the score >3% gate: `Dataset`, `HDH Instances`, `JSD Mean`, `Total Clients`, `delay_percentage`.
 
-The [cross-notebook feature audit](../fl_feature_importance_audit.md) distinguishes constant and pruned zeros, measurement proxies, threshold sensitivity, and held-out prediction limits.
+The [cross-notebook feature audit](../../fl_feature_importance_audit.md) distinguishes constant and pruned zeros, measurement proxies, threshold sensitivity, and held-out prediction limits.
 
 ## What-if: robustness after applying box rules
 

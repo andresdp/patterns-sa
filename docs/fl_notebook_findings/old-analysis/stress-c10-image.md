@@ -1,6 +1,6 @@
 # Fixed setting — 10 clients, image
 
-**Notebook:** [analysis-fl-stress-c10-image.ipynb](../../federatedlearning/analysis-fl-stress-c10-image.ipynb)  
+**Notebook:** [analysis-fl-stress-c10-image.ipynb](../../../federatedlearning/old-analysis/analysis-fl-stress-c10-image.ipynb)  
 **Saved execution:** perfmodels; 51 code cells; no notebook cell errors.
 
 **Main association:** CS’s accuracy association changes with composition: −0.30 pp against baseline, but +0.21 pp when MC is already ON and HDH OFF.
@@ -64,7 +64,7 @@ JSD receives 70.8% of accuracy importance, but the model’s accuracy R² is onl
 
 The leading feature is unchanged over five forest seeds for both objectives, with training rows and correlation pruning held fixed. This checks model randomness, not stability across new partitions or deployments. Discovery keeps 5 parameters under the score >3% gate: `JSD Mean`, `Pattern Types Active`, `Client Selector Criteria`, `Message Compressor Alg`, `HDH Batch Size`.
 
-The [cross-notebook feature audit](../fl_feature_importance_audit.md) distinguishes constant and pruned zeros, measurement proxies, threshold sensitivity, and held-out prediction limits.
+The [cross-notebook feature audit](../../fl_feature_importance_audit.md) distinguishes constant and pruned zeros, measurement proxies, threshold sensitivity, and held-out prediction limits.
 
 ## What-if: robustness after applying box rules
 

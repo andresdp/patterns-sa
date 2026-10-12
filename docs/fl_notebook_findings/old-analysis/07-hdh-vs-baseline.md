@@ -1,6 +1,6 @@
 # HDH versus baseline
 
-**Notebook:** [analysis-fl-hdh-vs-baseline.ipynb](../../federatedlearning/analysis-fl-hdh-vs-baseline.ipynb)  
+**Notebook:** [analysis-fl-hdh-vs-baseline.ipynb](../../../federatedlearning/old-analysis/analysis-fl-hdh-vs-baseline.ipynb)  
 **Saved execution:** perfmodels; 51 code cells; no notebook cell errors.
 
 **Main association:** HDH-ON is associated with lower accuracy in 138/180 pairs; its round-time differences have mixed signs.
@@ -34,7 +34,7 @@ Timing is associated mainly with delay (76.6%) and HDH activity count (10.2%). J
 
 The leading feature is unchanged over five forest seeds for both objectives, with training rows and correlation pruning held fixed. This checks model randomness, not stability across new partitions or deployments. Discovery keeps 6 parameters under the score >3% gate: `Dataset`, `delay_percentage`, `HDH Instances`, `Total Clients`, `JSD Mean`, `non_iid_percentage`.
 
-The [cross-notebook feature audit](../fl_feature_importance_audit.md) distinguishes constant and pruned zeros, measurement proxies, threshold sensitivity, and held-out prediction limits.
+The [cross-notebook feature audit](../../fl_feature_importance_audit.md) distinguishes constant and pruned zeros, measurement proxies, threshold sensitivity, and held-out prediction limits.
 
 ## What-if: robustness after applying box rules
 

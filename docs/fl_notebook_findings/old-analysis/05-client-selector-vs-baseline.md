@@ -1,6 +1,6 @@
 # Client Selector versus baseline
 
-**Notebook:** [analysis-fl-client-selector-vs-baseline.ipynb](../../federatedlearning/analysis-fl-client-selector-vs-baseline.ipynb)  
+**Notebook:** [analysis-fl-client-selector-vs-baseline.ipynb](../../../federatedlearning/old-analysis/analysis-fl-client-selector-vs-baseline.ipynb)  
 **Saved execution:** perfmodels; 51 code cells; no notebook cell errors.
 
 **Main association:** CS-ON is associated with shorter rounds in 162/180 matched pairs and lower accuracy in 143/180.
@@ -34,7 +34,7 @@ Delay (50.4%) and the CS representative (25.7%) dominate timing. This is consist
 
 The leading feature is unchanged over five forest seeds for both objectives, with training rows and correlation pruning held fixed. This checks model randomness, not stability across new partitions or deployments. Discovery keeps 6 parameters under the score >3% gate: `Dataset`, `delay_percentage`, `Client Selector Criteria`, `CPU Mean`, `Total Clients`, `non_iid_percentage`.
 
-The [cross-notebook feature audit](../fl_feature_importance_audit.md) distinguishes constant and pruned zeros, measurement proxies, threshold sensitivity, and held-out prediction limits.
+The [cross-notebook feature audit](../../fl_feature_importance_audit.md) distinguishes constant and pruned zeros, measurement proxies, threshold sensitivity, and held-out prediction limits.
 
 ## What-if: robustness after applying box rules
 

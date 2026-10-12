@@ -1,6 +1,6 @@
 # Overview — decisions, conditions, and tradeoffs
 
-**Notebook:** [analysis-fl.ipynb](../../federatedlearning/analysis-fl.ipynb)  
+**Notebook:** [analysis-fl.ipynb](../../../federatedlearning/old-analysis/analysis-fl.ipynb)  
 **Saved execution:** perfmodels; 51 code cells; no notebook cell errors.
 
 **Main association:** CS is associated with shorter rounds and lower accuracy on shared support. MC has almost unchanged accuracy and slightly longer rounds. HDH has lower accuracy; its time differences have mixed signs.
@@ -60,7 +60,7 @@ Scores below are shares of the fitted forest’s training impurity reduction, no
 
 The leading feature is unchanged over five forest seeds for both objectives, with training rows and correlation pruning held fixed. This checks model randomness, not stability across new partitions or deployments. Discovery keeps 8 parameters under the score >3% gate: `Dataset`, `delay_percentage`, `Client Selector Criteria`, `non_iid_percentage`, `CPU Mean`, `Total Clients`, `HDH Instances`, `Pattern Instances`.
 
-The [cross-notebook feature audit](../fl_feature_importance_audit.md) distinguishes constant and pruned zeros, measurement proxies, threshold sensitivity, and held-out prediction limits.
+The [cross-notebook feature audit](../../fl_feature_importance_audit.md) distinguishes constant and pruned zeros, measurement proxies, threshold sensitivity, and held-out prediction limits.
 
 ## What-if: robustness after applying box rules
 

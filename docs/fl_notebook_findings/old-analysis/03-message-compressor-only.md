@@ -1,6 +1,6 @@
 # Message Compressor only
 
-**Notebook:** [analysis-fl-message-compressor.ipynb](../../federatedlearning/analysis-fl-message-compressor.ipynb)  
+**Notebook:** [analysis-fl-message-compressor.ipynb](../../../federatedlearning/old-analysis/analysis-fl-message-compressor.ipynb)  
 **Saved execution:** perfmodels; 51 code cells; no notebook cell errors.
 
 **Main association:** Fast-round regions are associated with low delay; the matched evidence does not show a total-round-time advantage from enabling MC.
@@ -38,7 +38,7 @@ Delay dominates timing (93.7%). `Message Compressor Instances` stands for deploy
 
 The leading feature is unchanged over five forest seeds for both objectives, with training rows and correlation pruning held fixed. This checks model randomness, not stability across new partitions or deployments. Discovery keeps 3 parameters under the score >3% gate: `Dataset`, `delay_percentage`, `Message Compressor Instances`.
 
-The [cross-notebook feature audit](../fl_feature_importance_audit.md) distinguishes constant and pruned zeros, measurement proxies, threshold sensitivity, and held-out prediction limits.
+The [cross-notebook feature audit](../../fl_feature_importance_audit.md) distinguishes constant and pruned zeros, measurement proxies, threshold sensitivity, and held-out prediction limits.
 
 ## What-if: robustness after applying box rules
 

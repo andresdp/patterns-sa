@@ -1,6 +1,6 @@
 # Baseline — all patterns OFF
 
-**Notebook:** [analysis-fl-baseline.ipynb](../../federatedlearning/analysis-fl-baseline.ipynb)  
+**Notebook:** [analysis-fl-baseline.ipynb](../../../federatedlearning/old-analysis/analysis-fl-baseline.ipynb)  
 **Saved execution:** perfmodels; 51 code cells; no notebook cell errors.
 
 **Main association:** The baseline retains high-bin accuracy on every text run, while image runs occupy medium- or low-accuracy regions.
@@ -38,7 +38,7 @@ With all patterns OFF, their parameters are constant and cannot explain within-b
 
 The leading feature is unchanged over five forest seeds for both objectives, with training rows and correlation pruning held fixed. This checks model randomness, not stability across new partitions or deployments. Discovery keeps 4 parameters under the score >3% gate: `Dataset`, `delay_percentage`, `Total Clients`, `non_iid_percentage`.
 
-The [cross-notebook feature audit](../fl_feature_importance_audit.md) distinguishes constant and pruned zeros, measurement proxies, threshold sensitivity, and held-out prediction limits.
+The [cross-notebook feature audit](../../fl_feature_importance_audit.md) distinguishes constant and pruned zeros, measurement proxies, threshold sensitivity, and held-out prediction limits.
 
 ## What-if: robustness after applying box rules
 

@@ -14,11 +14,17 @@ This synthesis uses the six executed RQ1/RQ2 notebooks for the compact campaign.
 
 4. **The complete configuration remains the right design alternative to compare.** Marginal tables and objective-versus-instance plots describe associations; they do not isolate a pattern’s effect. For a design choice, compare the full CS/MC/HDH configuration under the intended operating envelope, check both objectives, and use the pattern-count table as context. Any apparent pattern-count gradient should be verified against the actual policy combinations and run support that form each group.
 
-### Action for a software designer
+### Implications for software architects/designers
 
 - Pick a target region that meets the product’s accuracy floor and time budget, then shortlist complete configurations that reach it in the matching dataset/model and client-count slice.
 - Use common-environment results to compare designs at the same sampled environment point. Use all-environment results to see how that shortlist behaves as non-IID, delay, CPU, and JSD conditions vary.
 - Do not turn an observed rise in `*-S` shares by pattern count into a recommendation to add instances. Identify the specific policy and its deployment constraints first.
+
+### Implications for researchers
+
+- Report populated and empty quadrants for each task/model and client-count slice. An empty quadrant is a boundary of the sampled design space, not evidence that the outcome is impossible.
+- Keep the campaign-wide objective grid fixed when crosschecking slices, as these notebooks do, and report run counts with every pattern-count percentage. Avoid interpreting `Pattern Instances` as a randomized treatment: it combines policy, participation, and execution-derived activity.
+- Separate common-environment comparisons from all-environment summaries in figures and prose. The former controls the sampled environment point; the latter may reweight environments differently by configuration.
 
 ## RQ2 — Which joint conditions identify a target tradeoff, and what changes inside the box?
 
@@ -34,15 +40,23 @@ This synthesis uses the six executed RQ1/RQ2 notebooks for the compact campaign.
 
 5. **Some target regions are not discoverable in some slices.** When every common-environment run occupies one bin, PRIM/CART may return no non-empty box. That is a scope/support limit, not a failed run. Similarly, a high precision from a one-row rule or a target represented by one held-out case is weak evidence. Prefer rules that preserve a meaningful fraction of target cases and have enough retained rows to assess.
 
-### Action for a software designer
+### Implications for software architects/designers
 
 - Translate each box into two checks: **design prescription** (which policies the JSON relationships entail) and **operating envelope** (the delay, alpha, CPU, JSD, or instance ranges that co-occur with the target).
 - For a faster-round target, test whether delay can be held at or below 12.5%; use the specific notebook rule to decide whether CS or another condition is also part of the observed envelope.
 - For any rule, compare baseline target rate, in-box target rate, retained run count/fraction, and target coverage. Do not accept a 100% box rate without checking how many target cases it captures.
 - Treat “no pattern policy required by the box conditions” literally: the fitted rule did not need a policy condition. It does not prove that pattern choices have no influence.
 
+### Implications for researchers
+
+- Present every box as a joint observational rule and include its architectural translation, test support, target prevalence, precision, coverage, gain, and retained-space fraction. This lets readers distinguish a useful operating envelope from a narrow high-precision pocket.
+- Do not pool test rows across the common and all-environment views as if they were independent. Use the all-environment view for envelope discovery and the common view for a controlled descriptive comparison; neither identifies causal effects.
+- Treat no-box outputs and low-support boxes as substantive evidence limits. Follow them with experiments that add support to the missing target region or independently vary the policy and uncertainty implicated by the box.
+
 ## Interpretation limits and reporting
 
 These are observational compact-run analyses. Numeric client fields are averaged within runs, so client imbalance and round-level behavior are hidden. Grouped train/test splitting keeps `partition_seed` groups apart, but the held-out cases still come from the same campaign. PRIM/CART rules describe the sampled combinations of design and operating conditions and should guide follow-up experiments, not be stated as causal effects or deployment guarantees. Report exact box counts with percentages, especially for rare quadrants.
+
+For the architect, the practical output is a shortlist of policy choices paired with conditions to monitor or constrain. For the researcher, it is a set of transparent, testable associations that identifies where the campaign has enough evidence, where it does not, and which additional crossed experiments would reduce ambiguity.
 
 For per-slice evidence, see the [six notebook findings](fl_notebook_findings/README.md). The original notebooks are retained under [`federatedlearning/old-analysis`](../federatedlearning/old-analysis/README.md).

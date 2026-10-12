@@ -2,6 +2,8 @@
 
 **Working revision: 2026-10-11.** This document supplies the concepts, minimal mathematics, and a hypothetical influence model for the paper. The intended reader is a software designer comparing architectural alternatives and their behavior under varying operating conditions.
 
+> **Scope alignment:** The active compact-study plan now has only RQ1 (observed tradeoff space) and RQ2 (joint conditions and box what-if robustness). The matched-contrast material and RQ3/RQ4 rows below belong to the earlier plan and are not part of the current experiment sequence. Use the active [findings index](fl_notebook_findings/README.md) and [cross-scenario synthesis](fl_research_question_synthesis.md) for current results.
+
 The previous extended tables, encoding discussion, proofs, and implementation TODOs are preserved in [technical working notes](paper_adept_formal_extension_technical_notes.md). They support implementation work; the account below is the proposed paper formalization.
 
 ## 1. Decisions, policies, configurations, and runs

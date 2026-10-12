@@ -1,6 +1,6 @@
 # Fixed setting — 4 clients, image
 
-**Notebook:** [analysis-fl-stress-c4-image.ipynb](../../federatedlearning/analysis-fl-stress-c4-image.ipynb)  
+**Notebook:** [analysis-fl-stress-c4-image.ipynb](../../../federatedlearning/old-analysis/analysis-fl-stress-c4-image.ipynb)  
 **Saved execution:** perfmodels; 51 code cells; no notebook cell errors.
 
 **Main association:** CS-alone shifts toward faster rounds (−2.637 s) with −0.33 pp accuracy; HDH-alone has the only standalone positive accuracy mean (+0.59 pp).
@@ -64,7 +64,7 @@ The leading accuracy feature switches between `HDH Batch Size` and the CS repres
 
 The saved accuracy leader remains first in only three of five forest seeds; timing’s leader remains first in all five. This is a local ranking-instability flag. Discovery keeps 5 parameters under the score >3% gate: `Client Selector Criteria`, `Pattern Types Active`, `HDH Batch Size`, `Message Compressor Instances`, `Pattern Instances`.
 
-The [cross-notebook feature audit](../fl_feature_importance_audit.md) distinguishes constant and pruned zeros, measurement proxies, threshold sensitivity, and held-out prediction limits.
+The [cross-notebook feature audit](../../fl_feature_importance_audit.md) distinguishes constant and pruned zeros, measurement proxies, threshold sensitivity, and held-out prediction limits.
 
 ## What-if: robustness after applying box rules
 

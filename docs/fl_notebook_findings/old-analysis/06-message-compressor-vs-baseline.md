@@ -1,6 +1,6 @@
 # Message Compressor versus baseline
 
-**Notebook:** [analysis-fl-message-compressor-vs-baseline.ipynb](../../federatedlearning/analysis-fl-message-compressor-vs-baseline.ipynb)  
+**Notebook:** [analysis-fl-message-compressor-vs-baseline.ipynb](../../../federatedlearning/old-analysis/analysis-fl-message-compressor-vs-baseline.ipynb)  
 **Saved execution:** perfmodels; 51 code cells; no notebook cell errors.
 
 **Main association:** MC-ON is associated with nearly unchanged accuracy and longer rounds in 219/300 matched pairs.
@@ -35,7 +35,7 @@ The selected discovery dimensions are only task, delay, and client count. No exp
 
 The leading feature is unchanged over five forest seeds for both objectives, with training rows and correlation pruning held fixed. This checks model randomness, not stability across new partitions or deployments. Discovery keeps 3 parameters under the score >3% gate: `Dataset`, `delay_percentage`, `Total Clients`.
 
-The [cross-notebook feature audit](../fl_feature_importance_audit.md) distinguishes constant and pruned zeros, measurement proxies, threshold sensitivity, and held-out prediction limits.
+The [cross-notebook feature audit](../../fl_feature_importance_audit.md) distinguishes constant and pruned zeros, measurement proxies, threshold sensitivity, and held-out prediction limits.
 
 ## What-if: robustness after applying box rules
 

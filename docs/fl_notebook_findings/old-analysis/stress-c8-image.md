@@ -1,6 +1,6 @@
 # Fixed setting — 8 clients, image
 
-**Notebook:** [analysis-fl-stress-c8-image.ipynb](../../federatedlearning/analysis-fl-stress-c8-image.ipynb)  
+**Notebook:** [analysis-fl-stress-c8-image.ipynb](../../../federatedlearning/old-analysis/analysis-fl-stress-c8-image.ipynb)  
 **Saved execution:** perfmodels; 51 code cells; no notebook cell errors.
 
 **Main association:** Every standalone pattern has lower mean accuracy; CS has the largest standalone mean time reduction (−0.365 s).
@@ -65,7 +65,7 @@ JSD leads accuracy (67.8%) but is recorded only for HDH-ON runs. Replacing its v
 
 The leading feature is unchanged over five forest seeds for both objectives, with training rows and correlation pruning held fixed. This checks model randomness, not stability across new partitions or deployments. Discovery keeps 7 parameters under the score >3% gate: `JSD Mean`, `Pattern Types Active`, `Client Selector Criteria`, `Pattern Instances`, `HDH Instances`, `HDH Batch Size`, `Message Compressor Alg`.
 
-The [cross-notebook feature audit](../fl_feature_importance_audit.md) distinguishes constant and pruned zeros, measurement proxies, threshold sensitivity, and held-out prediction limits.
+The [cross-notebook feature audit](../../fl_feature_importance_audit.md) distinguishes constant and pruned zeros, measurement proxies, threshold sensitivity, and held-out prediction limits.
 
 ## What-if: robustness after applying box rules
 

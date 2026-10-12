@@ -1,6 +1,6 @@
 # Fixed setting — 4 clients, text
 
-**Notebook:** [analysis-fl-stress-c4-text.ipynb](../../federatedlearning/analysis-fl-stress-c4-text.ipynb)  
+**Notebook:** [analysis-fl-stress-c4-text.ipynb](../../../federatedlearning/old-analysis/analysis-fl-stress-c4-text.ipynb)  
 **Saved execution:** perfmodels; 51 code cells; no notebook cell errors.
 
 **Main association:** CS-alone is faster in 9/10 seed matches and lower in accuracy in all 10; MC-alone is slower on average.
@@ -64,7 +64,7 @@ The CS representative receives 96.7% of accuracy importance, agrees with the lea
 
 The leading feature is unchanged over five forest seeds for both objectives, with training rows and correlation pruning held fixed. This checks model randomness, not stability across new partitions or deployments. Discovery keeps 4 parameters under the score >3% gate: `Client Selector Criteria`, `Pattern Types Active`, `Message Compressor Instances`, `HDH Batch Size`.
 
-The [cross-notebook feature audit](../fl_feature_importance_audit.md) distinguishes constant and pruned zeros, measurement proxies, threshold sensitivity, and held-out prediction limits.
+The [cross-notebook feature audit](../../fl_feature_importance_audit.md) distinguishes constant and pruned zeros, measurement proxies, threshold sensitivity, and held-out prediction limits.
 
 ## What-if: robustness after applying box rules
 

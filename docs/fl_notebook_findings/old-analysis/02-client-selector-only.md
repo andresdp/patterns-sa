@@ -1,6 +1,6 @@
 # Client Selector only
 
-**Notebook:** [analysis-fl-client-selector.ipynb](../../federatedlearning/analysis-fl-client-selector.ipynb)  
+**Notebook:** [analysis-fl-client-selector.ipynb](../../../federatedlearning/old-analysis/analysis-fl-client-selector.ipynb)  
 **Saved execution:** perfmodels; 51 code cells; no notebook cell errors.
 
 **Main association:** Selector-only runs often occupy faster time bins, but fast rounds also occur with low accuracy.
@@ -38,7 +38,7 @@ CS policy parameters are constant because CS is always ON. Low-spec share become
 
 The leading feature is unchanged over five forest seeds for both objectives, with training rows and correlation pruning held fixed. This checks model randomness, not stability across new partitions or deployments. Discovery keeps 6 parameters under the score >3% gate: `Dataset`, `low_spec_percentage`, `delay_percentage`, `Total Clients`, `Alpha Dirichlet Mean`, `non_iid_percentage`.
 
-The [cross-notebook feature audit](../fl_feature_importance_audit.md) distinguishes constant and pruned zeros, measurement proxies, threshold sensitivity, and held-out prediction limits.
+The [cross-notebook feature audit](../../fl_feature_importance_audit.md) distinguishes constant and pruned zeros, measurement proxies, threshold sensitivity, and held-out prediction limits.
 
 ## What-if: robustness after applying box rules
 

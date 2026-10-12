@@ -1,4 +1,8 @@
-# Feature importance across the compact FL notebooks
+# Historical feature-importance audit — superseded experiment scope
+
+> This audit covers the previous 14-notebook analysis, including matched comparisons and the earlier RQ framing. It is preserved for reference and does not describe the active six-notebook RQ1/RQ2 sequence. The current per-slice feature rankings are summarized in the numbered findings linked from `fl_notebook_findings/README.md`.
+
+## Previous-scope feature importance
 
 The audit compares all 14 executed notebooks and distinguishes recurring drivers, changes that follow from the analysis scope, and interpretation or validation flags. Its purpose is to help a software designer understand which dimensions to inspect when choosing alternatives and defining operating envelopes.
 
@@ -16,20 +20,20 @@ Importance percentages below are the saved notebook scoring results. R² values 
 
 | Analysis | Leading accuracy feature; importance | Leading time feature; importance | Accuracy / time test R² | Train / test runs |
 |---|---|---|---:|---:|
-| [Overview](fl_notebook_findings/00-overview.md) | `Dataset`; 93.8% | `delay_percentage`; 58.2% | 0.979 / 0.753 | 1638 / 702 |
-| [Baseline](fl_notebook_findings/01-baseline.md) | `Dataset`; 95.5% | `delay_percentage`; 94.1% | 0.990 / 0.973 | 252 / 108 |
-| [CS only](fl_notebook_findings/02-client-selector-only.md) | `Dataset`; 95.7% | `low_spec_percentage`; 35.5% | 0.945 / 0.179 | 210 / 90 |
-| [MC only](fl_notebook_findings/03-message-compressor-only.md) | `Dataset`; 97.0% | `delay_percentage`; 93.7% | 0.993 / 0.989 | 294 / 126 |
-| [HDH only](fl_notebook_findings/04-hdh-only.md) | `Dataset`; 94.1% | `HDH Instances`; 62.3% | 0.980 / 0.699 | 210 / 90 |
-| [CS vs baseline](fl_notebook_findings/05-client-selector-vs-baseline.md) | `Dataset`; 94.5% | `delay_percentage`; 50.4% | 0.981 / 0.584 | 462 / 198 |
-| [MC vs baseline](fl_notebook_findings/06-message-compressor-vs-baseline.md) | `Dataset`; 96.0% | `delay_percentage`; 94.0% | 0.994 / 0.979 | 546 / 234 |
-| [HDH vs baseline](fl_notebook_findings/07-hdh-vs-baseline.md) | `Dataset`; 93.6% | `delay_percentage`; 76.6% | 0.988 / 0.899 | 462 / 198 |
-| [4-client image](fl_notebook_findings/stress-c4-image.md) | `HDH Batch Size`; 31.8% | `Client Selector Criteria`; 55.1% | 0.042 / -0.026 | 56 / 24 |
-| [4-client text](fl_notebook_findings/stress-c4-text.md) | `Client Selector Criteria`; 96.7% | `Client Selector Criteria`; 55.8% | 0.875 / -0.030 | 56 / 24 |
-| [8-client image](fl_notebook_findings/stress-c8-image.md) | `JSD Mean`; 67.8% | `Pattern Types Active`; 56.8% | 0.369 / -0.002 | 56 / 24 |
-| [8-client text](fl_notebook_findings/stress-c8-text.md) | `JSD Mean`; 54.0% | `Message Compressor Instances`; 31.2% | 0.164 / 0.319 | 56 / 24 |
-| [10-client image](fl_notebook_findings/stress-c10-image.md) | `JSD Mean`; 70.8% | `Client Selector Criteria`; 39.3% | 0.193 / -0.060 | 56 / 24 |
-| [10-client text](fl_notebook_findings/stress-c10-text.md) | `JSD Mean`; 66.8% | `Message Compressor Alg`; 50.1% | 0.218 / 0.419 | 56 / 24 |
+| [Overview](fl_notebook_findings/old-analysis/00-overview.md) | `Dataset`; 93.8% | `delay_percentage`; 58.2% | 0.979 / 0.753 | 1638 / 702 |
+| [Baseline](fl_notebook_findings/old-analysis/01-baseline.md) | `Dataset`; 95.5% | `delay_percentage`; 94.1% | 0.990 / 0.973 | 252 / 108 |
+| [CS only](fl_notebook_findings/old-analysis/02-client-selector-only.md) | `Dataset`; 95.7% | `low_spec_percentage`; 35.5% | 0.945 / 0.179 | 210 / 90 |
+| [MC only](fl_notebook_findings/old-analysis/03-message-compressor-only.md) | `Dataset`; 97.0% | `delay_percentage`; 93.7% | 0.993 / 0.989 | 294 / 126 |
+| [HDH only](fl_notebook_findings/old-analysis/04-hdh-only.md) | `Dataset`; 94.1% | `HDH Instances`; 62.3% | 0.980 / 0.699 | 210 / 90 |
+| [CS vs baseline](fl_notebook_findings/old-analysis/05-client-selector-vs-baseline.md) | `Dataset`; 94.5% | `delay_percentage`; 50.4% | 0.981 / 0.584 | 462 / 198 |
+| [MC vs baseline](fl_notebook_findings/old-analysis/06-message-compressor-vs-baseline.md) | `Dataset`; 96.0% | `delay_percentage`; 94.0% | 0.994 / 0.979 | 546 / 234 |
+| [HDH vs baseline](fl_notebook_findings/old-analysis/07-hdh-vs-baseline.md) | `Dataset`; 93.6% | `delay_percentage`; 76.6% | 0.988 / 0.899 | 462 / 198 |
+| [4-client image](fl_notebook_findings/old-analysis/stress-c4-image.md) | `HDH Batch Size`; 31.8% | `Client Selector Criteria`; 55.1% | 0.042 / -0.026 | 56 / 24 |
+| [4-client text](fl_notebook_findings/old-analysis/stress-c4-text.md) | `Client Selector Criteria`; 96.7% | `Client Selector Criteria`; 55.8% | 0.875 / -0.030 | 56 / 24 |
+| [8-client image](fl_notebook_findings/old-analysis/stress-c8-image.md) | `JSD Mean`; 67.8% | `Pattern Types Active`; 56.8% | 0.369 / -0.002 | 56 / 24 |
+| [8-client text](fl_notebook_findings/old-analysis/stress-c8-text.md) | `JSD Mean`; 54.0% | `Message Compressor Instances`; 31.2% | 0.164 / 0.319 | 56 / 24 |
+| [10-client image](fl_notebook_findings/old-analysis/stress-c10-image.md) | `JSD Mean`; 70.8% | `Client Selector Criteria`; 39.3% | 0.193 / -0.060 | 56 / 24 |
+| [10-client text](fl_notebook_findings/old-analysis/stress-c10-text.md) | `JSD Mean`; 66.8% | `Message Compressor Alg`; 50.1% | 0.218 / 0.419 | 56 / 24 |
 
 **Task/model dominates mixed-task accuracy.** `Dataset` is the leading accuracy feature in all eight mixed-task analyses, receiving 93.6–97.0% of importance. `Model` is perfectly correlated with dataset and is pruned, so the label `Dataset` represents their coupled task/model contrast. This agrees with global high-accuracy bins being populated only by text runs. It does not isolate the contribution of data versus model, or show that pattern decisions have no accuracy association.
 
