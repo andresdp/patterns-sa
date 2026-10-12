@@ -1,31 +1,29 @@
 # Compact FL notebook findings
 
-The revised paper scope uses two research questions: **RQ1** maps observed tradeoffs across design alternatives, and **RQ2** studies joint conditions associated with selected tradeoffs and their what-if robustness. Findings are written for software designers choosing among pattern policies and assessing the operating conditions under which a tradeoff is stable.
+The active notebook set follows the revised paper scope: **RQ1** describes observed tradeoffs across design alternatives, and **RQ2** studies joint design/operating conditions associated with selected tradeoffs and their what-if robustness. Findings are written for software designers comparing policies and assessing deployment envelopes.
 
 ## Notebook execution order
 
-Run each client-count/task slice in this order. Every notebook first analyzes the **common-environment** subset, then the **all-environment** subset.
+Run these in order. Each notebook executes the **common-environment** analysis first, then the **all-environment** analysis.
 
 | Order | Scenario | Notebook | Findings |
 |---:|---|---|---|
 | 1 | 4 clients, image (CIFAR-10/CNN 16k) | [analysis-fl-rq-c4-image.ipynb](../../federatedlearning/analysis-fl-rq-c4-image.ipynb) | [rq-c4-image.md](rq-c4-image.md) |
-| 2 | 4 clients, text | [analysis-fl-rq-c4-text.ipynb](../../federatedlearning/analysis-fl-rq-c4-text.ipynb) | Pending prototype review |
-| 3 | 8 clients, image | [analysis-fl-rq-c8-image.ipynb](../../federatedlearning/analysis-fl-rq-c8-image.ipynb) | Pending prototype review |
-| 4 | 8 clients, text | [analysis-fl-rq-c8-text.ipynb](../../federatedlearning/analysis-fl-rq-c8-text.ipynb) | Pending prototype review |
-| 5 | 10 clients, image | [analysis-fl-rq-c10-image.ipynb](../../federatedlearning/analysis-fl-rq-c10-image.ipynb) | Pending prototype review |
-| 6 | 10 clients, text | [analysis-fl-rq-c10-text.ipynb](../../federatedlearning/analysis-fl-rq-c10-text.ipynb) | Pending prototype review |
+| 2 | 4 clients, text (AG_NEWS/MLP) | [analysis-fl-rq-c4-text.ipynb](../../federatedlearning/analysis-fl-rq-c4-text.ipynb) | [rq-c4-text.md](rq-c4-text.md) |
+| 3 | 8 clients, image (CIFAR-10/CNN 16k) | [analysis-fl-rq-c8-image.ipynb](../../federatedlearning/analysis-fl-rq-c8-image.ipynb) | [rq-c8-image.md](rq-c8-image.md) |
+| 4 | 8 clients, text (AG_NEWS/MLP) | [analysis-fl-rq-c8-text.ipynb](../../federatedlearning/analysis-fl-rq-c8-text.ipynb) | [rq-c8-text.md](rq-c8-text.md) |
+| 5 | 10 clients, image (CIFAR-10/CNN 16k) | [analysis-fl-rq-c10-image.ipynb](../../federatedlearning/analysis-fl-rq-c10-image.ipynb) | [rq-c10-image.md](rq-c10-image.md) |
+| 6 | 10 clients, text (AG_NEWS/MLP) | [analysis-fl-rq-c10-text.ipynb](../../federatedlearning/analysis-fl-rq-c10-text.ipynb) | [rq-c10-text.md](rq-c10-text.md) |
 
-The c4/image notebook is the restored-style prototype for review. It retains the established sequence of model/spec review, data split, objective distributions, design alternatives, contingency and robustness tables, pattern-stress plots, feature ranking, PRIM/CART discovery, architectural explanations, box diagnostics, and performance metrics. Matched-pair analysis was removed; the analysis is organized around RQ1/RQ2. The other five notebooks and cross-scenario synthesis are not yet updated to this prototype style.
+All six notebooks retain the established ADEPT analysis sequence: model/spec review, data splitting, objective distributions and plots, configuration/marginal contingency and robustness, pattern-stress tables and charts, feature ranking, PRIM/CART discovery, architectural box explanations, what-if analysis, box diagnostics, and performance metrics. Matched-pair sections are out of scope. The original 14 notebooks are retained in [`federatedlearning/old-analysis`](../../federatedlearning/old-analysis/README.md).
 
 ## Reading the findings
 
-- A tradeoff label is `<accuracy bin>-<round-time bin>`; `S`, `M`, and `L` denote small, medium, and large values. Read them against each objective’s direction.
-- RQ1 contingency percentages show how observed runs for a configuration or pattern-count group distribute across tradeoff regions. These are associations, not effects of enabling a pattern.
-- An architectural box is a conjunction. Its explanation groups low-level pattern parameters under the related policy and presents non-pattern conditions as the operating envelope. Variables absent from a box are unrestricted.
-- Held-out box precision is target share among retained runs; coverage/recall is the share of target runs retained. What-if robustness compares target share before and after restricting to the box and reports the retained run count. Interpret gains alongside coverage and support.
-- The common-environment and all-environment views overlap. The former holds environment shares at the point common to all configurations; the latter includes all sampled environments, whose mix can differ by configuration.
-- Compact records average selected client-level numeric fields within each run. They cannot show client-level imbalance or per-round behavior. The findings describe run-level associations and do not support causal claims.
+- Tradeoff labels are `<accuracy bin>-<round-time bin>`; `S`, `M`, and `L` denote small, medium, and large values, not good/bad.
+- RQ1 tables report how observed runs within a configuration or pattern-count group distribute across regions. They describe associations, not the effect of enabling a pattern.
+- A box is a conjunction. Its architectural explanation groups related settings under policy decisions and describes non-pattern limits as an operating envelope. Conditions omitted from the box are unrestricted.
+- Held-out precision is the target share among retained runs; coverage/recall is the share of target cases captured. What-if robustness compares target rate before and after restricting to the box. Read gains alongside retained support and coverage.
+- Common-environment and all-environment views overlap. The first holds environment shares at a point shared across configurations; the latter contains all sampled environments, whose mix may differ by configuration.
+- Compact data average selected client-level numeric values within a run. Per-client imbalance and round-level variation are not visible. Findings are observational and do not establish causality.
 
-## Previous findings archive
-
-The earlier broad-scope summaries remain in this directory as historical material. They include matched-pair comparisons and the prior RQ framing; they are not the findings for the revised two-question experiment plan. The new sequence above is the active plan.
+For conclusions across all six scenarios, see the [RQ1/RQ2 synthesis](../fl_research_question_synthesis.md).
