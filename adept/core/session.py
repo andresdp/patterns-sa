@@ -293,6 +293,12 @@ class PatternAnalysis:
         
         return results
 
+    def explain_box_context(self, box: Any, digits: int = 3, output_format: str = "plain") -> Dict[str, Any]:
+        """Explain a decoded box using only links declared in the loaded system JSON."""
+        if self.sys_def is None:
+            raise RuntimeError("Load a system definition before explaining a box.")
+        return self.coordinator.explain_box_context(box, self.sys_def, digits=digits, output_format=output_format)
+
     def show_distributions(self, tradeoff: Optional[Tradeoff] = None, highlight_indices: Optional[np.ndarray] = None, **kwargs) -> plt.Figure:
         """Plots outcome distributions with tradeoff overlays for the current session."""
         return self.coordinator.show_distributions(
@@ -520,169 +526,332 @@ class PatternAnalysis:
             **kwargs
         )
 
-    def get_policy_contingency_matrix(self, decision_key: str, normalization_mode: str = 'population', subset: str = 'all') -> pd.DataFrame:
+    # --- Contingency Analysis ---
+    #
+    # Contingency counts how the runs of each policy group spread over the tradeoffs. Groups
+    # follow the same `by` grouping as robustness (see "Policy Grouping" below):
+    #   by='configuration' (default) -> composite decisions: one row per configuration
+    #   by='<decision key>'          -> marginal view of one decision: each row pools every
+    #                                   configuration with that policy, weighted by its runs
+    #   by='decision'                -> the marginal rows of every decision, stacked
+    #   by='<column>'                -> one row per value of an experiment column
+    # In a multi-decision system a marginal row is a mixture of configurations, so a
+    # deterministic marginal policy means every configuration with that policy reaches the
+    # same tradeoff. See docs/robustness_policy_grouping.md.
+
+    def get_policy_contingency_matrix(self, decision_key: Optional[str] = None, normalization_mode: str = 'population',
+                                      subset: str = 'all', by: Optional[str] = None) -> pd.DataFrame:
         """
-        Computes the contingency matrix of Policies vs Tradeoffs.
-        
+        Computes the contingency matrix of policy groups vs. tradeoffs.
+
         Args:
-            decision_key: The specific decision to analyze.
-            normalization_mode: 'population', 'row', 'none'.
+            decision_key: Shorthand for by=<decision key> (kept for single-decision code).
+            normalization_mode: 'population' (share of the group's runs, 0.0-1.0), 'row'
+                (share of the row sum), or 'none' (counts).
             subset: 'all' (default), 'train', or 'test'.
+            by: Policy grouping: 'configuration' (default), 'decision', a decision key, or an
+                experiment column.
+
+        Returns:
+            pd.DataFrame: Rows = policy groups (in reporting order), columns = tradeoffs.
         """
         from ..analysis.contingency import ContingencyAnalyzer
-        
-        X, _, _ = self._get_subset_data(subset)
-        analyzer = ContingencyAnalyzer(self.sys_def)
-        
-        # 1. Get Policy Map
-        config_col = self.sys_def.dataspace.configuration_identification.column
-        if not config_col:
-             raise RuntimeError("Configuration column not defined.")
-        
-        policy_df = analyzer.get_decision_policy_map(X, config_col)
-        
-        if decision_key not in policy_df.columns:
-            approximate_match = False
-            for col in policy_df.columns:
-                col_suffix = col.split(':')[-1]
-                if decision_key == col_suffix:
-                    decision_key = col
-                    approximate_match = True
-                    print(f"Warning: Using approximate match for decision: {decision_key} -> {col_suffix}")
-                    break
-            if not approximate_match:
-                available = list(policy_df.columns)
-                raise ValueError(f"Decision '{decision_key}' not found. Available: {available}")
 
-        # 2. Get Tradeoff Mask
+        by = self._contingency_grouping(decision_key, by)
+        X, _, _ = self._get_subset_data(subset)
+        labels = self._policy_label_frame(by).loc[X.index]
+
         tradeoff_mask = pd.DataFrame(index=X.index)
         for t in self.sys_def.system.tradeoffs:
-            indices = self.get_indices_for_tradeoff(t)
-            filtered_indices = self._filter_indices_for_subset(indices, subset)
-            
+            indices = self._filter_indices_for_subset(self.get_indices_for_tradeoff(t), subset)
             series = pd.Series(False, index=X.index)
-            if len(filtered_indices) > 0:
-                # We use iloc since filtered_indices are relative integer positions in the subset
-                series.iloc[filtered_indices] = True
-            
+            if len(indices) > 0:
+                # filtered indices are integer positions within the subset
+                series.iloc[indices] = True
             tradeoff_mask[t.name] = series
 
-        # 3. Compute
-        return analyzer.compute_contingency(policy_df, tradeoff_mask, decision_key=decision_key, normalization_mode=normalization_mode)
+        analyzer = ContingencyAnalyzer(self.sys_def)
+        blocks = [analyzer.compute_contingency(labels, tradeoff_mask, decision_key=col,
+                                               normalization_mode=normalization_mode)
+                  for col in labels.columns]
+        result = pd.concat(blocks) if len(blocks) > 1 else blocks[0]
+        order = [label for label in self._policy_labels(by) if label in result.index]
+        return result.loc[order]
 
-    def show_policy_contingency(self, decision_key: str, type: str = 'heatmap', subset: str = 'all', **kwargs) -> plt.Figure:
+    def _contingency_grouping(self, decision_key: Optional[str], by: Optional[str]) -> str:
+        """Resolves the grouping of the contingency methods (decision_key is shorthand for by)."""
+        if decision_key is not None and by is not None and decision_key != by:
+            raise ValueError("Pass either decision_key or by, not both.")
+        return by or decision_key or 'configuration'
+
+    def get_varying_decisions(self, subset: str = 'all') -> List[str]:
+        """Decisions with more than one policy in the given subset.
+
+        A decision with a single policy in the data (e.g. every pattern in a slice that
+        keeps one configuration) cannot explain differences between runs: its contingency
+        has one row, and every reached tradeoff is trivially "exclusive" to that policy.
         """
-        Visualizes the contingency table for a specific decision.
-        
+        from ..analysis.contingency import ContingencyAnalyzer
+
+        X, _, _ = self._get_subset_data(subset)
+        config_col = self.sys_def.dataspace.configuration_identification.column
+        policy_map = ContingencyAnalyzer(self.sys_def).get_decision_policy_map(X, config_col)
+        return [c.split(':')[-1] for c in policy_map.columns if policy_map[c].nunique() > 1]
+
+    def show_policy_contingency(self, decision_key: Optional[str] = None, type: str = 'heatmap', subset: str = 'all',
+                                by: Optional[str] = None, **kwargs) -> plt.Figure:
+        """
+        Visualizes the contingency table of a policy grouping.
+
         Args:
-            decision_key: The decision to visualize.
+            decision_key: Shorthand for by=<decision key>.
             type: 'heatmap' or 'sankey'.
             subset: 'all' (default), 'train', or 'test'.
+            by: Policy grouping: 'configuration' (default), 'decision', a decision key, or an
+                experiment column.
         """
         from ..analysis.visualization import show_contingency_heatmap, show_policy_tradeoff_sankey
-        
+
+        by = self._contingency_grouping(decision_key, by)
         norm_mode = kwargs.pop('normalization_mode', 'population')
-        df = self.get_policy_contingency_matrix(decision_key=decision_key, normalization_mode=norm_mode, subset=subset)
-        
-        title = kwargs.pop('title', f"Impact of {decision_key} on Tradeoffs ({subset})")
-        
+        df = self.get_policy_contingency_matrix(normalization_mode=norm_mode, subset=subset, by=by)
+
+        title = kwargs.pop('title', f"Impact of {by} on Tradeoffs ({subset})")
+
         if type == 'heatmap':
+            counts = norm_mode == 'none'
+            kwargs.setdefault('fmt', 'g' if counts else '.2f')
+            kwargs.setdefault('value_label', 'Runs' if counts else 'Share of runs')
             return show_contingency_heatmap(df, title=title, **kwargs)
         elif type == 'sankey':
             return show_policy_tradeoff_sankey(df, title=title, **kwargs)
         else:
             raise ValueError(f"Unknown visualization type: {type}")
 
-    def get_policy_tradeoff_distribution(self, decision_key: str, policy_name: str, subset: str = 'all') -> Dict[str, float]:
+    def get_policy_tradeoff_distribution(self, decision_key: Optional[str] = None, policy_name: Optional[str] = None,
+                                         subset: str = 'all', by: Optional[str] = None) -> Dict[str, float]:
         """
-        Returns the distribution of tradeoffs for a specific policy.
-        
+        Returns the distribution of tradeoffs for one policy group.
+
         Args:
-            decision_key: The decision containing the policy.
-            policy_name: The name of the policy to inspect.
+            decision_key: Shorthand for by=<decision key>.
+            policy_name: The policy group to inspect (a row label of the chosen grouping).
             subset: 'all', 'train', or 'test'.
-            
+            by: Policy grouping (see get_policy_contingency_matrix).
+
         Returns:
-            Dict[str, float]: {tradeoff_name: percentage (0.0 to 1.0)}
+            Dict[str, float]: {tradeoff_name: share (0.0 to 1.0)}
         """
-        df = self.get_policy_contingency_matrix(decision_key, normalization_mode='row', subset=subset)
-        
+        by = self._contingency_grouping(decision_key, by)
+        df = self.get_policy_contingency_matrix(normalization_mode='row', subset=subset, by=by)
+
         if policy_name not in df.index:
-            raise ValueError(f"Policy '{policy_name}' not found in decision '{decision_key}'.")
-            
+            raise ValueError(f"Policy '{policy_name}' not found when grouping by '{by}'. Available: {list(df.index)}")
+
         return df.loc[policy_name].to_dict()
 
-    def get_variable_policies(self, decision_key: str, subset: str = 'all', threshold: float = 0.0) -> List[str]:
+    def get_variable_policies(self, decision_key: Optional[str] = None, subset: str = 'all', threshold: float = 0.0,
+                              by: Optional[str] = None) -> List[str]:
         """
-        Returns policies that result in more than one tradeoff.
-        
+        Returns policy groups whose runs reach more than one tradeoff.
+
         Args:
-            decision_key: The decision to analyze.
+            decision_key: Shorthand for by=<decision key>.
             subset: 'all', 'train', or 'test'.
-            threshold: Minimum percentage (0.0 to 1.0) to consider a tradeoff as "present".
-            
+            threshold: Minimum share (0.0 to 1.0) of a group's runs for a tradeoff to count as reached.
+            by: Policy grouping (see get_policy_contingency_matrix).
+
         Returns:
-            List[str]: Names of policies with variability in outcomes.
+            List[str]: Labels of the groups with variability in outcomes.
         """
-        df = self.get_policy_contingency_matrix(decision_key, normalization_mode='row', subset=subset)
-        
-        # Count tradeoffs where percentage > threshold
+        by = self._contingency_grouping(decision_key, by)
+        df = self.get_policy_contingency_matrix(normalization_mode='row', subset=subset, by=by)
+
         variability_mask = (df > threshold).sum(axis=1) > 1
-        
+
         return df.index[variability_mask].tolist()
 
-    def get_deterministic_policies(self, decision_key: str, subset: str = 'all', threshold: float = 0.99) -> List[Tuple[str, str]]:
+    def get_deterministic_policies(self, decision_key: Optional[str] = None, subset: str = 'all',
+                                   threshold: float = 0.99, by: Optional[str] = None) -> List[Tuple[str, str]]:
         """
-        Returns policies that consistently result in a single specific tradeoff.
-        
+        Returns policy groups whose runs consistently reach a single tradeoff.
+
+        With by='configuration' (default) the groups are composite decisions. With a
+        decision key the groups are marginal policies: such a policy is deterministic only
+        if every configuration with it reaches the same tradeoff.
+
         Args:
-            decision_key: The decision to analyze.
+            decision_key: Shorthand for by=<decision key>.
             subset: 'all', 'train', or 'test'.
-            threshold: Minimum percentage (0.0 to 1.0) to consider a policy "deterministic" 
-                       for a tradeoff. Default is 0.99 (99%).
-            
+            threshold: Minimum share (0.0 to 1.0) of a group's runs in one tradeoff for the
+                group to be "deterministic". Default is 0.99 (99%).
+            by: Policy grouping (see get_policy_contingency_matrix).
+
         Returns:
-            List[Tuple[str, str]]: List of (policy_name, tradeoff_name) pairs.
+            List[Tuple[str, str]]: List of (policy_label, tradeoff_name) pairs.
         """
-        df = self.get_policy_contingency_matrix(decision_key, normalization_mode='row', subset=subset)
-        
+        by = self._contingency_grouping(decision_key, by)
+        df = self.get_policy_contingency_matrix(normalization_mode='row', subset=subset, by=by)
+
         deterministic_pairs = []
-        
         for policy_name, row in df.iterrows():
-            # Find tradeoffs where percentage >= threshold
             matching_tradeoffs = row[row >= threshold].index.tolist()
-            
             if len(matching_tradeoffs) == 1:
                 deterministic_pairs.append((str(policy_name), str(matching_tradeoffs[0])))
-                
+
         return deterministic_pairs
 
-    def get_exclusive_tradeoffs(self, decision_key: str, subset: str = 'all', threshold: float = 0.0) -> List[Tuple[str, str]]:
+    def get_exclusive_tradeoffs(self, decision_key: Optional[str] = None, subset: str = 'all', threshold: float = 0.0,
+                                by: Optional[str] = None) -> List[Tuple[str, str]]:
         """
-        Returns tradeoffs that are exclusively achieved by a single policy.
-        
+        Returns tradeoffs reached by the runs of a single policy group.
+
+        Exclusivity compares groups, so it needs at least two of them: with a single group
+        (e.g. a decision with one policy in the data) every reached tradeoff would be
+        trivially exclusive, and an empty list is returned with a warning. With
+        by='decision', exclusivity is evaluated within each decision.
+
         Args:
-            decision_key: The decision to analyze.
+            decision_key: Shorthand for by=<decision key>.
             subset: 'all', 'train', or 'test'.
             threshold: Minimum count to consider a policy-tradeoff relationship.
-            
+            by: Policy grouping (see get_policy_contingency_matrix).
+
         Returns:
-            List[Tuple[str, str]]: List of (policy_name, tradeoff_name) pairs.
+            List[Tuple[str, str]]: List of (policy_label, tradeoff_name) pairs.
         """
-        # Use raw counts to check column exclusivity
-        df = self.get_policy_contingency_matrix(decision_key, normalization_mode='none', subset=subset)
-        
+        by = self._contingency_grouping(decision_key, by)
+        df = self.get_policy_contingency_matrix(normalization_mode='none', subset=subset, by=by)
+        X, _, _ = self._get_subset_data(subset)
+        frame = self._policy_label_frame(by).loc[X.index]
+
         exclusive_pairs = []
-        
-        for tradeoff_name in df.columns:
-            col = df[tradeoff_name]
-            # Find rows (policies) where count > threshold
-            active_policies = col[col > threshold].index.tolist()
-            
-            if len(active_policies) == 1:
-                exclusive_pairs.append((str(active_policies[0]), str(tradeoff_name)))
-                
+        # Groups compete within one grouping dimension (one per decision for by='decision')
+        for name, labels in frame.items():
+            block = df.loc[[label for label in df.index if label in set(labels.dropna())]]
+            if len(block.index) < 2:
+                print(f"Warning: '{name}' has a single policy group ({list(block.index)}) in the "
+                      f"'{subset}' runs, so no tradeoff can be exclusive to one of them.")
+                continue
+            for tradeoff_name in block.columns:
+                col = block[tradeoff_name]
+                active_policies = col[col > threshold].index.tolist()
+                if len(active_policies) == 1:
+                    exclusive_pairs.append((str(active_policies[0]), str(tradeoff_name)))
+
         return exclusive_pairs
+
+    # --- Matched one-factor contrasts ---
+    #
+    # To describe one decision in a multi-decision system, compare configurations that differ
+    # only in that decision (e.g. 'ON,OFF,OFF' vs. 'OFF,OFF,OFF') within shared settings.
+    # Include a replication key such as partition_seed in `match_on` to compare corresponding
+    # replicates. Without such a key, the method compares arm means within each setting. In
+    # either case the result is descriptive, not a causal estimate.
+
+    def get_decision_contrasts(self, decision_key: str, match_on: List[str], treatment: str = 'ON',
+                               reference: str = 'OFF', others: str = 'reference', objectives: Optional[List[str]] = None,
+                               tradeoffs: Optional[List[str]] = None, subset: str = 'all') -> Tuple[pd.DataFrame, pd.DataFrame]:
+        """
+        Matched one-factor contrasts of a decision: `treatment` vs. `reference` policy.
+
+        Configurations are paired by policy: treatment and reference arms differ only in the
+        selected decision. Runs are matched on the columns in `match_on`. Include a replication
+        key such as `partition_seed` there to compare corresponding replicates; otherwise the
+        calculation compares arm means within each setting.
+
+        Args:
+            decision_key: The decision to contrast (e.g. 'hdh_pattern').
+            match_on: Columns that define comparable settings (e.g. task, client count,
+                environment factors, and optionally a shared replication key). Columns of the
+                experiments or of the raw data.
+            treatment: Policy whose effect is measured.
+            reference: Policy it is compared with.
+            others: 'reference': only the configurations whose other decisions also use
+                `reference` (for ON/OFF patterns: one pattern alone vs. the baseline);
+                'all': every combination of the other decisions (composition-specific contrasts).
+            objectives: Objectives to compare (default: every column of outcomes_df).
+            tradeoffs: Tradeoff names whose share of runs (STARR) is compared as well.
+            subset: 'all' (default), 'train', or 'test'.
+
+        Returns:
+            (settings, summary):
+            * settings: one row per matched setting and context, with run counts, the mean
+              of each objective per arm (`<obj> ref`, `<obj> treat`) and their difference
+              (`<obj> diff` = treatment - reference), plus `<tradeoff> diff` share differences.
+            * summary: one row per context (the policies of the other decisions), with the
+              number of matched settings and runs, and per measure the equal-weight mean of
+              the within-setting differences, its min/max, and the share of settings where the
+              difference is positive. With others='all', compare the rows: differences with the
+            across contexts describe how the observed contrast varies by composition; a sign
+            change alone does not establish a formal interaction.
+        """
+        from ..analysis.contingency import ContingencyAnalyzer
+
+        X, Y, D = self._get_subset_data(subset)
+        config_col = self.sys_def.dataspace.configuration_identification.column
+        policy_map = ContingencyAnalyzer(self.sys_def).get_decision_policy_map(X, config_col)
+        decision_col = self._resolve_decision_key(decision_key, policy_map)
+        other_cols = [c for c in policy_map.columns if c != decision_col]
+        if others not in ('reference', 'all'):
+            raise ValueError("others must be 'reference' or 'all'.")
+
+        source = X.join(self.raw_df.loc[X.index, [c for c in match_on if c not in X.columns and c in self.raw_df.columns]])
+        missing = [c for c in match_on if c not in source.columns]
+        if missing:
+            raise ValueError(f"match_on columns not found: {missing}")
+
+        objectives = list(objectives or Y.columns)
+        frame = source[list(match_on)].copy()
+        frame['_arm'] = policy_map[decision_col]
+        frame['_context'] = policy_map[other_cols].astype(str).apply(
+            lambda row: ', '.join(f"{c.split(':')[-1]}={v}" for c, v in row.items()), axis=1) if other_cols else 'all'
+        for o in objectives:
+            frame[o] = Y.loc[frame.index, o]
+        for t in tradeoffs or []:
+            tradeoff = next((x for x in self.get_tradeoffs() if x.name == t), None)
+            if tradeoff is None:
+                raise ValueError(f"Tradeoff '{t}' not found.")
+            hit = pd.Series(True, index=frame.index)
+            for obj, label in tradeoff.elements.items():
+                hit &= D.loc[frame.index, obj] == label
+            frame[f"in {t}"] = hit.astype(float)
+
+        frame = frame[frame['_arm'].isin([treatment, reference])]
+        if others == 'reference' and other_cols:
+            frame = frame[(policy_map.loc[frame.index, other_cols] == reference).all(axis=1)]
+
+        measures = objectives + [f"in {t}" for t in tradeoffs or []]
+        keys = ['_context'] + list(match_on)
+        rows = []
+        for key, group in frame.groupby(keys, dropna=False):
+            ref, treat = group[group['_arm'] == reference], group[group['_arm'] == treatment]
+            if ref.empty or treat.empty:
+                continue
+            row = dict(zip(['context'] + list(match_on), key))
+            row.update({'runs ref': len(ref), 'runs treat': len(treat)})
+            for m in measures:
+                name = m[3:] if m.startswith('in ') else m
+                row[f"{name} ref"], row[f"{name} treat"] = ref[m].mean(), treat[m].mean()
+                row[f"{name} diff"] = row[f"{name} treat"] - row[f"{name} ref"]
+            rows.append(row)
+
+        settings = pd.DataFrame(rows)
+        if settings.empty:
+            print(f"Warning: no setting of {list(match_on)} has runs with both '{treatment}' and "
+                  f"'{reference}' for {decision_key} (others='{others}').")
+            return settings, pd.DataFrame()
+
+        diff_cols = [c for c in settings.columns if c.endswith(' diff')]
+        summary = settings.groupby('context').agg(
+            settings=('runs ref', 'size'), **{'runs ref': ('runs ref', 'sum'), 'runs treat': ('runs treat', 'sum')},
+            **{f"{c} mean": (c, 'mean') for c in diff_cols},
+            **{f"{c} min": (c, 'min') for c in diff_cols},
+            **{f"{c} max": (c, 'max') for c in diff_cols},
+            **{f"{c} >0": (c, lambda v: float((v > 0).mean())) for c in diff_cols},
+        )
+        ordered = ['settings', 'runs ref', 'runs treat'] + [f"{c} {k}" for c in diff_cols for k in ('mean', 'min', 'max', '>0')]
+        return settings, summary[ordered]
 
     # --- Robustness Analysis ---
 

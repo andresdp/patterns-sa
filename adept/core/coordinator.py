@@ -140,6 +140,10 @@ class ArchSpaceCore:
         """
         return self.explanation_manager.explain(artifact, method=method, **kwargs)
 
+    def explain_box_context(self, box: Any, system_definition: SystemDefinition, digits: int = 3, output_format: str = "plain") -> Dict[str, Any]:
+        """Adds specification-declared design context to a decoded analysis box."""
+        return self.explanation_manager.explain_box_context(box, system_definition, digits=digits, output_format=output_format)
+
     def define_tradeoffs(self, df: pd.DataFrame, method: str = 'discretization', **kwargs) -> Tuple[pd.DataFrame, Any, Optional[pd.DataFrame]]:
         """Defines tradeoff regions in the outcome space.
         

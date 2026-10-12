@@ -224,16 +224,18 @@ def _get_best_annotation_position(df, x_col, y_col, manual_loc='auto'):
 def show_contingency_heatmap(
     contingency_table: pd.DataFrame, 
     figsize: Tuple[int, int] = (10, 8),
-    title: str = "Policy vs. Tradeoff Contingency"
+    title: str = "Policy vs. Tradeoff Contingency",
+    fmt: str = ".2f",
+    value_label: str = "Share of runs"
 ) -> plt.Figure:
     fig, ax = plt.subplots(figsize=figsize)
     sns.heatmap(
         contingency_table, 
         annot=True, 
-        fmt=".1f", 
+        fmt=fmt, 
         cmap="YlGnBu", 
         ax=ax,
-        cbar_kws={'label': 'Percentage / Frequency'}
+        cbar_kws={'label': value_label}
     )
     ax.set_title(title, pad=20)
     ax.set_xlabel("Tradeoff")

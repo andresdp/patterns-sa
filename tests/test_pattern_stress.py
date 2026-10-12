@@ -72,6 +72,50 @@ class TestPatternStress(unittest.TestCase):
         self.assertTrue((raw["HDH Instances"] <= raw["non_iid_clients"]).all())
 
 
+class TestMeasuredHdhInstances(unittest.TestCase):
+    """HDH instances measured from the per-round data (HDH Time > 0) instead of rule A3."""
+
+    def test_counts_participating_clients_with_hdh_work(self):
+        rounds = pd.DataFrame({
+            "run_id": ["a"] * 6 + ["b"] * 2,
+            "Client ID": ["Client 1", "Client 2", "Client 3", "Client 1", "Client 2", "Client 3",
+                          "Client 1", "Client 2"],
+            "FL Round": [1, 1, 1, 2, 2, 2, 1, 1],
+            # run a: clients 1 and 2 work in round 1; client 3 works but did not participate
+            "HDH Time": [3.0, 2.0, 1.0, 0.0, 0.0, 0.0, 0.0, None],
+            "participated": [True, True, False, True, True, False, True, True],
+        })
+        self.assertEqual(pattern_stress.measured_hdh_instances(rounds).to_dict(), {"a": 2, "b": 0})
+
+    def test_measured_counts_replace_the_rule_for_covered_runs(self):
+        df = pd.DataFrame([
+            run("OFF,OFF,ON", 4, [1, 1, 1, 1], ["IID", "IID", "non-IID", "non-IID"]),
+            run("OFF,OFF,ON", 4, [1, 1, 1, 1], ["IID", "IID", "non-IID", "non-IID"]),
+            run("OFF,OFF,OFF", 4, [1, 1, 1, 1], ["IID", "IID", "non-IID", "non-IID"]),
+        ]).assign(run_id=["measured", "not-covered", "off"])
+        measured = pd.Series({"measured": 0, "off": 5})
+        out = pattern_stress.add_pattern_stress(df, measured_hdh=measured)
+        # measured run: 0 (no HDH work); uncovered run: rule A3 (2 non-IID); HDH OFF: always 0
+        self.assertEqual(list(out["HDH Instances"]), [0, 2, 0])
+        self.assertEqual(list(out["Pattern Instances"]), [0, 2, 0])
+        self.assertEqual(list(out["Pattern Types Active"]), [1, 1, 0])
+
+    def test_missing_per_round_data_falls_back_to_the_rule(self):
+        self.assertIsNone(pattern_stress.load_measured_hdh(["/nonexistent/rounds.csv"]))
+
+    def test_compact_data(self):
+        measured = pattern_stress.load_measured_hdh()
+        if measured is None:
+            self.skipTest("per-round data (federatedlearning/detailed/) not available")
+        assumed, observed = load(measured_instances=False).raw_df, load().raw_df
+        text = observed["Dataset"] == "AG_NEWS"
+        # A3 holds for the text task; in the image task HDH almost never does any work
+        self.assertTrue((observed.loc[text, "HDH Instances"] == assumed.loc[text, "HDH Instances"]).all())
+        hdh_image = ~text & observed["config_id"].str.endswith("ON")
+        self.assertLess(observed.loc[hdh_image, "HDH Instances"].mean(),
+                        0.1 * assumed.loc[hdh_image, "HDH Instances"].mean())
+
+
 class TestCompactFilters(unittest.TestCase):
     def test_all_configurations_from_both_csvs(self):
         raw = load().raw_df

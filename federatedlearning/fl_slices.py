@@ -15,7 +15,8 @@ design space next to the analysis of the full dataset. Filters combine:
   compared under identical conditions.
 
 The preprocessor also adds the pattern-stress columns (pattern_stress.py) when the data
-has the columns they are derived from.
+has the columns they are derived from. HDH instances are measured from the per-round data
+in `detailed/` when it is available, and assumed (rule A3) otherwise.
 
 Tradeoff labels must mean the same thing across the notebooks being compared, so those
 notebooks define the tradeoffs with fixed bin edges (create_tradeoffs(..., edges=...))
@@ -89,7 +90,8 @@ def common_environment(df: pd.DataFrame, columns: Iterable[str] = ENVIRONMENT_CO
 
 
 def slice_filter(name: str = "all", include_baseline: bool = False, clients: Optional[int] = None,
-                 task: Optional[str] = None, environment: str = "all") -> Callable:
+                 task: Optional[str] = None, environment: str = "all",
+                 measured_instances: bool = True) -> Callable:
     """Loader preprocessor: adds the pattern-stress columns and keeps the runs of a slice.
 
     Args:
@@ -101,6 +103,8 @@ def slice_filter(name: str = "all", include_baseline: bool = False, clients: Opt
         task: Keep only one task: 'image' (CIFAR-10 + CNN 16k) or 'text' (AG_NEWS + MLP).
         environment: 'all', or 'common' to keep only the environment points shared by every
             configuration left after the other filters.
+        measured_instances: Count HDH instances from the per-round data in `detailed/`
+            when available (False: always use assumption A3).
     """
     configs = slice_configs(name, include_baseline)
     if task is not None and task not in TASKS:
@@ -111,7 +115,14 @@ def slice_filter(name: str = "all", include_baseline: bool = False, clients: Opt
     def preprocessor(df: pd.DataFrame, **_) -> pd.DataFrame:
         n_all = len(df)
         if pattern_stress.can_compute(df):
-            df = pattern_stress.add_pattern_stress(df)
+            measured = pattern_stress.load_measured_hdh() if measured_instances else None
+            df = pattern_stress.add_pattern_stress(df, measured_hdh=measured)
+            if measured is None:
+                print("HDH instances: assumed (rule A3, one per participating non-IID client).")
+            else:
+                n = int(df[pattern_stress.RUN_COLUMN].isin(measured.index).sum()) if pattern_stress.RUN_COLUMN in df else 0
+                print(f"HDH instances: measured from the per-round data for {n} of {len(df)} runs "
+                      f"(HDH Time > 0); rule A3 for the others.")
         steps = []
         if configs is not None:
             df = df[df[CONFIG_COLUMN].astype(str).isin(configs)]

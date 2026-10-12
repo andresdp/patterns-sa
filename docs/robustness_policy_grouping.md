@@ -76,6 +76,33 @@ When a pre-computed baseline is passed (`get_robustness_results(baseline=...)`,
 the other matrix, a warning is printed: the two were built with different groupings.
 Compute both with the same `by`.
 
+### Contingency analysis
+
+The contingency methods take the same `by` (added 2026-10-11), with `decision_key=X` kept as
+shorthand for `by=X`:
+
+| Method | Default | Notes |
+|---|---|---|
+| `get_policy_contingency_matrix`, `show_policy_contingency` | `'configuration'` | `'decision'` stacks one block of `decision:policy` rows per decision |
+| `get_deterministic_policies`, `get_variable_policies`, `get_policy_tradeoff_distribution` | `'configuration'` | thresholds and returned shares are fractions (0.0-1.0), like every contingency value |
+| `get_exclusive_tradeoffs` | `'configuration'` | evaluated within each grouping dimension (each decision for `'decision'`); a dimension with a single group in the data is skipped with a warning |
+| `get_varying_decisions` | - | decisions with more than one policy in a subset |
+
+Before this change, contingency accepted only a decision key, so a multi-decision system
+could only be read marginally. A marginal row mixes configurations (eq. 6 of
+`docs/paper_adept_formal_extension.md`), so a region reached only by configurations that
+share two `ON` policies is reported as exclusive to both: the composite view
+(`by='configuration'`) shows which combination reaches it. In a slice with one
+configuration, every decision has a single policy, and the former per-decision output
+reported every reached region as "exclusive" to `OFF`; it is now skipped, and the runs can be
+grouped by a context column instead (e.g. `by='Total Clients'`).
+
+Contingency values are shares in 0.0-1.0 (`normalization_mode='population'` or `'row'`),
+consistent with density, coverage and STARR; they were percentages (0-100) before. Fixed
+along the way: `get_deterministic_policies` compared its fractional `threshold` (0.99) with
+those percentages, and `get_policy_tradeoff_distribution` returned percentages while
+documenting fractions.
+
 ## Choosing a Grouping
 
 * **`'configuration'`** answers *"which system configuration is most robust?"*. Each row is
@@ -84,7 +111,7 @@ Compute both with the same `by`.
 * **`'decision'` / a decision key** answers *"does enabling pattern X improve robustness?"*.
   Groups are larger (`OFF` pools every configuration where X is off), but rows overlap across
   decisions and each row mixes different states of the *other* decisions. This matches the
-  per-decision contingency analysis (`show_policy_contingency(decision_key=...)`).
+  marginal contingency analysis (`show_policy_contingency(by='<decision>')`).
 
 * **an experiment column** answers *"how does robustness change with this attribute?"*,
   e.g. with the number of active patterns. Groups are disjoint, but each pools several

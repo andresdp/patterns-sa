@@ -51,10 +51,10 @@ class TestContingency(unittest.TestCase):
         policy_df = pd.DataFrame({"c1:d1": ["pol_a", "pol_b", "pol_a", "pol_a"]})
         tradeoff_mask = pd.DataFrame({"t1": [True, False, True, False]})
         
-        # Result should show pol_a hitting t1 in 2/3 cases (66.6%), pol_b in 0/1 cases
+        # Result should show pol_a hitting t1 in 2/3 cases, pol_b in 0/1 cases (shares, 0.0-1.0)
         result = self.analyzer.compute_contingency(policy_df, tradeoff_mask, "c1:d1", normalization_mode='population')
         
-        self.assertAlmostEqual(result.loc["pol_a", "t1"], 66.66666666666666)
+        self.assertAlmostEqual(result.loc["pol_a", "t1"], 2 / 3)
         self.assertEqual(result.loc["pol_b", "t1"], 0.0)
 
 if __name__ == '__main__':

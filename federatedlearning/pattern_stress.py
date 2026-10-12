@@ -10,9 +10,10 @@ Two measures (see compact/README.md, "Pattern stress"):
   depends on the client environment (how many clients participate, how many are non-IID)
   and on the other decisions (the client selector removes clients, and their instances).
 
-The CSVs do not record instances, so they are derived from the per-client columns with
-the deployment rules in INSTANCE_RULES. These rules are ASSUMPTIONS about AP4FED, to be
-confirmed (compact/README.md lists them with the open questions):
+`Pattern Instances` is the primary stress measure (the size of the deployment);
+`Pattern Types Active` is secondary but exact. The compact CSVs do not record instances, so they are
+derived from the per-client columns with the deployment rules in INSTANCE_RULES, which are
+ASSUMPTIONS about AP4FED (compact/README.md lists them with the open questions):
 
   A1. Client selector: one instance, on the server.
   A2. Message compressor: one instance per participating client (the server-side
@@ -22,11 +23,19 @@ confirmed (compact/README.md lists them with the open questions):
       `CPU Usage Avg` is recorded. Verified on the compact data: with the client selector
       ON, the participants are exactly the clients that are not low-spec; with it OFF,
       every client participates.
+
+HDH instances can be MEASURED instead of assumed: the per-round data in `detailed/` (one
+row per client and round, linked by `run_id`) records `HDH Time`, and A3 does not hold for
+the image task, where HDH almost never runs. `load_measured_hdh()` counts, per run, the
+participating clients with HDH Time > 0; `add_pattern_stress(df, measured_hdh=...)` uses
+those counts for the runs they cover and A3 for the others.
 """
 from __future__ import annotations
 
+import functools
+import os
 import re
-from typing import Dict
+from typing import Dict, Iterable, Optional
 
 import pandas as pd
 
@@ -42,6 +51,12 @@ INSTANCE_COLUMNS = {
     "message_compressor": "Message Compressor Instances",
     "hdh": "HDH Instances",
 }
+# Per-round data (one row per client and round), not in git because of its size
+DETAILED_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "detailed")
+DETAILED_FILES = ("adept_experiments_all_waves_client_rounds.csv",
+                  "adept_experiments_all_waves_combinedAP_client_rounds.csv")
+RUN_COLUMN = "run_id"
+
 TYPES_COLUMN = "Pattern Types Active"
 INSTANCES_COLUMN = "Pattern Instances"
 PARTICIPANTS_COLUMN = "Participating Clients"
@@ -81,8 +96,43 @@ INSTANCE_RULES = {
 }
 
 
-def add_pattern_stress(df: pd.DataFrame) -> pd.DataFrame:
-    """Adds the pattern-stress columns (the original columns are kept)."""
+def measured_hdh_instances(rounds: pd.DataFrame) -> pd.Series:
+    """Per run: participating clients that did HDH work (HDH Time > 0) in some round."""
+    worked = rounds["HDH Time"].fillna(0) > 0
+    if "participated" in rounds.columns:
+        worked &= rounds["participated"].astype(str).str.lower() == "true"
+    return rounds[worked].groupby(RUN_COLUMN)["Client ID"].nunique().reindex(
+        rounds[RUN_COLUMN].unique(), fill_value=0).astype(int)
+
+
+@functools.lru_cache(maxsize=4)
+def _load_measured_hdh(paths: tuple) -> Optional[pd.Series]:
+    found = [p for p in paths if os.path.exists(p)]
+    if not found:
+        return None
+    columns = [RUN_COLUMN, "Client ID", "HDH Time", "participated"]
+    return measured_hdh_instances(pd.concat([pd.read_csv(p, usecols=columns) for p in found]))
+
+
+def load_measured_hdh(paths: Optional[Iterable[str]] = None) -> Optional[pd.Series]:
+    """Measured HDH instances per run_id from the per-round CSVs, or None if none is found.
+
+    Args:
+        paths: The per-round CSVs (default: DETAILED_FILES in DETAILED_DIR).
+    """
+    if paths is None:
+        paths = [os.path.join(DETAILED_DIR, f) for f in DETAILED_FILES]
+    return _load_measured_hdh(tuple(paths))
+
+
+def add_pattern_stress(df: pd.DataFrame, measured_hdh: Optional[pd.Series] = None) -> pd.DataFrame:
+    """Adds the pattern-stress columns (the original columns are kept).
+
+    Args:
+        df: Runs with `config_id`, `Total Clients` and the per-client columns.
+        measured_hdh: Measured HDH instances per run_id (load_measured_hdh). Runs it covers
+            use the measured count; the others use assumption A3.
+    """
     out = df.copy()
     active = active_patterns(df)
     part = participating_clients(df)
@@ -90,6 +140,10 @@ def add_pattern_stress(df: pd.DataFrame) -> pd.DataFrame:
     out[PARTICIPANTS_COLUMN] = part.sum(axis=1).astype(int)
     for pattern, column in INSTANCE_COLUMNS.items():
         out[column] = INSTANCE_RULES[pattern](df, part).where(active[pattern], 0).astype(int)
+    if measured_hdh is not None and RUN_COLUMN in df.columns:
+        measured = df[RUN_COLUMN].map(measured_hdh)
+        covered = measured.notna()
+        out.loc[covered, INSTANCE_COLUMNS["hdh"]] = measured[covered].where(active.loc[covered, "hdh"], 0).astype(int)
     out[INSTANCES_COLUMN] = out[list(INSTANCE_COLUMNS.values())].sum(axis=1).astype(int)
     return out
 

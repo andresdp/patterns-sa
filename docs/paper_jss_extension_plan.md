@@ -3,7 +3,9 @@
 **Status:** Draft plan (2026-09-29)
 **Base paper:** Diaz-Pace, Trubiani, Garlan, *ADEPT: A Framework for Automated Data-driven Understanding of Design Decisions in Pattern-based Microservices Architectures* (JSS special issue, extension of ECSA 2025), `papers/sensitivity_design_patterns_SI_JSS26__extension_ECSA25.pdf`
 **Running example:** Federated Learning (FL) systems built with AP4FED (Compagnucci, Pinciroli, Trubiani, JSS 232, 2026), `federatedlearning/`
-**Companion documents:** [fl_experiment_design.md](fl_experiment_design.md) (the AP4FED experiments this paper needs); [paper_adept_formal_extension.md](paper_adept_formal_extension.md) (extended Table 2, extended Figure 4, formal treatment of mixed and missing data)
+**Companion documents:** [simplified formalization and influence model](paper_adept_formal_extension.md) (current paper concepts); [technical working notes](paper_adept_formal_extension_technical_notes.md) (preserved extended tables, pipeline, mixed-data mathematics, and TODOs); [fl_experiment_design.md](fl_experiment_design.md) (proposed AP4FED experiments).
+
+**Reference note (2026-10-11):** Existing numbered references to “formal doc” below refer to the preserved technical working notes. Their historical FL example and several mathematical claims have been superseded by the simplified formalization's review. Use the current compact analysis spec and synthesis for the executed campaign, and the simplified formalization for variable roles and observational interpretation.
 
 ---
 
@@ -52,7 +54,7 @@ When runs of the *same* decisions and parameter values fall into different trade
 
 ### 2.4 Storyline: a three-layer conceptual model
 
-The paper's narrative follows the three layers of ADEPT's conceptual model ([paper_adept_formal_extension.md](paper_adept_formal_extension.md) §1.1). Each layer answers one question, and every extension of the paper belongs to exactly one layer. This gives a reader a single map from the base paper to the extension:
+The paper's narrative follows the three layers of ADEPT's conceptual model ([technical working notes](paper_adept_formal_extension_technical_notes.md) §1.1). Each layer answers one question, and every extension of the paper belongs to exactly one layer. This gives a reader a single map from the base paper to the extension:
 
 | Layer | Question it answers | Base paper | What the extension adds | Where FL needs it |
 |:---|:---|:---|:---|:---|
@@ -86,7 +88,7 @@ How the layers structure the paper:
 | Per-decision / per-stratum discovery | the base paper's M_D-conditioned boxes; per-model views | option on `discover_scenarios` | To do (see §6) |
 | Restricting a session to a slice, keeping pooled tradeoff labels (A1, A2-fix) | slice = condition on configurations and/or levers | For FL: `federatedlearning/fl_slices.py` (row filter as loader `preprocessor`), and `make_slice_notebooks.py`, which writes the full dataset's detected edges into each focused notebook's `TRADEOFF_EDGES`, which generates `analysis-fl-{baseline,client-selector,message-compressor,hdh}.ipynb` (optionally `--include-baseline`). First-class option (e.g. `session.restrict(where=...)`) plus evaluating a box on another slice (transfer check) | Workaround ✅; API to do |
 | Static tradeoff grid (§4.5): explicit frozen edges, open-ended outer bins, no padding, reusable across sessions | comparable tradeoff labels across slices and data additions | Bins are detected from the data by default; `create_tradeoffs(method='discretization', labels=..., edges={objective: [e0, ..., en]})` fixes them instead (labels required, no padding added); runs outside the edges are reported and left unlabelled. In FL, the base notebook detects the edges, and `make_slice_notebooks.py` fixes the edges detected on the full dataset in every focused notebook | ✅ explicit edges; open-ended outer bins to do |
-| Encoding choices for discovery: native categorical PRIM, one-hot/target-ordered codes for CART, declared category order, encoding-related lint, permutation importance | valid and complete search over nominal categories (formal doc §4.1) | [paper_adept_formal_extension.md](paper_adept_formal_extension.md) §6, T2-T7 | To do (not needed for current FL data; T4 recommended before the new campaign) |
+| Encoding choices for discovery: native categorical PRIM, one-hot/target-ordered codes for CART, declared category order, encoding-related lint, permutation importance | valid and complete search over nominal categories (formal doc §4.1) | [technical working notes](paper_adept_formal_extension_technical_notes.md) §6, T2-T7 | To do (not needed for current FL data; T4 recommended before the new campaign) |
 | Outcomes relative to a reference configuration (A2-normalize) | relative outcome: gain/ratio over the baseline at the same model and environment point | Possible today as derived columns in the `preprocessor`, declared as objectives; a declarative option in the spec | Workaround ✅; declarative to do |
 
 ## 4. Instantiation on Federated Learning
@@ -145,7 +147,7 @@ Architectural reading: model capacity trades accuracy for compute; resource-base
 
 ### 4.4 Ablation studies
 
-The pooled analysis (all configurations, both models) answers RQ1, but it hides two things: the behavior of each pattern on its own, and every effect smaller than the model's. Two ablations restrict or transform the dataset to expose them. Neither changes the ADEPT pipeline; each runs it on a different view of the same data. The formal treatment is in [paper_adept_formal_extension.md](paper_adept_formal_extension.md) §3.9.
+The pooled analysis (all configurations, both models) answers RQ1, but it hides two things: the behavior of each pattern on its own, and every effect smaller than the model's. Two ablations restrict or transform the dataset to expose them. Neither changes the ADEPT pipeline; each runs it on a different view of the same data. The formal treatment is in [technical working notes](paper_adept_formal_extension_technical_notes.md) §3.9.
 
 #### A1. Single-pattern ablation: one pattern at a time
 

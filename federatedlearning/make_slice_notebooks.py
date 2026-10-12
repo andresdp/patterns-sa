@@ -4,10 +4,11 @@ Two families of notebooks, each the base notebook with its `parameters` cell set
 
 * pattern notebooks (ablation A1): the baseline, or one pattern alone
       analysis-fl-baseline.ipynb, analysis-fl-client-selector.ipynb, ...
-  They load PATTERN_SPEC and fix the tradeoff edges detected on that full dataset, so all
-  of them share the same tradeoff regions and their densities are comparable.
+  They load PATTERN_SPEC (all runs, filtered to the slice, so the pattern-stress columns
+  are available) and fix the tradeoff edges detected on that full dataset, so all of them
+  share the overview's tradeoff regions and their densities are comparable.
 * stress notebooks: one client count and one task, every configuration, to compare
-  pattern-stress levels (Section 6b of the base notebook)
+  pattern-stress levels (Section 7 of the base notebook)
       analysis-fl-stress-c8-image.ipynb, ...
   They load STRESS_SPEC (both CSVs) and detect their own edges: comparisons happen inside
   each notebook, and accuracy/time ranges differ widely between tasks and client counts.
@@ -41,7 +42,7 @@ from typing import Any, Dict, List, Optional
 HERE = os.path.dirname(os.path.abspath(__file__))
 BASE_NOTEBOOK = os.path.join(HERE, "analysis-fl.ipynb")
 
-PATTERN_SPEC = "./compact/FLsystem_compact_individual.json"  # baseline + single patterns
+PATTERN_SPEC = "./compact/FLsystem_compact_all.json"         # all runs, filtered by slice
 STRESS_SPEC = "./compact/FLsystem_compact_all.json"          # all configurations
 
 DEFAULT_SLICES = ["baseline", "client_selector", "message_compressor", "hdh"]
@@ -167,7 +168,7 @@ def make_notebook(slice_name: str, include_baseline: bool = False,
     header = f"""> **Focused analysis: {scope}.**
 >
 > Generated from `analysis-fl.ipynb` by `make_slice_notebooks.py`; edit the base notebook and regenerate instead of editing this one.
-> Only the runs of this slice are loaded (`fl_slices.py`) from `{spec}`. Tradeoffs use **fixed bin edges** (`TRADEOFF_EDGES` in the parameters cell): the edges detected on that full dataset, so `S`/`M`/`L` and the regions are the same in every pattern notebook and densities are comparable across them (paper plan §4.4-4.5).
+> Only the runs of this slice are loaded (`fl_slices.py`) from `{spec}`. Tradeoffs use **fixed bin edges** (`TRADEOFF_EDGES` in the parameters cell): the edges detected on that full dataset (all runs, the same edges as `analysis-fl.ipynb`), so `S`/`M`/`L` and the regions are the same in every pattern notebook and densities are comparable across them (paper plan §4.4-4.5).
 """
     values = {"SLICE": slice_name, "INCLUDE_BASELINE": include_baseline, "SPEC": spec,
               "CLIENTS": None, "TASK": None, "ENVIRONMENT": "all"}
@@ -186,7 +187,7 @@ def make_stress_notebook(clients: int, task: str, environment: str = "common", s
     header = f"""> **Pattern-stress analysis: {clients} clients, {TASK_DESCRIPTIONS[task]}.**
 >
 > Generated from `analysis-fl.ipynb` by `make_slice_notebooks.py`; edit the base notebook and regenerate instead of editing this one.
-> All configurations are loaded from `{spec}` (both CSVs), restricted to {clients} clients, this task, and {env_text}. Section 6b compares the pattern-stress levels; its assumptions on pattern instances are listed in `compact/README.md`.
+> All configurations are loaded from `{spec}` (both CSVs), restricted to {clients} clients, this task, and {env_text}. Section 7 compares the pattern-stress levels; its assumptions on pattern instances are listed in `compact/README.md`.
 > Tradeoff edges are **detected on this notebook's runs**: regions are comparable inside the notebook, not with other client counts or tasks.
 """
     values = {"SLICE": "all", "INCLUDE_BASELINE": False, "SPEC": spec,
