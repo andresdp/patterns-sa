@@ -24,9 +24,8 @@ Both files have the same 160 columns. Together they cover:
   (`low_spec_percentage`), non-IID clients (`non_iid_percentage`) and delayed clients
   (`delay_percentage`). The Dirichlet α is constant (0.5).
 - **10 partition seeds/repeats** (`partition_seed`, `repeat`, values 1–10). Each seed occurs
-  once in each executed configuration-condition cell; `run_id` is unique per run. Include
-  `partition_seed` in `MATCH_ON` to compare corresponding data partitions. This does not
-  match hostname, scheduling, or other unrecorded conditions.
+  once in each executed configuration-condition cell; `run_id` is unique per run. The
+  notebooks hold out whole `partition_seed` groups during train/test evaluation.
 - The CSVs record **20 rounds**, `Epochs = 1`, learning rate `0.001`, and batch size `64`.
   Confirm the AP4FED meaning of `Epochs` before naming it local epochs. `avg_total_time` is
   documented as average total round time (training plus communication); the precise timing
@@ -52,87 +51,49 @@ It must therefore be loaded through `fl_slices.slice_filter(...)`, as every note
 
 ## 3. Notebooks and their rationale
 
-The campaign mixes factors with very different effects: the task shifts accuracy (mean
-0.88 for text vs. 0.51 for image classification), the number of clients changes the
-system's structure, and the
-environment was not varied in the same way for every configuration. One analysis of all
-runs mixes these effects with the pattern effects. The notebooks therefore come in three
-families. Each answers one question on the slice of data where that question has a clean
-answer.
+The retained analysis set has six scenario notebooks, covering each client count (4, 8, 10)
+and task (image or text). Each notebook contains two views of the same scenario: the common
+environment points shared by all configurations, and all available environment points.
+The second view includes unevenly sampled conditions, so observed configuration differences
+can reflect both design choices and environmental composition. The views are nested and
+must not be counted as independent evidence.
 
-| Family | Notebooks | Data | Question |
-|:---|:---|:---|:---|
-| **Overview** | `analysis-fl.ipynb` | all 2,340 runs, all 8 configurations | What does the whole design space look like, and which factors dominate? |
-| **Pattern** (ablation A1) | `analysis-fl-baseline.ipynb`, `analysis-fl-client-selector.ipynb`, `analysis-fl-message-compressor.ipynb`, `analysis-fl-hdh.ipynb` | one configuration each | What does each pattern do on its own, compared with the baseline? |
-| **Stress** | `analysis-fl-stress-c{4,8,10}-{image,text}.ipynb` | one client count and one task, all 8 configurations, at the common environment point | For a fixed system structure and task, how do accuracy and round time change as more patterns (and pattern instances) are active? |
+| Notebooks | Scenario | Questions |
+|:---|:---|:---|
+| `analysis-fl-rq-c{4,8,10}-image.ipynb` | CIFAR-10/CNN 16k at 4, 8 or 10 clients | RQ1: observed objective tradeoffs by configuration and pattern count. RQ2: conditions associated with each observed tradeoff and held-out box comparisons. |
+| `analysis-fl-rq-c{4,8,10}-text.ipynb` | AG_NEWS/MLP at 4, 8 or 10 clients | Same RQ1 and RQ2 analyses for the text task. |
 
-### Overview notebook
+All notebooks use one fixed set of objective bin edges derived from the full compact campaign,
+so the S/M/L quadrants retain the same meaning across scenarios. Empty quadrants are shown as
+having no observations and are not sent to PRIM/CART. Dataset and model are treated as paired
+scenario context because they do not vary independently in this campaign.
 
-It is the reference for the whole campaign: the spec check, tradeoff regions, feature
-importance and boxes over all runs. Its tradeoff edges are detected on all runs.
-Because tasks, client counts and environments are mixed, its boxes are dominated by those
-factors. Use it to see what dominates, not to conclude about individual patterns.
-Its Section 7 (pattern stress) runs here too, but over mixed tasks and environments; the
-stress notebooks give the controlled version.
+RQ1 is descriptive: it reports objective-space distributions and within-group tradeoff
+frequencies for complete configurations and for 0, 1, and 2–3 active pattern types. RQ2 uses
+the existing ADEPT train-set feature-ranking technique to prioritize predictors, then runs
+PRIM and CART on the training partition. The held-out partition keeps whole `partition_seed`
+groups together; the grouped splitter searches candidate held-out seed sets and selects the
+one whose tradeoff distribution most closely matches the full scenario. With only ten seeds,
+small or absent held-out target counts should be reported as limited or unavailable evidence.
 
-### Pattern notebooks
-
-Each keeps the runs of one configuration (the baseline, or one pattern alone), to
-characterize that pattern in isolation: the base paper's single-pattern setting.
-
-- They load all runs (`FLsystem_compact_all.json`) and keep their configuration, so the
-  pattern-stress columns are available (Section 7: in a single-pattern notebook only the
-  instance count varies; in the baseline nothing varies).
-- They share **fixed tradeoff edges**, detected on all runs
-  (`'final_val_accuracy': [0.2075, 0.4774, 0.7473, 1.0172]`,
-  `'avg_total_time': [1.5625, 9.5065, 17.4505, 25.3945]`): the same edges the overview
-  detects. A region therefore means the same in these four notebooks and in the overview,
-  and densities can be compared across them.
-- **Comparing a pattern with the baseline** uses shared task, client count, environment,
-  and partition seed. The overview notebook does this for all three patterns at once; the
-  generated `*-vs-baseline` notebooks isolate each direct comparison. The contrast API
-  summarizes equally over matched seed-settings and, for `others='all'`, by the other
-  pattern composition. These are descriptive seed-matched comparisons; sign changes by
-  composition do not alone establish formal interactions.
-- `--include-baseline` generates `*-vs-baseline` variants that keep the baseline runs next
-  to one pattern's runs (their Section 5 then shows that pattern's matched contrast).
-- **Caveat:** within each notebook, client counts, tasks and environments still vary.
-
-### Stress notebooks
-
-Each fixes everything except the configuration, so differences between runs are pattern
-effects:
-
-| Fixed factor | Why |
-|:---|:---|
-| **Client count** | The system structure changes with the number of clients: more clients means more pattern instances, other round times (max ~25 s with 4 clients vs. ~17 s with 8 or 10), and a different effect of excluding clients. Comparing pattern stress across client counts would mix the two. |
-| **Task** | Accuracy differs widely between the tasks (text: 0.52-0.92, mean 0.88; image: 0.31-0.60, mean 0.51), so the task would dominate every comparison, as `Model` did in the earlier FL data. |
-| **Environment** (`ENVIRONMENT = 'common'`) | The waves did not run every configuration at every environment point: `ON,ON,ON`, for instance, was only run at 25% low-spec, 25% non-IID, 25% delay. That point is the only one shared by all 8 configurations, and there the design is a balanced full factorial: 10 runs per configuration (80 per notebook), one for each partition seed. |
-
-- Tradeoff edges are **detected per notebook**. Comparisons happen inside a notebook,
-  across stress levels and configurations; regions are not comparable across notebooks.
-- `--environment all` generates `*-allenv` variants over every environment point (390
-  runs each). There stress and environment effects are mixed, but the environment varies,
-  which is what operating-envelope analyses need.
+For every discovered box, the notebooks show its rules, specification-aware architecture
+context, support, precision/density, recall/coverage, lift, and test-set baseline versus
+box-restricted target frequency. ADEPT lift is absolute: box precision minus training target
+prevalence. The test-set what-if comparison is an observed conditional difference, not a
+causal improvement estimate.
 
 ### Generating and editing
 
-The pattern and stress notebooks are **generated** from `analysis-fl.ipynb` by
-`make_slice_notebooks.py`. Only their `parameters` cell differs, plus a header. Their
-markdown is the overview's, unchanged: it explains what each step computes and how to read
-it, but never describes particular results (counts, ranges, boxes), so it stays valid for
-any slice and after the data changes. The results are the cell outputs. Cells tagged
-`reading-guide` are the ones that explain how to read a result. Edit the overview notebook
-and regenerate, rather than editing a generated notebook:
+Generate the six maintained notebooks from `federatedlearning/` with the configured
+`perfmodels` Python environment:
 
 ```bash
-# from federatedlearning/
-python make_slice_notebooks.py --execute                  # pattern notebooks
-python make_slice_notebooks.py --stress --execute         # stress notebooks
-python make_slice_notebooks.py --stress --environment all # ...-allenv variants
+python make_rq_notebooks.py
 ```
 
-Regenerating overwrites the generated notebooks, including any text written in them.
+`make_slice_notebooks.py` remains as a compatibility entry point and delegates to the current
+generator. Generated notebook outputs are cleared so each notebook can be run from top to
+bottom against the compact data and its declared environment view.
 
 ## 4. Filters (`fl_slices.slice_filter`)
 

@@ -1,4 +1,6 @@
 from typing import List, Dict, Any, Optional, Tuple, Union
+import itertools
+import math
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
@@ -2636,7 +2638,7 @@ class PatternAnalysis:
 
     # --- Feature Scoring ---
 
-    def split_data(self, test_size: float = 0.2, random_state: int = 42, remove_outliers: bool = False, z_threshold: float = 3.0, verbose: bool = True) -> None:
+    def split_data(self, test_size: float = 0.2, random_state: int = 42, remove_outliers: bool = False, z_threshold: float = 3.0, verbose: bool = True, group_column: Optional[str] = None) -> None:
         """
         Splits data into train/test sets, stratifying by tradeoff membership.
         Indices are stored in self.train_indices and self.test_indices.
@@ -2647,6 +2649,10 @@ class PatternAnalysis:
             remove_outliers: If True, removes rows where any numeric outcome has a Z-score > z_threshold.
             z_threshold: Threshold for outlier detection (default 3.0).
             verbose: If True (default), prints detailed tradeoff distribution statistics.
+            group_column: Optional column whose values must stay wholly in either train or
+                test. When supplied, candidate held-out groups are selected to best preserve
+                the row-level tradeoff distribution, while keeping the requested test size
+                as close as possible. Ties are broken reproducibly with random_state.
         """
         from sklearn.model_selection import train_test_split
         
@@ -2717,12 +2723,49 @@ class PatternAnalysis:
         else:
             stratify = labels
 
-        train_local, test_local = train_test_split(
-            np.arange(n_valid), 
-            test_size=test_size, 
-            stratify=stratify, 
-            random_state=random_state
-        )
+        if group_column is None:
+            train_local, test_local = train_test_split(
+                np.arange(n_valid), test_size=test_size, stratify=stratify,
+                random_state=random_state
+            )
+        else:
+            if group_column not in self.experiments_df.columns:
+                raise ValueError(f"Group column '{group_column}' is not present in experiments_df.")
+            groups = self.experiments_df.iloc[valid_indices][group_column].to_numpy()
+            unique_groups = np.unique(groups)
+            if len(unique_groups) < 2:
+                raise ValueError(f"At least two distinct '{group_column}' groups are required.")
+            n_test_groups = min(len(unique_groups) - 1, max(1, int(round(len(unique_groups) * test_size))))
+            rng = np.random.default_rng(random_state)
+            n_combinations = math.comb(len(unique_groups), n_test_groups)
+            if n_combinations <= 5000:
+                candidates = list(itertools.combinations(unique_groups.tolist(), n_test_groups))
+                rng.shuffle(candidates)
+            else:
+                # Bound work for larger datasets while keeping the choice reproducible.
+                candidates = [tuple(rng.choice(unique_groups, n_test_groups, replace=False))
+                              for _ in range(5000)]
+            _, label_codes = np.unique(labels, return_inverse=True)
+            n_classes = int(label_codes.max()) + 1
+            target_distribution = np.bincount(label_codes, minlength=n_classes) / n_valid
+            best_score, best_test = float("inf"), None
+            for candidate in candidates:
+                candidate_mask = np.isin(groups, candidate)
+                candidate_labels = label_codes[candidate_mask]
+                if not len(candidate_labels):
+                    continue
+                distribution = np.bincount(candidate_labels, minlength=len(target_distribution)) / len(candidate_labels)
+                score = float(np.square(distribution - target_distribution).sum())
+                if score < best_score:
+                    best_score, best_test = score, candidate_mask
+            if best_test is None:
+                raise RuntimeError("Could not construct a grouped train/test split.")
+            test_local = np.flatnonzero(best_test)
+            train_local = np.flatnonzero(~best_test)
+            if verbose:
+                print(f"Grouped split by {group_column}: {len(np.unique(groups[best_test]))} of "
+                      f"{len(unique_groups)} groups held out; stratification score={best_score:.6f}"
+                      + (f" ({len(candidates)} candidates sampled)." if n_combinations > 5000 else "."))
         
         # 4. Map back to Global Indices
         self.train_indices = valid_indices[train_local]
