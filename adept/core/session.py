@@ -2729,9 +2729,11 @@ class PatternAnalysis:
                 random_state=random_state
             )
         else:
-            if group_column not in self.experiments_df.columns:
-                raise ValueError(f"Group column '{group_column}' is not present in experiments_df.")
-            groups = self.experiments_df.iloc[valid_indices][group_column].to_numpy()
+            group_source = (self.experiments_df if group_column in self.experiments_df.columns
+                            else self.raw_df)
+            if group_source is None or group_column not in group_source.columns:
+                raise ValueError(f"Group column '{group_column}' is not present in the loaded data.")
+            groups = group_source.iloc[valid_indices][group_column].to_numpy()
             unique_groups = np.unique(groups)
             if len(unique_groups) < 2:
                 raise ValueError(f"At least two distinct '{group_column}' groups are required.")
