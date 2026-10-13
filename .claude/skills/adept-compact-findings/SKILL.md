@@ -25,7 +25,7 @@ Before interpreting notebook results, consult [ADEPT framework context](referenc
 1. From the repository root, build or refresh the input manifest for the requested task(s):
 
    ```sh
-   python .claude/skills/adept-compact-findings/scripts/inventory_inputs.py --task both
+   conda run -n perfmodels python .claude/skills/adept-compact-findings/scripts/inventory_inputs.py --task both
    ```
 
    Use `--task image` or `--task text` for a single task. The inventory checks the seven expected executed notebooks, their two saved plots, and their matching box reports; it records SHA-256 fingerprints and writes `evidence-manifest.json` in each task's `findings/` folder. If it reports missing, unexecuted, or failed inputs, stop analysis for the affected task and report the issue. Do not silently use stale or partial evidence.

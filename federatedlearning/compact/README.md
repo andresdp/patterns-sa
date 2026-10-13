@@ -121,6 +121,15 @@ image RQ1/RQ2 synthesis, and cite the supporting artifacts. Do not rerun the not
 
 Repeat in a separate fresh session for `text`, changing “image” to “text” in the request.
 
+In a fresh Codex session, invoke the repository skill with `$adept-compact-findings` and the
+task scope, for example:
+
+```text
+$adept-compact-findings Analyze the current text task from its already-executed notebooks,
+plots, and box reports. Refresh the evidence manifest, write the seven case findings and the
+text RQ1/RQ2 synthesis, and cite the supporting artifacts. Do not rerun the notebooks.
+```
+
 For an independent quality check, use another fresh context to review the new findings against
 that task's manifest, notebooks, box reports and plots. Ask it to verify factual claims, scope,
 support, and whether the design/context distinctions and observational limits are respected.
