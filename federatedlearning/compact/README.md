@@ -105,8 +105,11 @@ then the baseline reference and the three single-pattern notebooks. The baseline
 notebooks use `CLIENTS = None`, so all client counts and available environments are included.
 Each single-pattern notebook keeps exactly one pattern ON and the other two OFF; it excludes
 baseline and combined-pattern runs. These notebooks profile each policy's tradeoffs and operating
-envelopes, but do not by themselves estimate differences against another policy. The findings
-markdown files have not yet been revised to include these notebooks.
+envelopes, but do not by themselves estimate differences against another policy. Each
+objective-space chart is also saved as a 300 dpi PNG in the task folder's `plots/` directory.
+The filename records task, configuration slice, client-count scope, environment filter and
+objective pair. The findings markdown files have not yet been revised to include these
+notebooks.
 
 ## 4. Filters (`fl_slices.slice_filter`)
 
