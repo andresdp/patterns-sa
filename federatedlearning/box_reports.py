@@ -44,10 +44,10 @@ def write_box_report(
 ) -> Path:
     """Write PRIM/CART boxes, architectural context and available metrics to Markdown.
 
-    `heldout_metrics` accepts the per-algorithm DataFrames returned by the compact
-    notebooks' `heldout_box_summary` function. Discovery metrics describe the training
-    partition used to rank parameters and fit the boxes; held-out metrics describe how
-    those fixed boxes perform on the separate test partition.
+    `heldout_metrics` accepts per-algorithm DataFrames returned by the compact
+    notebooks' `heldout_box_summary` function. Per-box discovery metrics are read from
+    `box.discovery_metrics`; `box.metrics` is intentionally not used because it is a
+    legacy compatibility alias for held-out metrics in the session API.
     """
     path = Path(output_path)
     path.parent.mkdir(parents=True, exist_ok=True)
@@ -60,8 +60,8 @@ def write_box_report(
         "",
         "## How to read the metrics",
         "",
-        "- **Discovery metrics = training partition.** ADEPT uses these training runs to rank parameters and fit the PRIM/CART boxes. The table describes how well each learned rule matches the data it was discovered from.",
-        "- **Held-out metrics = test partition.** Each fixed rule is applied to separate runs set aside by `partition_seed`; those runs were not used to discover the box. These metrics show whether the observed association carries over to unseen data partitions.",
+        "- **Discovery metrics = training partition.** ADEPT uses these training runs to rank parameters and fit the PRIM/CART boxes. The table evaluates each learned rule on those same training runs.",
+        "- **Held-out metrics = test partition.** Each fixed rule is applied to separate runs set aside by `partition_seed`; those runs were not used to discover the box. Every reported held-out metric, including prevalence and lift, is calculated from that test partition.",
         "- Compare the two sets: a drop in test precision or lift can indicate that the training association is less stable out of sample. Test recall/coverage shows how many target runs the rule still captures.",
         "- Precision is the share of runs inside the box that reach the target; recall/coverage is the share of target runs captured by the box. Absolute lift is precision minus the target prevalence in the same partition, reported as a proportion.",
         "- These are observational performance measures, not causal effects or guarantees for future deployments.",
@@ -110,22 +110,44 @@ def write_box_report(
                 "coverage": "Train recall / coverage",
                 "lift": "Train absolute lift",
                 "population_prevalence": "Train target prevalence",
+                "population_size": "Train observations",
+                "total_targets": "Train target observations",
                 "samples_in_box": "Train samples in box",
                 "targets_in_box": "Train targets in box",
                 "mean": "Discovery mean",
                 "mass": "Discovery mass",
             }
-            if box.metrics:
+            if box.discovery_metrics:
                 lines.extend(
                     f"| {metric_labels.get(key, key.replace('_', ' ').capitalize())} | {_format_value(value)} |"
-                    for key, value in box.metrics.items()
+                    for key, value in box.discovery_metrics.items()
                 )
             else:
-                lines.append("| Metrics attached to box by discovery method | Not available |")
+                lines.append("| Discovery metrics | Not available |")
 
-            test = by_target.get(str(box.target_tradeoff))
+            if box.fit_diagnostics:
+                lines.extend(["", "**Algorithm fit diagnostics**", "", "| Diagnostic | Value |", "|:---|---:|"])
+                lines.extend(
+                    f"| {key.replace('_', ' ').capitalize()} | {_format_value(value)} |"
+                    for key, value in box.fit_diagnostics.items()
+                )
+
             lines.extend(["", "**Held-out metrics (test partition)**", "", "| Metric | Value |", "|:---|---:|"])
-            if test is None:
+            heldout = box.heldout_metrics
+            test = by_target.get(str(box.target_tradeoff))
+            if heldout:
+                heldout_items = [
+                    ("Test runs", heldout.get("population_size")),
+                    ("Target runs before box", heldout.get("total_targets")),
+                    ("Runs retained by box", heldout.get("samples_in_box")),
+                    ("Target runs inside box", heldout.get("targets_in_box")),
+                    ("Target prevalence before box", heldout.get("population_prevalence")),
+                    ("Precision inside box", heldout.get("density")),
+                    ("Recall / target coverage", heldout.get("coverage")),
+                    ("Absolute lift over held-out prevalence", heldout.get("lift")),
+                ]
+                lines.extend(f"| {label} | {_format_value(value)} |" for label, value in heldout_items)
+            elif test is None:
                 lines.append("| Held-out evaluation | Not available |")
             else:
                 heldout_items = [

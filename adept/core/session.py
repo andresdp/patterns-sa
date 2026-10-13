@@ -343,7 +343,14 @@ class PatternAnalysis:
             for parameter, bounds in box.limits.items():
                 if parameter not in encoded.columns:
                     return None
-                mask &= encoded[parameter].between(bounds["min"], bounds["max"], inclusive="both")
+                within_bounds = encoded[parameter].between(bounds["min"], bounds["max"], inclusive="both")
+                # Optional numeric NaNs are represented by a sentinel during discovery.
+                # De-standardizing box bounds and re-encoding raw rows can introduce
+                # tiny sentinel/boundary differences, so honor the semantic inclusion
+                # recorded on the Box directly.
+                if box.includes_na.get(parameter) and parameter in experiments.columns:
+                    within_bounds |= experiments[parameter].isna()
+                mask &= within_bounds
 
             counts = experiments.loc[mask, config_col].dropna().astype(str).value_counts().to_dict()
             results[partition] = {
@@ -351,6 +358,29 @@ class PatternAnalysis:
                 "row_count": int(mask.sum()),
             }
         return results
+
+    @staticmethod
+    def _attach_box_partition_metrics(box: Any, X_train: pd.DataFrame, y_train: pd.Series,
+                                      X_test: pd.DataFrame, y_test: pd.Series) -> None:
+        """Attach separately evaluated discovery and held-out metrics to a box.
+
+        ``box.metrics`` remains a compatibility alias for held-out metrics. New
+        consumers should use the explicit partition fields.
+        """
+        from ..analysis.discovery import BoxEvaluator
+
+        if box.metrics and not box.fit_diagnostics:
+            box.fit_diagnostics = dict(box.metrics)
+        train_prevalence = float(y_train.mean()) if len(y_train) else 0.0
+        test_prevalence = float(y_test.mean()) if len(y_test) else 0.0
+        box.discovery_metrics = BoxEvaluator.evaluate(
+            box.limits, X_train, y_train, population_prevalence=train_prevalence
+        )
+        box.heldout_metrics = BoxEvaluator.evaluate(
+            box.limits, X_test, y_test, population_prevalence=test_prevalence
+        )
+        box.metrics = dict(box.heldout_metrics)
+        box.population_prevalence = train_prevalence
 
     def show_distributions(self, tradeoff: Optional[Tradeoff] = None, highlight_indices: Optional[np.ndarray] = None, **kwargs) -> plt.Figure:
         """Plots outcome distributions with tradeoff overlays for the current session."""
@@ -483,9 +513,11 @@ class PatternAnalysis:
                 lines.append(f"NAME: {box.name}")
                 lines.append("-" * 20)
             
-            lines.append(f"Metrics:")
-            density = box.metrics.get('density', 0.0)
-            coverage = box.metrics.get('coverage', 0.0)
+            metrics = box.heldout_metrics or box.metrics
+            metric_label = "Held-out metrics" if box.heldout_metrics else "Box metrics"
+            lines.append(f"{metric_label}:")
+            density = metrics.get('density', 0.0)
+            coverage = metrics.get('coverage', 0.0)
             lines.append(f"- Density:  {density:.2f}")
             lines.append(f"- Coverage: {coverage:.2f}")
             lines.append("")
@@ -3087,7 +3119,7 @@ class PatternAnalysis:
         unique_classes = y_train.unique()
         
         # Precompute prevalence and test masks for evaluation
-        prevalence_map = y_train.value_counts(normalize=True).to_dict()
+        y_train_map = {row_str: y_train.astype(str).eq(row_str) for row_str in unique_classes}
         y_test_map = {}
         for row_str in unique_classes:
             y_test_map[row_str] = (self.discrete_df.iloc[self.test_indices].astype(str).agg(','.join, axis=1) == row_str)
@@ -3132,10 +3164,9 @@ class PatternAnalysis:
 
             # Evaluate and Post-process
             y_test = y_test_map.get(class_str)
-            prevalence = prevalence_map.get(class_str, 0.0)
-            if y_test is not None:
-                box.metrics = BoxEvaluator.evaluate(box.limits, X_test, y_test, population_prevalence=prevalence)
-                box.population_prevalence = prevalence
+            y_train_class = y_train_map.get(class_str)
+            if y_test is not None and y_train_class is not None:
+                self._attach_box_partition_metrics(box, X_train, y_train_class, X_test, y_test)
             
             # De-standardize
             if standardize and current_stats:
@@ -3205,9 +3236,7 @@ class PatternAnalysis:
         # Post-process
         final_boxes = []
         for box in result:
-            # Evaluate on Test Set
-            box.metrics = BoxEvaluator.evaluate(box.limits, X_test, y_test, population_prevalence=prevalence)
-            box.population_prevalence = prevalence
+            self._attach_box_partition_metrics(box, X_train, y_train, X_test, y_test)
             
             if standardize and current_stats:
                 self._destandardize_box(box, current_stats)
@@ -3272,9 +3301,7 @@ class PatternAnalysis:
         
         for box in prim_boxes:
             box.target_tradeoff = tradeoff_name
-            # Evaluate on Test Set
-            box.metrics = BoxEvaluator.evaluate(box.limits, X_test, y_test, population_prevalence=prevalence)
-            box.population_prevalence = prevalence
+            self._attach_box_partition_metrics(box, X_train, y_train, X_test, y_test)
             
             if standardize and current_stats:
                 self._destandardize_box(box, current_stats)

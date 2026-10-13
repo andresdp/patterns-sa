@@ -10,8 +10,8 @@
 
 ## How to read the metrics
 
-- **Discovery metrics = training partition.** ADEPT uses these training runs to rank parameters and fit the PRIM/CART boxes. The table describes how well each learned rule matches the data it was discovered from.
-- **Held-out metrics = test partition.** Each fixed rule is applied to separate runs set aside by `partition_seed`; those runs were not used to discover the box. These metrics show whether the observed association carries over to unseen data partitions.
+- **Discovery metrics = training partition.** ADEPT uses these training runs to rank parameters and fit the PRIM/CART boxes. The table evaluates each learned rule on those same training runs.
+- **Held-out metrics = test partition.** Each fixed rule is applied to separate runs set aside by `partition_seed`; those runs were not used to discover the box. Every reported held-out metric, including prevalence and lift, is calculated from that test partition.
 - Compare the two sets: a drop in test precision or lift can indicate that the training association is less stable out of sample. Test recall/coverage shows how many target runs the rule still captures.
 - Precision is the share of runs inside the box that reach the target; recall/coverage is the share of target runs captured by the box. Absolute lift is precision minus the target prevalence in the same partition, reported as a proportion.
 - These are observational performance measures, not causal effects or guarantees for future deployments.
@@ -52,8 +52,19 @@ The architectural interpretation traces conditions through declared system-spec 
 | Train recall / coverage | 1 |
 | Train target prevalence | 0.1667 |
 | Train absolute lift | 0.8333 |
-| Train samples in box | 9 |
-| Train targets in box | 9 |
+| Train observations | 126 |
+| Train target observations | 21 |
+| Train samples in box | 21 |
+| Train targets in box | 21 |
+
+**Algorithm fit diagnostics**
+
+| Diagnostic | Value |
+|:---|---:|
+| Density | 1 |
+| Coverage | 1 |
+| Mean | 1 |
+| Mass | 0.1667 |
 
 **Held-out metrics (test partition)**
 
@@ -98,8 +109,19 @@ The architectural interpretation traces conditions through declared system-spec 
 | Train recall / coverage | 1 |
 | Train target prevalence | 0.8333 |
 | Train absolute lift | 0.1667 |
-| Train samples in box | 45 |
-| Train targets in box | 45 |
+| Train observations | 126 |
+| Train target observations | 105 |
+| Train samples in box | 105 |
+| Train targets in box | 105 |
+
+**Algorithm fit diagnostics**
+
+| Diagnostic | Value |
+|:---|---:|
+| Density | 1 |
+| Coverage | 1 |
+| Mean | 1 |
+| Mass | 0.8333 |
 
 **Held-out metrics (test partition)**
 
@@ -146,8 +168,10 @@ The architectural interpretation traces conditions through declared system-spec 
 | Train recall / coverage | 1 |
 | Train target prevalence | 0.8333 |
 | Train absolute lift | 0.1667 |
-| Train samples in box | 45 |
-| Train targets in box | 45 |
+| Train observations | 126 |
+| Train target observations | 105 |
+| Train samples in box | 105 |
+| Train targets in box | 105 |
 
 **Held-out metrics (test partition)**
 
@@ -192,8 +216,10 @@ The architectural interpretation traces conditions through declared system-spec 
 | Train recall / coverage | 1 |
 | Train target prevalence | 0.1667 |
 | Train absolute lift | 0.8333 |
-| Train samples in box | 9 |
-| Train targets in box | 9 |
+| Train observations | 126 |
+| Train target observations | 21 |
+| Train samples in box | 21 |
+| Train targets in box | 21 |
 
 **Held-out metrics (test partition)**
 

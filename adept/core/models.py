@@ -256,11 +256,14 @@ class Box(BaseModel):
     includes_na: Dict[str, bool] = Field(default_factory=dict, description="Whether NaN values are included for each parameter.")
     categorical_levels: Dict[str, List[str]] = Field(default_factory=dict, description="Category labels of categorical parameters, in code order (code i+1 = levels[i], 0 = not selected).")
     dataset_bounds: Dict[str, Dict[str, float]] = Field(default_factory=dict, description="Original data ranges.")
-    metrics: Dict[str, float] = Field(default_factory=dict, description="Discovery performance (density, coverage).")
+    metrics: Dict[str, float] = Field(default_factory=dict, description="Deprecated compatibility alias; session discovery sets this to held-out metrics.")
+    discovery_metrics: Dict[str, float] = Field(default_factory=dict, description="Metrics evaluated on the training partition used to discover the box.")
+    heldout_metrics: Dict[str, float] = Field(default_factory=dict, description="Metrics evaluated on the held-out partition using the fixed discovered box.")
+    fit_diagnostics: Dict[str, float] = Field(default_factory=dict, description="Algorithm-specific diagnostics produced while fitting the box.")
     target_tradeoff: Optional[str] = Field(default=None, description="ID of the targeted tradeoff.")
     target_tradeoff_labels: Optional[str] = Field(default=None, description="Labels associated with the tradeoff.")
     method: str = Field(default="prim", description="Algorithm used (prim, cart).")
-    population_prevalence: float = Field(default=0.0, description="Baseline prevalence of target in dataset.")
+    population_prevalence: float = Field(default=0.0, description="Legacy training-partition target prevalence; use partition-specific metric records for reporting.")
     
     model_config = {"extra": "allow", "validate_assignment": True}
 
@@ -331,9 +334,12 @@ class Box(BaseModel):
 
     # @property
     def is_empty(self) -> bool:
-        if self.metrics.get('targets_in_box', 0) < 1:
-            return True
         if len(self.limits.keys()) == 0:
+            return True
+        # A box is a discovery result. Held-out performance must not decide whether
+        # it exists: zero held-out target hits are a result to report, not emptiness.
+        support_metrics = self.discovery_metrics or self.metrics
+        if 'targets_in_box' in support_metrics and support_metrics['targets_in_box'] < 1:
             return True
         return False
 

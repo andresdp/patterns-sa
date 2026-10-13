@@ -801,9 +801,11 @@ def show_box_diagnostics(
         ax_bars.set_ylim(-1, len(params)); ax_bars.invert_yaxis() 
 
     ax_text.axis('off')
-    metrics = getattr(box, 'metrics', {})
+    metrics = getattr(box, 'heldout_metrics', {}) or getattr(box, 'metrics', {})
     text_content = f"Analysis: {getattr(box, 'name', 'Unnamed Box')}\n" + "-" * 30 + "\n\n"
     if metrics:
+        if getattr(box, 'heldout_metrics', {}):
+            text_content += "Held-out evaluation\n"
         text_content += f"Density (precision): {metrics.get('density', 0):.2f}\nCoverage (recall):   {metrics.get('coverage', 0):.2f}\n"
         if metrics.get('lift'): text_content += f"Lift:                {metrics.get('lift'):.2f}\n"
         if metrics.get('mass'): text_content += f"Mass (Support):      {metrics.get('mass'):.2f}\n"

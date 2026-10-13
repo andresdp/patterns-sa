@@ -46,10 +46,24 @@ class BoxEvaluator:
             box_limits: Dict of {param: {'min': float, 'max': float}}
             X: Feature matrix
             y: Binary target mask
-            population_prevalence: The baseline % of target in the original space (e.g. Train set).
+            population_prevalence: Target prevalence in the same partition as X and y.
         """
-        if X.empty or y.empty:
-            return {'density': 0.0, 'coverage': 0.0, 'population_prevalence': population_prevalence}
+        if len(X) != len(y):
+            raise ValueError("X and y must contain the same number of rows.")
+        if not X.index.equals(y.index):
+            y = y.reindex(X.index)
+        prevalence = float(population_prevalence)
+        if X.empty:
+            return {
+                'density': float('nan'),
+                'coverage': float('nan'),
+                'population_prevalence': prevalence,
+                'lift': float('nan'),
+                'population_size': 0,
+                'total_targets': int(y.sum()) if len(y) else 0,
+                'samples_in_box': 0,
+                'targets_in_box': 0,
+            }
             
         # 1. Identify rows in X that satisfy all box_limits
         mask = pd.Series(True, index=X.index)
@@ -62,18 +76,20 @@ class BoxEvaluator:
         targets_in_box = (mask & y).sum()
         total_targets = y.sum()
         
-        density = targets_in_box / points_in_box if points_in_box > 0 else 0.0
-        coverage = targets_in_box / total_targets if total_targets > 0 else 0.0
+        density = targets_in_box / points_in_box if points_in_box > 0 else float('nan')
+        coverage = targets_in_box / total_targets if total_targets > 0 else float('nan')
         
         # Lift is how much better we are than the baseline
         # lift = (density / population_prevalence) if population_prevalence > 0 else 0.0
-        lift = density - population_prevalence # This can be a positive or negative improvement
+        lift = density - prevalence if np.isfinite(density) else float('nan')
         
         return {
             'density': float(density),
             'coverage': float(coverage),
-            'population_prevalence': float(population_prevalence),
+            'population_prevalence': prevalence,
             'lift': float(lift),
+            'population_size': int(len(X)),
+            'total_targets': int(total_targets),
             'samples_in_box': int(points_in_box),
             'targets_in_box': int(targets_in_box)
         }

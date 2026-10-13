@@ -10,8 +10,8 @@
 
 ## How to read the metrics
 
-- **Discovery metrics = training partition.** ADEPT uses these training runs to rank parameters and fit the PRIM/CART boxes. The table describes how well each learned rule matches the data it was discovered from.
-- **Held-out metrics = test partition.** Each fixed rule is applied to separate runs set aside by `partition_seed`; those runs were not used to discover the box. These metrics show whether the observed association carries over to unseen data partitions.
+- **Discovery metrics = training partition.** ADEPT uses these training runs to rank parameters and fit the PRIM/CART boxes. The table evaluates each learned rule on those same training runs.
+- **Held-out metrics = test partition.** Each fixed rule is applied to separate runs set aside by `partition_seed`; those runs were not used to discover the box. Every reported held-out metric, including prevalence and lift, is calculated from that test partition.
 - Compare the two sets: a drop in test precision or lift can indicate that the training association is less stable out of sample. Test recall/coverage shows how many target runs the rule still captures.
 - Precision is the share of runs inside the box that reach the target; recall/coverage is the share of target runs captured by the box. Absolute lift is precision minus the target prevalence in the same partition, reported as a proportion.
 - These are observational performance measures, not causal effects or guarantees for future deployments.
@@ -48,12 +48,23 @@ The architectural interpretation traces conditions through declared system-spec 
 
 | Metric | Value |
 |:---|---:|
-| Train precision / density | 0.1250 |
-| Train recall / coverage | 0.5000 |
+| Train precision / density | 0.1176 |
+| Train recall / coverage | 0.6667 |
 | Train target prevalence | 0.0110 |
-| Train absolute lift | 0.1140 |
-| Train samples in box | 8 |
-| Train targets in box | 1 |
+| Train absolute lift | 0.1067 |
+| Train observations | 273 |
+| Train target observations | 3 |
+| Train samples in box | 17 |
+| Train targets in box | 2 |
+
+**Algorithm fit diagnostics**
+
+| Diagnostic | Value |
+|:---|---:|
+| Density | 0.1176 |
+| Coverage | 0.6667 |
+| Mean | 0.1176 |
+| Mass | 0.0623 |
 
 **Held-out metrics (test partition)**
 
@@ -68,7 +79,66 @@ The architectural interpretation traces conditions through declared system-spec 
 | Recall / target coverage | 0.5000 |
 | Absolute lift over held-out prevalence | 0.1079 |
 
-### Box 2 — L-S (L,S)
+### Box 2 — M-M (M,M)
+
+**Learned box conditions**
+
+- `Alpha Dirichlet Mean`: [0.625, 0.688]
+- `HDH Instances`: [0.500, 3.000]
+- **Includes NaN / not-selected values:** No
+
+**Architectural interpretation**
+
+- **Design prescription**:
+  - No pattern policy is required by the box conditions
+- **Observed pattern activation — training partition (rows matching this box)**:
+  - Client Selector: OFF (28/32), ON (4/32)
+  - HDH: ON (32/32)
+  - Message Compressor: OFF (25/32), ON (7/32)
+- **Observed pattern activation — held-out partition (rows matching this box)**:
+  - Client Selector: OFF (12/14), ON (2/14)
+  - HDH: ON (14/14)
+  - Message Compressor: OFF (11/14), ON (3/14)
+- **Operating envelope**:
+  - Alpha Dirichlet Mean [0.625, 0.688]
+  - HDH Instances [0.5, 3]
+
+**Discovery metrics (training partition)**
+
+| Metric | Value |
+|:---|---:|
+| Train precision / density | 0.1562 |
+| Train recall / coverage | 1 |
+| Train target prevalence | 0.0183 |
+| Train absolute lift | 0.1379 |
+| Train observations | 273 |
+| Train target observations | 5 |
+| Train samples in box | 32 |
+| Train targets in box | 5 |
+
+**Algorithm fit diagnostics**
+
+| Diagnostic | Value |
+|:---|---:|
+| Density | 0.1562 |
+| Coverage | 1 |
+| Mean | 0.1562 |
+| Mass | 0.1172 |
+
+**Held-out metrics (test partition)**
+
+| Metric | Value |
+|:---|---:|
+| Test runs | 117 |
+| Target runs before box | 0 |
+| Runs retained by box | 14 |
+| Target runs inside box | 0 |
+| Target prevalence before box | 0 |
+| Precision inside box | 0 |
+| Recall / target coverage | not available |
+| Absolute lift over held-out prevalence | 0 |
+
+### Box 3 — L-S (L,S)
 
 **Learned box conditions**
 
@@ -96,11 +166,22 @@ The architectural interpretation traces conditions through declared system-spec 
 | Metric | Value |
 |:---|---:|
 | Train precision / density | 1 |
-| Train recall / coverage | 0.1935 |
+| Train recall / coverage | 0.2029 |
 | Train target prevalence | 0.2527 |
 | Train absolute lift | 0.7473 |
-| Train samples in box | 6 |
-| Train targets in box | 6 |
+| Train observations | 273 |
+| Train target observations | 69 |
+| Train samples in box | 14 |
+| Train targets in box | 14 |
+
+**Algorithm fit diagnostics**
+
+| Diagnostic | Value |
+|:---|---:|
+| Density | 1 |
+| Coverage | 0.2029 |
+| Mean | 1 |
+| Mass | 0.0513 |
 
 **Held-out metrics (test partition)**
 
@@ -115,7 +196,7 @@ The architectural interpretation traces conditions through declared system-spec 
 | Recall / target coverage | 0.1935 |
 | Absolute lift over held-out prevalence | 0.7350 |
 
-### Box 3 — L-M (L,M)
+### Box 4 — L-M (L,M)
 
 **Learned box conditions**
 
@@ -149,11 +230,22 @@ The architectural interpretation traces conditions through declared system-spec 
 | Metric | Value |
 |:---|---:|
 | Train precision / density | 1 |
-| Train recall / coverage | 0.5696 |
+| Train recall / coverage | 0.5707 |
 | Train target prevalence | 0.6740 |
 | Train absolute lift | 0.3260 |
-| Train samples in box | 45 |
-| Train targets in box | 45 |
+| Train observations | 273 |
+| Train target observations | 184 |
+| Train samples in box | 105 |
+| Train targets in box | 105 |
+
+**Algorithm fit diagnostics**
+
+| Diagnostic | Value |
+|:---|---:|
+| Density | 1 |
+| Coverage | 0.5707 |
+| Mean | 1 |
+| Mass | 0.3846 |
 
 **Held-out metrics (test partition)**
 
@@ -168,7 +260,7 @@ The architectural interpretation traces conditions through declared system-spec 
 | Recall / target coverage | 0.5696 |
 | Absolute lift over held-out prevalence | 0.3248 |
 
-### Box 4 — L-L (L,L)
+### Box 5 — L-L (L,L)
 
 **Learned box conditions**
 
@@ -198,12 +290,23 @@ The architectural interpretation traces conditions through declared system-spec 
 
 | Metric | Value |
 |:---|---:|
-| Train precision / density | 0.4167 |
-| Train recall / coverage | 1 |
+| Train precision / density | 0.3929 |
+| Train recall / coverage | 0.9167 |
 | Train target prevalence | 0.0440 |
-| Train absolute lift | 0.3727 |
-| Train samples in box | 12 |
-| Train targets in box | 5 |
+| Train absolute lift | 0.3489 |
+| Train observations | 273 |
+| Train target observations | 12 |
+| Train samples in box | 28 |
+| Train targets in box | 11 |
+
+**Algorithm fit diagnostics**
+
+| Diagnostic | Value |
+|:---|---:|
+| Density | 0.3929 |
+| Coverage | 0.9167 |
+| Mean | 0.3929 |
+| Mass | 0.1026 |
 
 **Held-out metrics (test partition)**
 
@@ -224,10 +327,10 @@ The architectural interpretation traces conditions through declared system-spec 
 
 **Learned box conditions**
 
-- `Client Selector Criteria`: {(not selected)}
 - `delay_percentage`: [12.500, 100.000]
 - `HDH Instances`: [0.000, 2.500]
 - `Pattern Instances`: [0.000, 5.499]
+- `Client Selector Criteria`: {(not selected)}
 - **Includes NaN / not-selected values:** `Client Selector Criteria`
 
 **Architectural interpretation**
@@ -254,11 +357,13 @@ The architectural interpretation traces conditions through declared system-spec 
 | Metric | Value |
 |:---|---:|
 | Train precision / density | 1 |
-| Train recall / coverage | 0.5696 |
+| Train recall / coverage | 0.5707 |
 | Train target prevalence | 0.6740 |
 | Train absolute lift | 0.3260 |
-| Train samples in box | 45 |
-| Train targets in box | 45 |
+| Train observations | 273 |
+| Train target observations | 184 |
+| Train samples in box | 105 |
+| Train targets in box | 105 |
 
 **Held-out metrics (test partition)**
 
@@ -300,11 +405,13 @@ The architectural interpretation traces conditions through declared system-spec 
 | Metric | Value |
 |:---|---:|
 | Train precision / density | 1 |
-| Train recall / coverage | 0.4839 |
+| Train recall / coverage | 0.5072 |
 | Train target prevalence | 0.2527 |
 | Train absolute lift | 0.7473 |
-| Train samples in box | 15 |
-| Train targets in box | 15 |
+| Train observations | 273 |
+| Train target observations | 69 |
+| Train samples in box | 35 |
+| Train targets in box | 35 |
 
 **Held-out metrics (test partition)**
 
@@ -323,10 +430,10 @@ The architectural interpretation traces conditions through declared system-spec 
 
 **Learned box conditions**
 
-- `Client Selector Criteria`: {(not selected)}
+- `Pattern Types Active`: [1.500, 3.000]
 - `delay_percentage`: [50.010, 100.000]
 - `HDH Instances`: [2.500, 3.000]
-- `Pattern Types Active`: [1.500, 3.000]
+- `Client Selector Criteria`: {(not selected)}
 - **Includes NaN / not-selected values:** `Client Selector Criteria`
 
 **Architectural interpretation**
@@ -353,12 +460,14 @@ The architectural interpretation traces conditions through declared system-spec 
 
 | Metric | Value |
 |:---|---:|
-| Train precision / density | 1 |
-| Train recall / coverage | 0.6000 |
+| Train precision / density | 0.5714 |
+| Train recall / coverage | 0.3333 |
 | Train target prevalence | 0.0440 |
-| Train absolute lift | 0.9560 |
-| Train samples in box | 3 |
-| Train targets in box | 3 |
+| Train absolute lift | 0.5275 |
+| Train observations | 273 |
+| Train target observations | 12 |
+| Train samples in box | 7 |
+| Train targets in box | 4 |
 
 **Held-out metrics (test partition)**
 
