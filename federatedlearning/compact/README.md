@@ -106,10 +106,10 @@ notebooks use `CLIENTS = None`, so all client counts and available environments 
 Each single-pattern notebook keeps exactly one pattern ON and the other two OFF; it excludes
 baseline and combined-pattern runs. These notebooks profile each policy's tradeoffs and operating
 envelopes, but do not by themselves estimate differences against another policy. Each
-objective-space chart is also saved as a 300 dpi PNG in the task folder's `plots/` directory.
-The filename records task, configuration slice, client-count scope, environment filter and
-objective pair. The findings markdown files have not yet been revised to include these
-notebooks.
+objective-space chart and Section 8 feature-importance heatmap are saved as 300 dpi PNGs in the
+task folder's `plots/` directory. Filenames record task, configuration slice, client-count scope,
+environment filter and, for objective-space charts, the objective pair. The findings markdown
+files have not yet been revised to include these notebooks.
 
 ## 4. Filters (`fl_slices.slice_filter`)
 

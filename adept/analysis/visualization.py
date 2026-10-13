@@ -285,6 +285,8 @@ def show_importance_heatmap(
         annot=True, 
         fmt=".3f", 
         cmap="Reds", 
+        vmin=0.0,
+        vmax=1.0,
         ax=ax,
         cbar_kws={'label': 'Importance Score'}
     )
