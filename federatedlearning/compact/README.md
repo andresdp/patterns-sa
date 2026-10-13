@@ -1,9 +1,9 @@
 # Compact FL campaign: data, specs and notebooks
 
-This folder holds the compact AP4FED experiment campaign and its ADEPT system definitions.
-The analysis notebooks live one level up, in `federatedlearning/`, and load the specs from
-here. This README explains what the data contains, which notebooks analyze it, and why each
-notebook family slices the data the way it does.
+This folder holds the compact AP4FED experiment campaign, its ADEPT system definitions, and
+the task-specific analysis notebooks in `image/` and `text/`. This README explains what the
+data contains, which notebooks analyze it, and why each notebook family slices the data the
+way it does.
 
 **Current analysis scope:** Understand the compact run-level space first; general analysis of the detailed client/round records is deferred. ADEPT's configured aggregation averages selected numeric client fields over recorded values and counts distinct values for categorical fields. A mean describes that recorded population, not every client; usage means can include participants only. Equal averages can hide imbalance, joint conditions on a client, or behavior over rounds. The existing detailed-log HDH counts are a limited supporting measurement. See [the formalization's aggregation explanation](../../docs/paper_adept_formal_extension.md#21-observation-level-compact-summaries-first).
 
@@ -68,8 +68,8 @@ analyses if needed.
 
 | Notebooks | Scenario | Questions |
 |:---|:---|:---|
-| `../image/analysis-fl-rq-c{4,8,10}-image.ipynb` | CIFAR-10/CNN 16k at 4, 8 or 10 clients | RQ1: observed objective tradeoffs by configuration and pattern count. RQ2: conditions associated with each observed tradeoff and held-out box comparisons. |
-| `../text/analysis-fl-rq-c{4,8,10}-text.ipynb` | AG_NEWS/MLP at 4, 8 or 10 clients | Same RQ1 and RQ2 analyses for the text task. |
+| `image/analysis-fl-rq-c{4,8,10}-image.ipynb` | CIFAR-10/CNN 16k at 4, 8 or 10 clients | RQ1: observed objective tradeoffs by configuration and pattern count. RQ2: conditions associated with each observed tradeoff and held-out box comparisons. |
+| `text/analysis-fl-rq-c{4,8,10}-text.ipynb` | AG_NEWS/MLP at 4, 8 or 10 clients | Same RQ1 and RQ2 analyses for the text task. |
 
 All notebooks use one fixed set of objective bin edges derived from the full compact campaign,
 so the S/M/L quadrants retain the same meaning across scenarios. Empty quadrants are shown as
