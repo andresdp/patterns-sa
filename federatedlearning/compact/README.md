@@ -111,6 +111,16 @@ task synthesis under that task's `findings/` folder. A fresh context helps avoid
 conclusions from an earlier run. Give it the task and current experiment scope, but not expected
 conclusions.
 
+For example, start a fresh Claude Code session and invoke the skill with the task scope:
+
+```text
+/adept-compact-findings Analyze the current image task from its already-executed notebooks,
+plots, and box reports. Refresh the evidence manifest, write the seven case findings and the
+image RQ1/RQ2 synthesis, and cite the supporting artifacts. Do not rerun the notebooks.
+```
+
+Repeat in a separate fresh session for `text`, changing “image” to “text” in the request.
+
 For an independent quality check, use another fresh context to review the new findings against
 that task's manifest, notebooks, box reports and plots. Ask it to verify factual claims, scope,
 support, and whether the design/context distinctions and observational limits are respected.
