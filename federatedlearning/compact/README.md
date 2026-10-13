@@ -51,30 +51,25 @@ It must therefore be loaded through `fl_slices.slice_filter(...)`, as every note
 
 ## 3. Notebooks and their rationale
 
-The retained analysis set has six scenario notebooks, covering each client count (4, 8, 10)
-and task (image or text). Each notebook contains two views of the same task/client-count
-scenario: **same-environment** (called `common` in the notebook filter) and
-**all-environment**.
+The six maintained notebooks are organized by task and use **only the all-environment
+view**. Each analyzes one task/client-count slice and retains every available run for it.
+The analysis therefore has 390 runs per slice (273 training and 117 held out), including
+the environment point shared by configurations and additional sampled settings. The
+environmental design is not fully crossed: configurations can have different mixes of
+sampled conditions, so observed configuration differences may reflect both pattern choices
+and environment composition.
 
-- **Same-environment / common:** keeps only the single environment point shared by all
-  eight pattern configurations: 25% low-spec clients, 25% non-IID clients, and 25% delayed
-  clients. This compares configurations under the same recorded environment settings, with
-  ten `partition_seed` runs per configuration (80 runs per task/client-count slice). It is
-  useful for a like-for-like descriptive comparison, but represents only that one point and
-  often has too little outcome variation for scenario discovery.
-- **All-environment:** keeps every available run for the selected task and client count,
-  including the shared point and additional environment points. Environmental coverage is
-  not fully crossed: some configurations have different numbers or mixes of available
-  conditions. This view broadens the observed operating envelope, but configuration
-  differences can reflect both pattern choices and environmental composition.
-
-The same-environment rows are included in the all-environment view. Treat the views as
-complementary analyses of overlapping data, not as independent replications.
+The earlier same-environment view kept only the single point shared by all eight
+configurations (25% low-spec, 25% non-IID, 25% delayed clients; 80 runs per slice). It was
+useful for a like-for-like descriptive comparison, but its limited outcome and condition
+variation often left too little support for PRIM/CART discovery. It has been removed from
+the maintained notebooks; `fl_slices` still supports `environment='common'` for other
+analyses if needed.
 
 | Notebooks | Scenario | Questions |
 |:---|:---|:---|
-| `analysis-fl-rq-c{4,8,10}-image.ipynb` | CIFAR-10/CNN 16k at 4, 8 or 10 clients | RQ1: observed objective tradeoffs by configuration and pattern count. RQ2: conditions associated with each observed tradeoff and held-out box comparisons. |
-| `analysis-fl-rq-c{4,8,10}-text.ipynb` | AG_NEWS/MLP at 4, 8 or 10 clients | Same RQ1 and RQ2 analyses for the text task. |
+| `../image/analysis-fl-rq-c{4,8,10}-image.ipynb` | CIFAR-10/CNN 16k at 4, 8 or 10 clients | RQ1: observed objective tradeoffs by configuration and pattern count. RQ2: conditions associated with each observed tradeoff and held-out box comparisons. |
+| `../text/analysis-fl-rq-c{4,8,10}-text.ipynb` | AG_NEWS/MLP at 4, 8 or 10 clients | Same RQ1 and RQ2 analyses for the text task. |
 
 All notebooks use one fixed set of objective bin edges derived from the full compact campaign,
 so the S/M/L quadrants retain the same meaning across scenarios. Empty quadrants are shown as
@@ -95,18 +90,13 @@ box-restricted target frequency. ADEPT lift is absolute: box precision minus tra
 prevalence. The test-set what-if comparison is an observed conditional difference, not a
 causal improvement estimate.
 
-### Generating and editing
+### Running
 
-Generate the six maintained notebooks from `federatedlearning/` with the configured
-`perfmodels` Python environment:
-
-```bash
-python make_rq_notebooks.py
-```
-
-`make_slice_notebooks.py` remains as a compatibility entry point and delegates to the current
-generator. Generated notebook outputs are cleared so each notebook can be run from top to
-bottom against the compact data and its declared environment view.
+Open a notebook from its task folder and run it top to bottom with the `perfmodels` conda
+environment. Each notebook sets `ENVIRONMENT = 'all'`; it does not run or report the
+same-environment analysis. Run the three notebooks in `image/` and the three in `text/`,
+with client counts in ascending order within each folder. The outputs already saved in each
+notebook are from its all-environment analysis.
 
 ## 4. Filters (`fl_slices.slice_filter`)
 
@@ -115,10 +105,10 @@ bottom against the compact data and its declared environment view.
 | `name` (+ `include_baseline`) | `'all'`, `'baseline'`, or one pattern alone (`'client_selector'`, `'message_compressor'`, `'hdh'`) |
 | `clients` | runs with that `Total Clients` (4, 8 or 10) |
 | `task` | `'image'` = CIFAR-10 + CNN 16k, `'text'` = AG_NEWS + MLP |
-| `environment` | `'common'`: only the environment points at which **every** configuration left after the other filters was run |
+| `environment` | `'all'`: every available environment run for the selected slice; `'common'`: shared point only (supported by the helper, not used by maintained notebooks) |
 
 ```python
-session.load(preprocessor=fl_slices.slice_filter(clients=8, task='image', environment='common'))
+session.load(preprocessor=fl_slices.slice_filter(clients=8, task='image', environment='all'))
 ```
 
 In the notebooks these are the parameters `SLICE`, `INCLUDE_BASELINE`, `CLIENTS`, `TASK`
