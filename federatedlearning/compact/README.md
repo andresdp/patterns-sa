@@ -108,8 +108,9 @@ the [`adept-compact-findings` skill](../../.claude/skills/adept-compact-findings
 fresh analysis context for each task (`image` and `text` separately). The skill assumes notebook
 outputs already exist; it refreshes the evidence manifest and writes seven case findings plus a
 task synthesis under that task's `findings/` folder. A fresh context helps avoid carrying forward
-conclusions from an earlier run. Give it the task and current experiment scope, but not expected
-conclusions.
+conclusions from an earlier run. It treats prior findings as stale output, ignores them during
+analysis, and replaces them only after the complete new set is ready. Give it the task and current
+experiment scope, but not expected conclusions.
 
 For example, start a fresh Claude Code session and invoke the skill with the task scope:
 
