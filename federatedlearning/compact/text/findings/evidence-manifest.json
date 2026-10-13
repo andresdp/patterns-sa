@@ -1,0 +1,457 @@
+{
+  "task": "text",
+  "generated_at_utc": "2026-10-13T17:31:06+00:00",
+  "status": "ready",
+  "research_questions": {
+    "RQ1": "Which tradeoffs occur, and how do design choices relate to them?",
+    "RQ2": "Which joint conditions identify a target tradeoff, and what changes inside the box?"
+  },
+  "sources": [
+    {
+      "path": "federatedlearning/compact/FLsystem_compact_all.json",
+      "size_bytes": 22141,
+      "sha256": "9e9867fbd72df676460c0c1c2bd37dc2ff96e5a887a9296f1daad3090778d3f0"
+    },
+    {
+      "path": "federatedlearning/compact/adept_experiments_all_waves.csv",
+      "size_bytes": 1166569,
+      "sha256": "dcfc11172f6dfeed90026818ab5b91971a0d5b00abb539d8d609ae9e3baaecdc"
+    },
+    {
+      "path": "federatedlearning/compact/adept_experiments_all_waves_combinedAP.csv",
+      "size_bytes": 856557,
+      "sha256": "41f73c4631dab43166da55fec39e8f9efe632cb003cf3048ce54f76267efee4f"
+    }
+  ],
+  "notebooks": [
+    {
+      "path": "federatedlearning/compact/text/analysis-fl-rq-c4-text.ipynb",
+      "sha256": "83bcc80003cc24f9ed66dce5608fe9f113a177aca15d59ba1336e00ae9b8f874",
+      "status": "ready",
+      "code_cells": 51,
+      "output_cells": 46,
+      "errors": [],
+      "unexecuted_cells": [],
+      "sections": [
+        "# ADEPT compact FL analysis: AG_NEWS/MLP, 4 clients",
+        "## Analysis population: all available environments",
+        "## 1. Load System & Model Summary",
+        "### The design space",
+        "### Reading the model summary",
+        "## 2. Linter Sanity Check",
+        "### Reading the linter warnings",
+        "## 3. Define Tradeoffs",
+        "### Reading the tradeoffs",
+        "## 4. Data Splitting",
+        "## Research Question 1 — Which tradeoffs occur, and how do design choices relate to them?",
+        "### Reading the split",
+        "### How to read `S`, `M` and `L`",
+        "### Decisions, policies and configurations",
+        "#### What else the model contains",
+        "### Reading the objective space",
+        "## 5. Contingency Analysis: Composite and Marginal Decisions",
+        "### Reading the contingency results",
+        "## 6. Robustness Analysis (Quantifying Stability)",
+        "### How robustness relates to contingency",
+        "## 7. Pattern Stress",
+        "### How to read the pattern-instance charts and tables",
+        "## Research Question 2 — Which joint conditions identify a target tradeoff, and what changes inside the box?",
+        "## 8. Feature Importance & Key-Parameter Selection",
+        "### Pattern-parameter presence check",
+        "## 9. Scenario Discovery: PRIM",
+        "### Reading the PRIM boxes",
+        "## 10. Global Discovery: CART",
+        "## 10.1 Architectural interpretation of the discovered boxes",
+        "### Reading the CART boxes",
+        "## 11. What-if analysis: robustness after applying box rules",
+        "## 12. Box Diagnostics and \"Not Selected\" Hatching",
+        "## 13. Performance Metrics"
+      ],
+      "box_report": {
+        "path": "federatedlearning/compact/text/boxes/boxes__task-text__all-configurations__clients-4__environment-all.md",
+        "size_bytes": 8972,
+        "sha256": "e7021c7810ac13d3e5584d3bd9ac9c83966806c5c536315b7d278c33b40e9e71"
+      },
+      "plots": [
+        {
+          "path": "federatedlearning/compact/text/plots/quality-space__task-text__all-configurations__clients-4__environment-all__final_val_accuracy-vs-avg_total_time.png",
+          "size_bytes": 221529,
+          "sha256": "2b18e9806ad368f5efb9bbf38c7b4306f10e09361a5cc8e7224e783790ebd5ee"
+        },
+        {
+          "path": "federatedlearning/compact/text/plots/feature-importance__task-text__all-configurations__clients-4__environment-all.png",
+          "size_bytes": 535167,
+          "sha256": "e51963865e35adf5a8dadeba26fa95bbcc2ca335e663adefc18ccdf16cda40a9"
+        }
+      ]
+    },
+    {
+      "path": "federatedlearning/compact/text/analysis-fl-rq-c8-text.ipynb",
+      "sha256": "d71fdd06c687a98c06310445333458991afa4d64a9d5a0d1e77d4660fb17f985",
+      "status": "ready",
+      "code_cells": 51,
+      "output_cells": 46,
+      "errors": [],
+      "unexecuted_cells": [],
+      "sections": [
+        "# ADEPT compact FL analysis: AG_NEWS/MLP, 8 clients",
+        "## Analysis population: all available environments",
+        "## 1. Load System & Model Summary",
+        "### The design space",
+        "### Reading the model summary",
+        "## 2. Linter Sanity Check",
+        "### Reading the linter warnings",
+        "## 3. Define Tradeoffs",
+        "### Reading the tradeoffs",
+        "## 4. Data Splitting",
+        "## Research Question 1 — Which tradeoffs occur, and how do design choices relate to them?",
+        "### Reading the split",
+        "### How to read `S`, `M` and `L`",
+        "### Decisions, policies and configurations",
+        "#### What else the model contains",
+        "### Reading the objective space",
+        "## 5. Contingency Analysis: Composite and Marginal Decisions",
+        "### Reading the contingency results",
+        "## 6. Robustness Analysis (Quantifying Stability)",
+        "### How robustness relates to contingency",
+        "## 7. Pattern Stress",
+        "### How to read the pattern-instance charts and tables",
+        "## Research Question 2 — Which joint conditions identify a target tradeoff, and what changes inside the box?",
+        "## 8. Feature Importance & Key-Parameter Selection",
+        "### Pattern-parameter presence check",
+        "## 9. Scenario Discovery: PRIM",
+        "### Reading the PRIM boxes",
+        "## 10. Global Discovery: CART",
+        "## 10.1 Architectural interpretation of the discovered boxes",
+        "### Reading the CART boxes",
+        "## 11. What-if analysis: robustness after applying box rules",
+        "## 12. Box Diagnostics and \"Not Selected\" Hatching",
+        "## 13. Performance Metrics"
+      ],
+      "box_report": {
+        "path": "federatedlearning/compact/text/boxes/boxes__task-text__all-configurations__clients-8__environment-all.md",
+        "size_bytes": 6268,
+        "sha256": "25c113dab8f3361341bedcb2fb7e9ef2e7399c0fd919e2e16451e170d6c093ff"
+      },
+      "plots": [
+        {
+          "path": "federatedlearning/compact/text/plots/quality-space__task-text__all-configurations__clients-8__environment-all__final_val_accuracy-vs-avg_total_time.png",
+          "size_bytes": 243923,
+          "sha256": "5bb981ae93797273c6b82666fbf45c4ebcf8637b860eb1ca82959d6adc4b197a"
+        },
+        {
+          "path": "federatedlearning/compact/text/plots/feature-importance__task-text__all-configurations__clients-8__environment-all.png",
+          "size_bytes": 534642,
+          "sha256": "72980eafd8719e848196fe3e271cfee4492586e653b837dfa3481eddc0341b6f"
+        }
+      ]
+    },
+    {
+      "path": "federatedlearning/compact/text/analysis-fl-rq-c10-text.ipynb",
+      "sha256": "29ec66fb41e1690e37b19f0dc86f6077c9ff05754321f12bac51343dc8f4e48d",
+      "status": "ready",
+      "code_cells": 51,
+      "output_cells": 46,
+      "errors": [],
+      "unexecuted_cells": [],
+      "sections": [
+        "# ADEPT compact FL analysis: AG_NEWS/MLP, 10 clients",
+        "## Analysis population: all available environments",
+        "## 1. Load System & Model Summary",
+        "### The design space",
+        "### Reading the model summary",
+        "## 2. Linter Sanity Check",
+        "### Reading the linter warnings",
+        "## 3. Define Tradeoffs",
+        "### Reading the tradeoffs",
+        "## 4. Data Splitting",
+        "## Research Question 1 — Which tradeoffs occur, and how do design choices relate to them?",
+        "### Reading the split",
+        "### How to read `S`, `M` and `L`",
+        "### Decisions, policies and configurations",
+        "#### What else the model contains",
+        "### Reading the objective space",
+        "## 5. Contingency Analysis: Composite and Marginal Decisions",
+        "### Reading the contingency results",
+        "## 6. Robustness Analysis (Quantifying Stability)",
+        "### How robustness relates to contingency",
+        "## 7. Pattern Stress",
+        "### How to read the pattern-instance charts and tables",
+        "## Research Question 2 — Which joint conditions identify a target tradeoff, and what changes inside the box?",
+        "## 8. Feature Importance & Key-Parameter Selection",
+        "### Pattern-parameter presence check",
+        "## 9. Scenario Discovery: PRIM",
+        "### Reading the PRIM boxes",
+        "## 10. Global Discovery: CART",
+        "## 10.1 Architectural interpretation of the discovered boxes",
+        "### Reading the CART boxes",
+        "## 11. What-if analysis: robustness after applying box rules",
+        "## 12. Box Diagnostics and \"Not Selected\" Hatching",
+        "## 13. Performance Metrics"
+      ],
+      "box_report": {
+        "path": "federatedlearning/compact/text/boxes/boxes__task-text__all-configurations__clients-10__environment-all.md",
+        "size_bytes": 6321,
+        "sha256": "8e669ad4998e748e024348cb5fea906c48c6ce6e6b1d025cdcb585f987f9981c"
+      },
+      "plots": [
+        {
+          "path": "federatedlearning/compact/text/plots/quality-space__task-text__all-configurations__clients-10__environment-all__final_val_accuracy-vs-avg_total_time.png",
+          "size_bytes": 231952,
+          "sha256": "b4cc0991a8922b3d3b3dc8fff1a2864f839ca2d7e146c8678434f1363e29144b"
+        },
+        {
+          "path": "federatedlearning/compact/text/plots/feature-importance__task-text__all-configurations__clients-10__environment-all.png",
+          "size_bytes": 542864,
+          "sha256": "de5ec5e6a894f60a32cc4168a7efa307fcdaf61d2f52e6b3633acce3409df4cb"
+        }
+      ]
+    },
+    {
+      "path": "federatedlearning/compact/text/analysis-fl-rq-baseline-text.ipynb",
+      "sha256": "c3a6d9d89f453a96e1caf46eda24a23c27aa03d17f3f6b17984b73e272afff89",
+      "status": "ready",
+      "code_cells": 51,
+      "output_cells": 46,
+      "errors": [],
+      "unexecuted_cells": [],
+      "sections": [
+        "# ADEPT compact FL baseline analysis: AG_NEWS/MLP, all client counts",
+        "## Analysis population: all-environment baseline across client counts",
+        "## 1. Load System & Model Summary",
+        "### The design space",
+        "### Reading the model summary",
+        "## 2. Linter Sanity Check",
+        "### Reading the linter warnings",
+        "## 3. Define Tradeoffs",
+        "### Reading the tradeoffs",
+        "## 4. Data Splitting",
+        "## Research Question 1 — What tradeoffs occur in the no-pattern baseline?",
+        "### Reading the split",
+        "### How to read `S`, `M` and `L`",
+        "### Decisions, policies and configurations",
+        "#### What else the model contains",
+        "### Reading the objective space",
+        "## 5. Contingency Analysis: Composite and Marginal Decisions",
+        "### Reading the contingency results",
+        "## 6. Robustness Analysis (Quantifying Stability)",
+        "### How robustness relates to contingency",
+        "## 7. Pattern Stress",
+        "### How to read the pattern-instance charts and tables",
+        "## Research Question 2 — Which conditions identify baseline tradeoffs, and how robust are they?",
+        "## 8. Feature Importance & Key-Parameter Selection",
+        "### Pattern-parameter presence check",
+        "## 9. Scenario Discovery: PRIM",
+        "### Reading the PRIM boxes",
+        "## 10. Global Discovery: CART",
+        "## 10.1 Architectural interpretation of the discovered boxes",
+        "### Reading the CART boxes",
+        "## 11. What-if analysis: robustness after applying box rules",
+        "## 12. Box Diagnostics and \"Not Selected\" Hatching",
+        "## 13. Performance Metrics"
+      ],
+      "box_report": {
+        "path": "federatedlearning/compact/text/boxes/boxes__task-text__baseline_OFF_OFF_OFF__clients-all__environment-all.md",
+        "size_bytes": 5226,
+        "sha256": "afeefabcec98546c9f5e7b32506bcdb566918589dd83205dfb1c6a497160266a"
+      },
+      "plots": [
+        {
+          "path": "federatedlearning/compact/text/plots/quality-space__task-text__baseline_OFF_OFF_OFF__clients-all__environment-all__final_val_accuracy-vs-avg_total_time.png",
+          "size_bytes": 167149,
+          "sha256": "d045ba49bad4eaa58db5d8b4f877769003a725b82e578268c8652b7c4f62f974"
+        },
+        {
+          "path": "federatedlearning/compact/text/plots/feature-importance__task-text__baseline_OFF_OFF_OFF__clients-all__environment-all.png",
+          "size_bytes": 530414,
+          "sha256": "f270622f04e1e05f62b15ca060411d734818446731bfe7cdcd79395e41689eba"
+        }
+      ]
+    },
+    {
+      "path": "federatedlearning/compact/text/analysis-fl-rq-client_selector-text.ipynb",
+      "sha256": "6ae1560e63ef17b7b8f236ba8399c876cd34dcedcaa4899145d43c45000e3870",
+      "status": "ready",
+      "code_cells": 51,
+      "output_cells": 46,
+      "errors": [],
+      "unexecuted_cells": [],
+      "sections": [
+        "# ADEPT compact FL Client Selector-only analysis: AG_NEWS/MLP, all client counts",
+        "## Analysis population: all-environment Client Selector-only configuration across client counts",
+        "## 1. Load System & Model Summary",
+        "### The design space",
+        "### Reading the model summary",
+        "## 2. Linter Sanity Check",
+        "### Reading the linter warnings",
+        "## 3. Define Tradeoffs",
+        "### Reading the tradeoffs",
+        "## 4. Data Splitting",
+        "## Research Question 1 — What tradeoffs occur with Client Selector as the only enabled pattern?",
+        "### Reading the split",
+        "### How to read `S`, `M` and `L`",
+        "### Decisions, policies and configurations",
+        "#### What else the model contains",
+        "### Reading the objective space",
+        "## 5. Contingency Analysis: Composite and Marginal Decisions",
+        "### Reading the contingency results",
+        "## 6. Robustness Analysis (Quantifying Stability)",
+        "### How robustness relates to contingency",
+        "## 7. Pattern Stress",
+        "### How to read the pattern-instance charts and tables",
+        "## Research Question 2 — Which conditions identify Client Selector-only tradeoffs, and how robust are they?",
+        "## 8. Feature Importance & Key-Parameter Selection",
+        "### Pattern-parameter presence check",
+        "## 9. Scenario Discovery: PRIM",
+        "### Reading the PRIM boxes",
+        "## 10. Global Discovery: CART",
+        "## 10.1 Architectural interpretation of the discovered boxes",
+        "### Reading the CART boxes",
+        "## 11. What-if analysis: robustness after applying box rules",
+        "## 12. Box Diagnostics and \"Not Selected\" Hatching",
+        "## 13. Performance Metrics"
+      ],
+      "box_report": {
+        "path": "federatedlearning/compact/text/boxes/boxes__task-text__client_selector-only_ON_OFF_OFF__clients-all__environment-all.md",
+        "size_bytes": 5857,
+        "sha256": "fc6fcc82d780365583bc3dca75ee77bcc49b053e3345c862380018601ba9d1db"
+      },
+      "plots": [
+        {
+          "path": "federatedlearning/compact/text/plots/quality-space__task-text__client_selector-only_ON_OFF_OFF__clients-all__environment-all__final_val_accuracy-vs-avg_total_time.png",
+          "size_bytes": 160695,
+          "sha256": "f992bf860a06b3ebbd257bb4dd7e03372131af101d2420315809c09e55b48a4f"
+        },
+        {
+          "path": "federatedlearning/compact/text/plots/feature-importance__task-text__client_selector-only_ON_OFF_OFF__clients-all__environment-all.png",
+          "size_bytes": 536595,
+          "sha256": "af490feba35c9d46f32ff52310d806daa7316cf504e4fd9296a1557e74b57e62"
+        }
+      ]
+    },
+    {
+      "path": "federatedlearning/compact/text/analysis-fl-rq-message_compressor-text.ipynb",
+      "sha256": "67c9e15bfa5915d324fedf4f2ae093923d7eb5273da6549ea16d5fc628232379",
+      "status": "ready",
+      "code_cells": 51,
+      "output_cells": 46,
+      "errors": [],
+      "unexecuted_cells": [],
+      "sections": [
+        "# ADEPT compact FL Message Compressor-only analysis: AG_NEWS/MLP, all client counts",
+        "## Analysis population: all-environment Message Compressor-only configuration across client counts",
+        "## 1. Load System & Model Summary",
+        "### The design space",
+        "### Reading the model summary",
+        "## 2. Linter Sanity Check",
+        "### Reading the linter warnings",
+        "## 3. Define Tradeoffs",
+        "### Reading the tradeoffs",
+        "## 4. Data Splitting",
+        "## Research Question 1 — What tradeoffs occur with Message Compressor as the only enabled pattern?",
+        "### Reading the split",
+        "### How to read `S`, `M` and `L`",
+        "### Decisions, policies and configurations",
+        "#### What else the model contains",
+        "### Reading the objective space",
+        "## 5. Contingency Analysis: Composite and Marginal Decisions",
+        "### Reading the contingency results",
+        "## 6. Robustness Analysis (Quantifying Stability)",
+        "### How robustness relates to contingency",
+        "## 7. Pattern Stress",
+        "### How to read the pattern-instance charts and tables",
+        "## Research Question 2 — Which conditions identify Message Compressor-only tradeoffs, and how robust are they?",
+        "## 8. Feature Importance & Key-Parameter Selection",
+        "### Pattern-parameter presence check",
+        "## 9. Scenario Discovery: PRIM",
+        "### Reading the PRIM boxes",
+        "## 10. Global Discovery: CART",
+        "## 10.1 Architectural interpretation of the discovered boxes",
+        "### Reading the CART boxes",
+        "## 11. What-if analysis: robustness after applying box rules",
+        "## 12. Box Diagnostics and \"Not Selected\" Hatching",
+        "## 13. Performance Metrics"
+      ],
+      "box_report": {
+        "path": "federatedlearning/compact/text/boxes/boxes__task-text__message_compressor-only_OFF_ON_OFF__clients-all__environment-all.md",
+        "size_bytes": 5247,
+        "sha256": "59ce77aba1a93a0336c349440c252d72cf374a9cd42419bb303dedb458826f02"
+      },
+      "plots": [
+        {
+          "path": "federatedlearning/compact/text/plots/quality-space__task-text__message_compressor-only_OFF_ON_OFF__clients-all__environment-all__final_val_accuracy-vs-avg_total_time.png",
+          "size_bytes": 161081,
+          "sha256": "aea77cfa1fb29ea4c7af38f1bf6abc28df55d31a069019719c633bca97c7f590"
+        },
+        {
+          "path": "federatedlearning/compact/text/plots/feature-importance__task-text__message_compressor-only_OFF_ON_OFF__clients-all__environment-all.png",
+          "size_bytes": 530912,
+          "sha256": "2ddc87f648ced46504f9e72b23caa814986d7b80144cd9f78772e499c523c87e"
+        }
+      ]
+    },
+    {
+      "path": "federatedlearning/compact/text/analysis-fl-rq-hdh-text.ipynb",
+      "sha256": "d73fc853a3bdba6c960cfb3f4feaf6252a2320fa9befb56b5278ada20e6ecce1",
+      "status": "ready",
+      "code_cells": 51,
+      "output_cells": 46,
+      "errors": [],
+      "unexecuted_cells": [],
+      "sections": [
+        "# ADEPT compact FL HDH-only analysis: AG_NEWS/MLP, all client counts",
+        "## Analysis population: all-environment HDH-only configuration across client counts",
+        "## 1. Load System & Model Summary",
+        "### The design space",
+        "### Reading the model summary",
+        "## 2. Linter Sanity Check",
+        "### Reading the linter warnings",
+        "## 3. Define Tradeoffs",
+        "### Reading the tradeoffs",
+        "## 4. Data Splitting",
+        "## Research Question 1 — What tradeoffs occur with HDH as the only enabled pattern?",
+        "### Reading the split",
+        "### How to read `S`, `M` and `L`",
+        "### Decisions, policies and configurations",
+        "#### What else the model contains",
+        "### Reading the objective space",
+        "## 5. Contingency Analysis: Composite and Marginal Decisions",
+        "### Reading the contingency results",
+        "## 6. Robustness Analysis (Quantifying Stability)",
+        "### How robustness relates to contingency",
+        "## 7. Pattern Stress",
+        "### How to read the pattern-instance charts and tables",
+        "## Research Question 2 — Which conditions identify HDH-only tradeoffs, and how robust are they?",
+        "## 8. Feature Importance & Key-Parameter Selection",
+        "### Pattern-parameter presence check",
+        "## 9. Scenario Discovery: PRIM",
+        "### Reading the PRIM boxes",
+        "## 10. Global Discovery: CART",
+        "## 10.1 Architectural interpretation of the discovered boxes",
+        "### Reading the CART boxes",
+        "## 11. What-if analysis: robustness after applying box rules",
+        "## 12. Box Diagnostics and \"Not Selected\" Hatching",
+        "## 13. Performance Metrics"
+      ],
+      "box_report": {
+        "path": "federatedlearning/compact/text/boxes/boxes__task-text__hdh-only_OFF_OFF_ON__clients-all__environment-all.md",
+        "size_bytes": 5547,
+        "sha256": "9be137a4baad2d03c059259f7ce71326bc4cb71748e200c12d855957cf82907e"
+      },
+      "plots": [
+        {
+          "path": "federatedlearning/compact/text/plots/quality-space__task-text__hdh-only_OFF_OFF_ON__clients-all__environment-all__final_val_accuracy-vs-avg_total_time.png",
+          "size_bytes": 154504,
+          "sha256": "5cd172295ca60519898f4c34af9d63e18293d65a31b1a64d93b7a1840622a35a"
+        },
+        {
+          "path": "federatedlearning/compact/text/plots/feature-importance__task-text__hdh-only_OFF_OFF_ON__clients-all__environment-all.png",
+          "size_bytes": 536095,
+          "sha256": "93558ab08932bfc171886314c771ff65bfc9e6f78f67b50ca87203e0ce3b2325"
+        }
+      ]
+    }
+  ],
+  "issues": [],
+  "manifest_path": "federatedlearning/compact/text/findings/evidence-manifest.json"
+}
