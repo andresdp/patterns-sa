@@ -33,6 +33,10 @@ The architectural interpretation traces conditions through declared system-spec 
 
 - **Design prescription**:
   - Client Selector = ON (Strategy = Resource-Based; Criteria = CPU; Value = 2.0)
+- **Pattern activation among training discovery rows matching this box**:
+  - Client Selector: ON (14/14)
+  - HDH: ON (14/14)
+  - Message Compressor: OFF (14/14)
 - **Operating envelope**:
   - CPU Mean [8.25, 10.1]
   - JSD Mean [0.00267, 0.09]
@@ -73,6 +77,10 @@ The architectural interpretation traces conditions through declared system-spec 
 
 - **Design prescription**:
   - Client Selector = OFF
+- **Pattern activation among training discovery rows matching this box**:
+  - Client Selector: OFF (49/49)
+  - HDH: OFF (21/49), ON (28/49)
+  - Message Compressor: OFF (35/49), ON (14/49)
 - **Operating envelope**:
   - Alpha Dirichlet Mean [0.625, 0.688]
 - **Other parameter conditions**:
@@ -115,6 +123,10 @@ The architectural interpretation traces conditions through declared system-spec 
 
 - **Design prescription**:
   - Client Selector = OFF
+- **Pattern activation among training discovery rows matching this box**:
+  - Client Selector: OFF (21/21)
+  - HDH: OFF (14/21), ON (7/21)
+  - Message Compressor: OFF (7/21), ON (14/21)
 - **Operating envelope**:
   - Alpha Dirichlet Mean [0.688, 0.875]
   - delay percentage [0, 12.5] (%)
@@ -158,6 +170,10 @@ The architectural interpretation traces conditions through declared system-spec 
 
 - **Design prescription**:
   - Client Selector = OFF
+- **Pattern activation among training discovery rows matching this box**:
+  - Client Selector: OFF (77/77)
+  - HDH: OFF (56/77), ON (21/77)
+  - Message Compressor: OFF (28/77), ON (49/77)
 - **Operating envelope**:
   - Alpha Dirichlet Mean [0.812, 0.875]
   - delay percentage [12.5, 100] (%)
@@ -203,6 +219,10 @@ The architectural interpretation traces conditions through declared system-spec 
 
 - **Design prescription**:
   - Client Selector = OFF
+- **Pattern activation among training discovery rows matching this box**:
+  - Client Selector: OFF (77/77)
+  - HDH: OFF (56/77), ON (21/77)
+  - Message Compressor: OFF (28/77), ON (49/77)
 - **Operating envelope**:
   - Alpha Dirichlet Mean [0.813, 0.875]
   - delay percentage [12.5, 100] (%)
@@ -245,6 +265,10 @@ The architectural interpretation traces conditions through declared system-spec 
 
 - **Design prescription**:
   - Client Selector = OFF
+- **Pattern activation among training discovery rows matching this box**:
+  - Client Selector: OFF (49/49)
+  - HDH: OFF (21/49), ON (28/49)
+  - Message Compressor: OFF (35/49), ON (14/49)
 - **Operating envelope**:
   - Alpha Dirichlet Mean [0.625, 0.688]
 - **Other parameter conditions**:
@@ -279,18 +303,22 @@ The architectural interpretation traces conditions through declared system-spec 
 **Learned box conditions**
 
 - `Alpha Dirichlet Mean`: [0.813, 0.875]
-- `JSD Mean`: (not selected) or <= 0.006
 - `delay_percentage`: [0.000, 12.500]
+- `JSD Mean`: (not selected) or <= 0.006
 - **Includes NaN / not-selected values:** `JSD Mean`
 
 **Architectural interpretation**
 
 - **Design prescription**:
   - No pattern policy is required by the box conditions
+- **Pattern activation among training discovery rows matching this box**:
+  - Client Selector: OFF (19/30), ON (11/30)
+  - HDH: OFF (21/30), ON (9/30)
+  - Message Compressor: OFF (7/30), ON (23/30)
 - **Operating envelope**:
   - Alpha Dirichlet Mean [0.813, 0.875]
-  - JSD Mean [-0.00717, 0.00584]
   - delay percentage [0, 12.5] (%)
+  - JSD Mean [-0.00717, 0.00584]
 
 **Discovery metrics (training partition)**
 
@@ -329,6 +357,10 @@ The architectural interpretation traces conditions through declared system-spec 
 
 - **Design prescription**:
   - Client Selector = ON (Strategy = Resource-Based; Criteria = CPU; Value = 2.0)
+- **Pattern activation among training discovery rows matching this box**:
+  - Client Selector: ON (7/7)
+  - HDH: ON (7/7)
+  - Message Compressor: OFF (7/7)
 - **Operating envelope**:
   - Alpha Dirichlet Mean [0.625, 0.688]
   - JSD Mean [0.0137, 0.09]

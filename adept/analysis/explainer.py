@@ -55,9 +55,25 @@ class ExplanationManager:
         strategy = self.get_strategy(method)
         return strategy.explain(artifact, **kwargs)
 
-    def explain_box_context(self, box: Any, system_definition: Any, digits: int = 3, output_format: str = "plain") -> Dict[str, Any]:
-        """Explains a decoded box using only relationships in the system definition."""
-        result = self._box_context_explainer.explain(box, system_definition, digits=digits)
+    def explain_box_context(
+        self,
+        box: Any,
+        system_definition: Any,
+        digits: int = 3,
+        output_format: str = "plain",
+        observed_configuration_counts: Optional[Dict[str, int]] = None,
+        observed_scope: Optional[str] = None,
+        observed_row_count: Optional[int] = None,
+    ) -> Dict[str, Any]:
+        """Explain a box from declared links and optional observed configuration counts."""
+        result = self._box_context_explainer.explain(
+            box,
+            system_definition,
+            digits=digits,
+            observed_configuration_counts=observed_configuration_counts,
+            observed_scope=observed_scope,
+            observed_row_count=observed_row_count,
+        )
         result["text"] = self._box_context_explainer.render(result, output_format=output_format)
         result["output_format"] = output_format
         return result

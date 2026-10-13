@@ -32,6 +32,10 @@ The architectural interpretation traces conditions through declared system-spec 
 
 - **Design prescription**:
   - No pattern policy is required by the box conditions
+- **Pattern activation among training discovery rows matching this box**:
+  - Client Selector: ON (7/7)
+  - HDH: OFF (7/7)
+  - Message Compressor: OFF (7/7)
 - **Operating envelope**:
   - CPU Mean [8, 8.12]
   - non-IID percentage [50, 75] (%)
@@ -72,6 +76,10 @@ The architectural interpretation traces conditions through declared system-spec 
 
 - **Design prescription**:
   - No pattern policy is required by the box conditions
+- **Pattern activation among training discovery rows matching this box**:
+  - Client Selector: ON (14/14)
+  - HDH: OFF (14/14)
+  - Message Compressor: OFF (14/14)
 - **Operating envelope**:
   - non-IID percentage [50, 75] (%)
 - **Other design conditions**:
@@ -115,6 +123,10 @@ The architectural interpretation traces conditions through declared system-spec 
 
 - **Design prescription**:
   - No pattern policy is required by the box conditions
+- **Pattern activation among training discovery rows matching this box**:
+  - Client Selector: ON (7/7)
+  - HDH: OFF (7/7)
+  - Message Compressor: OFF (7/7)
 - **Operating envelope**:
   - CPU Mean [8.12, 8.88]
   - Alpha Dirichlet Mean [0.75, 0.9]
@@ -159,6 +171,10 @@ The architectural interpretation traces conditions through declared system-spec 
 
 - **Design prescription**:
   - No pattern policy is required by the box conditions
+- **Pattern activation among training discovery rows matching this box**:
+  - Client Selector: ON (14/14)
+  - HDH: OFF (14/14)
+  - Message Compressor: OFF (14/14)
 - **Operating envelope**:
   - CPU Mean [10.1, 11]
   - non-IID percentage [25, 50] (%)
@@ -195,14 +211,18 @@ The architectural interpretation traces conditions through declared system-spec 
 
 **Learned box conditions**
 
-- `Total Clients`: [5.999, 10.000]
 - `CPU Mean`: [10.125, 11.000]
+- `Total Clients`: [5.999, 10.000]
 - **Includes NaN / not-selected values:** No
 
 **Architectural interpretation**
 
 - **Design prescription**:
   - No pattern policy is required by the box conditions
+- **Pattern activation among training discovery rows matching this box**:
+  - Client Selector: ON (14/14)
+  - HDH: OFF (14/14)
+  - Message Compressor: OFF (14/14)
 - **Operating envelope**:
   - CPU Mean [10.1, 11]
 - **Other design conditions**:
@@ -236,19 +256,23 @@ The architectural interpretation traces conditions through declared system-spec 
 
 **Learned box conditions**
 
-- `delay_percentage`: [25.000, 50.000]
 - `Alpha Dirichlet Mean`: [0.600, 0.612]
-- `Total Clients`: [5.999, 10.000]
+- `delay_percentage`: [25.000, 50.000]
 - `CPU Mean`: [8.000, 8.874]
+- `Total Clients`: [5.999, 10.000]
 - **Includes NaN / not-selected values:** No
 
 **Architectural interpretation**
 
 - **Design prescription**:
   - No pattern policy is required by the box conditions
+- **Pattern activation among training discovery rows matching this box**:
+  - Client Selector: ON (7/7)
+  - HDH: OFF (7/7)
+  - Message Compressor: OFF (7/7)
 - **Operating envelope**:
-  - delay percentage [25, 50] (%)
   - Alpha Dirichlet Mean [0.6, 0.612]
+  - delay percentage [25, 50] (%)
   - CPU Mean [8, 8.87]
 - **Other design conditions**:
   - Total Clients [6, 10]

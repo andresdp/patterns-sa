@@ -33,6 +33,10 @@ The architectural interpretation traces conditions through declared system-spec 
 
 - **Design prescription**:
   - Client Selector = ON (Strategy = Resource-Based; Criteria = CPU; Value = 2.0)
+- **Pattern activation among training discovery rows matching this box**:
+  - Client Selector: ON (14/14)
+  - HDH: OFF (7/14), ON (7/14)
+  - Message Compressor: OFF (14/14)
 - **Operating envelope**:
   - CPU Mean [8, 8.75]
   - Alpha Dirichlet Mean [0.6, 0.825]
@@ -73,6 +77,10 @@ The architectural interpretation traces conditions through declared system-spec 
 
 - **Design prescription**:
   - Client Selector = OFF
+- **Pattern activation among training discovery rows matching this box**:
+  - Client Selector: OFF (63/63)
+  - HDH: OFF (21/63), ON (42/63)
+  - Message Compressor: OFF (42/63), ON (21/63)
 - **Operating envelope**:
   - Alpha Dirichlet Mean [0.6, 0.825]
 - **Other parameter conditions**:
@@ -114,6 +122,10 @@ The architectural interpretation traces conditions through declared system-spec 
 
 - **Design prescription**:
   - No pattern policy is required by the box conditions
+- **Pattern activation among training discovery rows matching this box**:
+  - Client Selector: OFF (21/35), ON (14/35)
+  - HDH: OFF (21/35), ON (14/35)
+  - Message Compressor: OFF (7/35), ON (28/35)
 - **Operating envelope**:
   - Alpha Dirichlet Mean [0.825, 0.9]
   - delay percentage [0, 12.5] (%)
@@ -156,6 +168,10 @@ The architectural interpretation traces conditions through declared system-spec 
 
 - **Design prescription**:
   - No pattern policy is required by the box conditions
+- **Pattern activation among training discovery rows matching this box**:
+  - Client Selector: OFF (63/105), ON (42/105)
+  - HDH: OFF (63/105), ON (42/105)
+  - Message Compressor: OFF (35/105), ON (70/105)
 - **Operating envelope**:
   - CPU Mean [10.2, 11]
   - Alpha Dirichlet Mean [0.675, 0.9]
@@ -192,8 +208,8 @@ The architectural interpretation traces conditions through declared system-spec 
 
 **Learned box conditions**
 
-- `delay_percentage`: [12.500, 100.000]
 - `Alpha Dirichlet Mean`: [0.825, 0.900]
+- `delay_percentage`: [12.500, 100.000]
 - `CPU Mean`: [10.250, 11.000]
 - **Includes NaN / not-selected values:** No
 
@@ -201,9 +217,13 @@ The architectural interpretation traces conditions through declared system-spec 
 
 - **Design prescription**:
   - No pattern policy is required by the box conditions
+- **Pattern activation among training discovery rows matching this box**:
+  - Client Selector: OFF (63/105), ON (42/105)
+  - HDH: OFF (63/105), ON (42/105)
+  - Message Compressor: OFF (35/105), ON (70/105)
 - **Operating envelope**:
-  - delay percentage [12.5, 100] (%)
   - Alpha Dirichlet Mean [0.825, 0.9]
+  - delay percentage [12.5, 100] (%)
   - CPU Mean [10.3, 11]
 
 **Discovery metrics (training partition)**
@@ -242,6 +262,10 @@ The architectural interpretation traces conditions through declared system-spec 
 
 - **Design prescription**:
   - Client Selector = OFF
+- **Pattern activation among training discovery rows matching this box**:
+  - Client Selector: OFF (63/63)
+  - HDH: OFF (21/63), ON (42/63)
+  - Message Compressor: OFF (42/63), ON (21/63)
 - **Operating envelope**:
   - Alpha Dirichlet Mean [0.6, 0.825]
 - **Other parameter conditions**:
@@ -275,17 +299,21 @@ The architectural interpretation traces conditions through declared system-spec 
 
 **Learned box conditions**
 
-- `delay_percentage`: [0.000, 12.500]
 - `Alpha Dirichlet Mean`: [0.825, 0.900]
+- `delay_percentage`: [0.000, 12.500]
 - **Includes NaN / not-selected values:** No
 
 **Architectural interpretation**
 
 - **Design prescription**:
   - No pattern policy is required by the box conditions
+- **Pattern activation among training discovery rows matching this box**:
+  - Client Selector: OFF (21/35), ON (14/35)
+  - HDH: OFF (21/35), ON (14/35)
+  - Message Compressor: OFF (7/35), ON (28/35)
 - **Operating envelope**:
-  - delay percentage [0, 12.5] (%)
   - Alpha Dirichlet Mean [0.825, 0.9]
+  - delay percentage [0, 12.5] (%)
 
 **Discovery metrics (training partition)**
 
@@ -325,6 +353,10 @@ The architectural interpretation traces conditions through declared system-spec 
 
 - **Design prescription**:
   - Client Selector = ON (Strategy = Resource-Based; Criteria = CPU; Value = 2.0)
+- **Pattern activation among training discovery rows matching this box**:
+  - Client Selector: ON (8/8)
+  - HDH: OFF (7/8), ON (1/8)
+  - Message Compressor: OFF (8/8)
 - **Operating envelope**:
   - JSD Mean [-0.01, 0.01]
   - Alpha Dirichlet Mean [0.6, 0.825]

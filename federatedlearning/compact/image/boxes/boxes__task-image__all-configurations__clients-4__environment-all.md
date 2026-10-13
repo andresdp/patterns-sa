@@ -32,6 +32,10 @@ The architectural interpretation traces conditions through declared system-spec 
 
 - **Design prescription**:
   - Client Selector = ON (Strategy = Resource-Based; Criteria = CPU; Value = 2.0)
+- **Pattern activation among training discovery rows matching this box**:
+  - Client Selector: ON (14/14)
+  - HDH: OFF (7/14), ON (7/14)
+  - Message Compressor: OFF (14/14)
 - **Operating envelope**:
   - Alpha Dirichlet Mean [0.625, 0.688]
 
@@ -72,6 +76,10 @@ The architectural interpretation traces conditions through declared system-spec 
 
 - **Design prescription**:
   - Client Selector = OFF
+- **Pattern activation among training discovery rows matching this box**:
+  - Client Selector: OFF (14/14)
+  - HDH: OFF (7/14), ON (7/14)
+  - Message Compressor: OFF (14/14)
 - **Operating envelope**:
   - CPU Mean [8.25, 9.5]
   - Alpha Dirichlet Mean [0.625, 0.688]
@@ -114,6 +122,10 @@ The architectural interpretation traces conditions through declared system-spec 
 
 - **Design prescription**:
   - No pattern policy is required by the box conditions
+- **Pattern activation among training discovery rows matching this box**:
+  - Client Selector: OFF (7/14), ON (7/14)
+  - HDH: ON (14/14)
+  - Message Compressor: ON (14/14)
 - **Operating envelope**:
   - JSD Mean [-0.006, 0.0188]
   - delay percentage [0, 12.5] (%)
@@ -156,6 +168,10 @@ The architectural interpretation traces conditions through declared system-spec 
 
 - **Design prescription**:
   - Client Selector = OFF
+- **Pattern activation among training discovery rows matching this box**:
+  - Client Selector: OFF (14/14)
+  - HDH: ON (14/14)
+  - Message Compressor: ON (14/14)
 - **Operating envelope**:
   - Alpha Dirichlet Mean [0.688, 0.875]
   - JSD Mean [-0.006, 0.025]
@@ -193,9 +209,9 @@ The architectural interpretation traces conditions through declared system-spec 
 
 **Learned box conditions**
 
+- `JSD Mean`: (not selected) or <= 0.047
 - `Client Selector Criteria`: {(not selected)}
 - `delay_percentage`: [37.485, 100.000]
-- `JSD Mean`: (not selected) or <= 0.047
 - `Alpha Dirichlet Mean`: [0.688, 0.875]
 - **Includes NaN / not-selected values:** `Client Selector Criteria`, `JSD Mean`
 
@@ -203,9 +219,13 @@ The architectural interpretation traces conditions through declared system-spec 
 
 - **Design prescription**:
   - Client Selector = OFF
+- **Pattern activation among training discovery rows matching this box**:
+  - Client Selector: OFF (14/14)
+  - HDH: ON (14/14)
+  - Message Compressor: ON (14/14)
 - **Operating envelope**:
-  - delay percentage [37.5, 100] (%)
   - JSD Mean [-0.006, 0.0475]
+  - delay percentage [37.5, 100] (%)
   - Alpha Dirichlet Mean [0.688, 0.875]
 - **Other parameter conditions**:
   - Criteria {(not selected)}
@@ -245,6 +265,10 @@ The architectural interpretation traces conditions through declared system-spec 
 
 - **Design prescription**:
   - No pattern policy is required by the box conditions
+- **Pattern activation among training discovery rows matching this box**:
+  - Client Selector: OFF (21/35), ON (14/35)
+  - HDH: OFF (21/35), ON (14/35)
+  - Message Compressor: OFF (7/35), ON (28/35)
 - **Operating envelope**:
   - delay percentage [0, 12.5] (%)
 

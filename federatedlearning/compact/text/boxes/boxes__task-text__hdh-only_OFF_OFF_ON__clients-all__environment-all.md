@@ -31,6 +31,10 @@ The architectural interpretation traces conditions through declared system-spec 
 
 - **Design prescription**:
   - No pattern policy is required by the box conditions
+- **Pattern activation among training discovery rows matching this box**:
+  - Client Selector: OFF (70/70)
+  - HDH: ON (70/70)
+  - Message Compressor: OFF (70/70)
 - **Operating envelope**:
   - No uncertainty conditions in this box
 - **Other design conditions**:
@@ -72,6 +76,10 @@ The architectural interpretation traces conditions through declared system-spec 
 
 - **Design prescription**:
   - No pattern policy is required by the box conditions
+- **Pattern activation among training discovery rows matching this box**:
+  - Client Selector: OFF (7/7)
+  - HDH: ON (7/7)
+  - Message Compressor: OFF (7/7)
 - **Operating envelope**:
   - delay percentage [50, 75] (%)
 - **Other design conditions**:
@@ -114,6 +122,10 @@ The architectural interpretation traces conditions through declared system-spec 
 
 - **Design prescription**:
   - No pattern policy is required by the box conditions
+- **Pattern activation among training discovery rows matching this box**:
+  - Client Selector: OFF (70/70)
+  - HDH: ON (70/70)
+  - Message Compressor: OFF (70/70)
 - **Operating envelope**:
   - No uncertainty conditions in this box
 - **Other design conditions**:
@@ -147,18 +159,22 @@ The architectural interpretation traces conditions through declared system-spec 
 
 **Learned box conditions**
 
+- `JSD Mean`: [0.000, 0.018]
 - `delay_percentage`: [50.000, 75.000]
 - `Total Clients`: [4.000, 5.999]
-- `JSD Mean`: [0.000, 0.018]
 - **Includes NaN / not-selected values:** No
 
 **Architectural interpretation**
 
 - **Design prescription**:
   - No pattern policy is required by the box conditions
+- **Pattern activation among training discovery rows matching this box**:
+  - Client Selector: OFF (4/4)
+  - HDH: ON (4/4)
+  - Message Compressor: OFF (4/4)
 - **Operating envelope**:
-  - delay percentage [50, 75] (%)
   - JSD Mean [0, 0.0175]
+  - delay percentage [50, 75] (%)
 - **Other design conditions**:
   - Total Clients [4, 6]
 

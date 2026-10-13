@@ -73,7 +73,15 @@ def _format_value(value: Any) -> str:
 class BoxContextExplainer:
     """Trace decoded conditions through relationships declared by a system JSON."""
 
-    def explain(self, box: Box, sys_def: SystemDefinition, digits: int = 3) -> Dict[str, Any]:
+    def explain(
+        self,
+        box: Box,
+        sys_def: SystemDefinition,
+        digits: int = 3,
+        observed_configuration_counts: Optional[Mapping[str, int]] = None,
+        observed_scope: Optional[str] = None,
+        observed_row_count: Optional[int] = None,
+    ) -> Dict[str, Any]:
         params: Dict[str, Dict[str, Any]] = {}
         aliases: Dict[str, List[str]] = {}
 
@@ -219,6 +227,7 @@ class BoxContextExplainer:
         eligible = [c for c in configurations if c["status"] in {
             "matches_box_conditions", "not_restricted_by_policy_bindings"
         }]
+        box_compatible = [c for c in configurations if c["status"] != "conflicts_with_box_conditions"]
         unresolved = any(c["status"] == "not_determined_by_specification" for c in configurations)
         decision_keys = {key for values in decisions_by_parameter.values() for key in values}
         prescriptions: List[Dict[str, Any]] = []
@@ -251,6 +260,49 @@ class BoxContextExplainer:
                     ],
                 })
 
+        activation: List[Dict[str, Any]] = []
+        configs_by_id = dict(configs)
+        observed_counts = {
+            str(config_id): max(0, int(count))
+            for config_id, count in (observed_configuration_counts or {}).items()
+        }
+        for component_id, decision_id in sorted(decision_keys):
+            policy_counts: Dict[str, int] = {}
+            if observed_configuration_counts is not None:
+                for config_id, count in observed_counts.items():
+                    config = configs_by_id.get(config_id)
+                    if config is None:
+                        continue
+                    for ref in config.pattern_policy_references:
+                        if (ref.component, ref.decision) == (component_id, decision_id):
+                            policy_counts[ref.policy] = policy_counts.get(ref.policy, 0) + count
+                            break
+                activation.append({
+                    "component": component_id,
+                    "decision": decision_id,
+                    "decision_label": _decision_label(decision_id),
+                    "policy_counts": policy_counts,
+                    "source": "observed_box_rows",
+                })
+                continue
+
+            possible_policies = set()
+            for candidate in box_compatible:
+                config = configs_by_id.get(candidate["id"])
+                if config is None:
+                    continue
+                possible_policies.update(
+                    ref.policy for ref in config.pattern_policy_references
+                    if (ref.component, ref.decision) == (component_id, decision_id)
+                )
+            activation.append({
+                "component": component_id,
+                "decision": decision_id,
+                "decision_label": _decision_label(decision_id),
+                "possible_policies": sorted(possible_policies),
+                "source": "specification_compatibility",
+            })
+
         return {
             "box": {
                 "target": box.target_tradeoff,
@@ -260,6 +312,9 @@ class BoxContextExplainer:
             },
             "configurations": configurations,
             "design_prescriptions": prescriptions,
+            "pattern_activation": activation,
+            "observed_scope": observed_scope,
+            "observed_row_count": observed_row_count,
             "prescription_status": "undetermined" if unresolved else "resolved_from_declared_configurations",
             "digits": max(0, int(digits)),
             "scope": "Specification-declared relationships only; no causal or empirical parent links inferred.",
@@ -289,6 +344,38 @@ class BoxContextExplainer:
             lines.append(f"{sub_bullet}Required pattern policy cannot be determined from the specification")
         else:
             lines.append(f"{sub_bullet}No pattern policy is required by the box conditions")
+
+        activation = result.get("pattern_activation", [])
+        if activation:
+            if activation[0].get("source") == "observed_box_rows":
+                scope = result.get("observed_scope") or "observed rows"
+                heading = f"Pattern activation among {scope} matching this box"
+                lines.append(f"{bullet}{label(heading)}:")
+                row_count = result.get("observed_row_count")
+                if not row_count:
+                    lines.append(f"{sub_bullet}No matching discovery rows; activation cannot be summarized")
+                else:
+                    for item in activation:
+                        states = item.get("policy_counts", {})
+                        if not states:
+                            lines.append(f"{sub_bullet}{item['decision_label']}: not resolved from the observed configuration IDs")
+                            continue
+                        summary = ", ".join(
+                            f"{policy} ({count}/{row_count})"
+                            for policy, count in sorted(states.items())
+                        )
+                        lines.append(f"{sub_bullet}{item['decision_label']}: {summary}")
+            else:
+                lines.append(f"{bullet}{label('Pattern activation allowed by declared configurations')}:")
+                for item in activation:
+                    policies = item.get("possible_policies", [])
+                    if not policies:
+                        value = "not determined from the specification"
+                    elif len(policies) == 1:
+                        value = f"{policies[0]} only (box-compatible configurations)"
+                    else:
+                        value = f"{', '.join(policies)} (not fixed by the box)"
+                    lines.append(f"{sub_bullet}{item['decision_label']} = {value}")
 
         uncertainties = [c for c in box["conditions"] if c.get("role") == "uncertainty"]
         levers = [c for c in box["conditions"] if c.get("role") == "lever"]

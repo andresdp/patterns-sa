@@ -32,6 +32,10 @@ The architectural interpretation traces conditions through declared system-spec 
 
 - **Design prescription**:
   - No pattern policy is required by the box conditions
+- **Pattern activation among training discovery rows matching this box**:
+  - Client Selector: OFF (21/21)
+  - HDH: OFF (21/21)
+  - Message Compressor: OFF (21/21)
 - **Operating envelope**:
   - non-IID percentage [25, 50] (%)
   - delay percentage [0, 12.5] (%)
@@ -71,6 +75,10 @@ The architectural interpretation traces conditions through declared system-spec 
 
 - **Design prescription**:
   - No pattern policy is required by the box conditions
+- **Pattern activation among training discovery rows matching this box**:
+  - Client Selector: OFF (105/105)
+  - HDH: OFF (105/105)
+  - Message Compressor: OFF (105/105)
 - **Operating envelope**:
   - delay percentage [12.5, 100] (%)
 
@@ -111,6 +119,10 @@ The architectural interpretation traces conditions through declared system-spec 
 
 - **Design prescription**:
   - No pattern policy is required by the box conditions
+- **Pattern activation among training discovery rows matching this box**:
+  - Client Selector: OFF (105/105)
+  - HDH: OFF (105/105)
+  - Message Compressor: OFF (105/105)
 - **Operating envelope**:
   - delay percentage [12.5, 100] (%)
 
@@ -149,6 +161,10 @@ The architectural interpretation traces conditions through declared system-spec 
 
 - **Design prescription**:
   - No pattern policy is required by the box conditions
+- **Pattern activation among training discovery rows matching this box**:
+  - Client Selector: OFF (21/21)
+  - HDH: OFF (21/21)
+  - Message Compressor: OFF (21/21)
 - **Operating envelope**:
   - delay percentage [0, 12.5] (%)
 

@@ -32,6 +32,10 @@ The architectural interpretation traces conditions through declared system-spec 
 
 - **Design prescription**:
   - No pattern policy is required by the box conditions
+- **Pattern activation among training discovery rows matching this box**:
+  - Client Selector: ON (14/14)
+  - HDH: ON (14/14)
+  - Message Compressor: OFF (14/14)
 - **Operating envelope**:
   - CPU Mean [8.25, 10.1]
   - HDH Instances [0.5, 4.5]
@@ -71,6 +75,10 @@ The architectural interpretation traces conditions through declared system-spec 
 
 - **Design prescription**:
   - No pattern policy is required by the box conditions
+- **Pattern activation among training discovery rows matching this box**:
+  - Client Selector: OFF (21/35), ON (14/35)
+  - HDH: OFF (21/35), ON (14/35)
+  - Message Compressor: OFF (7/35), ON (28/35)
 - **Operating envelope**:
   - delay percentage [0, 12.5] (%)
 
@@ -110,6 +118,10 @@ The architectural interpretation traces conditions through declared system-spec 
 
 - **Design prescription**:
   - No pattern policy is required by the box conditions
+- **Pattern activation among training discovery rows matching this box**:
+  - Client Selector: OFF (112/154), ON (42/154)
+  - HDH: OFF (77/154), ON (77/154)
+  - Message Compressor: OFF (63/154), ON (91/154)
 - **Operating envelope**:
   - CPU Mean [10.1, 10.8]
   - delay percentage [12.5, 100] (%)
@@ -144,17 +156,21 @@ The architectural interpretation traces conditions through declared system-spec 
 
 **Learned box conditions**
 
-- `delay_percentage`: [12.500, 100.000]
 - `CPU Mean`: [10.125, 10.750]
+- `delay_percentage`: [12.500, 100.000]
 - **Includes NaN / not-selected values:** No
 
 **Architectural interpretation**
 
 - **Design prescription**:
   - No pattern policy is required by the box conditions
+- **Pattern activation among training discovery rows matching this box**:
+  - Client Selector: OFF (112/154), ON (42/154)
+  - HDH: OFF (77/154), ON (77/154)
+  - Message Compressor: OFF (63/154), ON (91/154)
 - **Operating envelope**:
-  - delay percentage [12.5, 100] (%)
   - CPU Mean [10.1, 10.8]
+  - delay percentage [12.5, 100] (%)
 
 **Discovery metrics (training partition)**
 
@@ -191,6 +207,10 @@ The architectural interpretation traces conditions through declared system-spec 
 
 - **Design prescription**:
   - No pattern policy is required by the box conditions
+- **Pattern activation among training discovery rows matching this box**:
+  - Client Selector: OFF (21/35), ON (14/35)
+  - HDH: OFF (21/35), ON (14/35)
+  - Message Compressor: OFF (7/35), ON (28/35)
 - **Operating envelope**:
   - delay percentage [0, 12.5] (%)
 
