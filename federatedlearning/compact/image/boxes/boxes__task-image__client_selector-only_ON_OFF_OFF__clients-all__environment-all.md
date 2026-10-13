@@ -8,9 +8,15 @@
 - **Environment scope:** all
 - **Outcomes:** final_val_accuracy and avg_total_time
 
-The architectural interpretation traces conditions through declared system-spec relationships. Box metrics describe observed discovery/evaluation performance; they are not causal effects.
+## How to read the metrics
 
-Held-out absolute lift is box precision minus the held-out target prevalence, reported as a proportion.
+- **Discovery metrics = training partition.** ADEPT uses these training runs to rank parameters and fit the PRIM/CART boxes. The table describes how well each learned rule matches the data it was discovered from.
+- **Held-out metrics = test partition.** Each fixed rule is applied to separate runs set aside by `partition_seed`; those runs were not used to discover the box. These metrics show whether the observed association carries over to unseen data partitions.
+- Compare the two sets: a drop in test precision or lift can indicate that the training association is less stable out of sample. Test recall/coverage shows how many target runs the rule still captures.
+- Precision is the share of runs inside the box that reach the target; recall/coverage is the share of target runs captured by the box. Absolute lift is precision minus the target prevalence in the same partition, reported as a proportion.
+- These are observational performance measures, not causal effects or guarantees for future deployments.
+
+The architectural interpretation traces conditions through declared system-spec relationships.
 
 ## PRIM
 
@@ -30,7 +36,7 @@ Held-out absolute lift is box precision minus the held-out target prevalence, re
   - CPU Mean [8, 8.12]
   - non-IID percentage [50, 75] (%)
 
-**Discovery metrics**
+**Discovery metrics (training partition)**
 
 | Metric | Value |
 |:---|---:|
@@ -41,7 +47,7 @@ Held-out absolute lift is box precision minus the held-out target prevalence, re
 | Train samples in box | 3 |
 | Train targets in box | 1 |
 
-**Held-out metrics**
+**Held-out metrics (test partition)**
 
 | Metric | Value |
 |:---|---:|
@@ -71,7 +77,7 @@ Held-out absolute lift is box precision minus the held-out target prevalence, re
 - **Other design conditions**:
   - Total Clients [6, 10]
 
-**Discovery metrics**
+**Discovery metrics (training partition)**
 
 | Metric | Value |
 |:---|---:|
@@ -82,7 +88,7 @@ Held-out absolute lift is box precision minus the held-out target prevalence, re
 | Train samples in box | 6 |
 | Train targets in box | 3 |
 
-**Held-out metrics**
+**Held-out metrics (test partition)**
 
 | Metric | Value |
 |:---|---:|
@@ -116,7 +122,7 @@ Held-out absolute lift is box precision minus the held-out target prevalence, re
 - **Other design conditions**:
   - Total Clients [4, 6]
 
-**Discovery metrics**
+**Discovery metrics (training partition)**
 
 | Metric | Value |
 |:---|---:|
@@ -127,7 +133,7 @@ Held-out absolute lift is box precision minus the held-out target prevalence, re
 | Train samples in box | 3 |
 | Train targets in box | 2 |
 
-**Held-out metrics**
+**Held-out metrics (test partition)**
 
 | Metric | Value |
 |:---|---:|
@@ -159,7 +165,7 @@ Held-out absolute lift is box precision minus the held-out target prevalence, re
 - **Other design conditions**:
   - Total Clients [6, 10]
 
-**Discovery metrics**
+**Discovery metrics (training partition)**
 
 | Metric | Value |
 |:---|---:|
@@ -170,7 +176,7 @@ Held-out absolute lift is box precision minus the held-out target prevalence, re
 | Train samples in box | 6 |
 | Train targets in box | 6 |
 
-**Held-out metrics**
+**Held-out metrics (test partition)**
 
 | Metric | Value |
 |:---|---:|
@@ -202,7 +208,7 @@ Held-out absolute lift is box precision minus the held-out target prevalence, re
 - **Other design conditions**:
   - Total Clients [6, 10]
 
-**Discovery metrics**
+**Discovery metrics (training partition)**
 
 | Metric | Value |
 |:---|---:|
@@ -213,7 +219,7 @@ Held-out absolute lift is box precision minus the held-out target prevalence, re
 | Train samples in box | 6 |
 | Train targets in box | 6 |
 
-**Held-out metrics**
+**Held-out metrics (test partition)**
 
 | Metric | Value |
 |:---|---:|
@@ -247,7 +253,7 @@ Held-out absolute lift is box precision minus the held-out target prevalence, re
 - **Other design conditions**:
   - Total Clients [6, 10]
 
-**Discovery metrics**
+**Discovery metrics (training partition)**
 
 | Metric | Value |
 |:---|---:|
@@ -258,7 +264,7 @@ Held-out absolute lift is box precision minus the held-out target prevalence, re
 | Train samples in box | 3 |
 | Train targets in box | 1 |
 
-**Held-out metrics**
+**Held-out metrics (test partition)**
 
 | Metric | Value |
 |:---|---:|
