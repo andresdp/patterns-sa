@@ -322,6 +322,7 @@ class PatternAnalysis:
             eps: Epsilon factor to enlarge tradeoff rectangles.
             background_alpha: Alpha for gray background points.
             overall_color: Color for the overall/background points (default: 'gray').
+            palette: Optional policy-to-color mapping used when highlighting policies.
         """
         X, Y, _ = self._get_subset_data(subset)
         

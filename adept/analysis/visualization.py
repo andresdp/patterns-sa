@@ -131,11 +131,13 @@ def show_quality_objective_space(
         plot_data = outcomes_df.copy()
         plot_data['__policy__'] = policy_series
         plot_data = plot_data.dropna(subset=['__policy__'])
+        policy_palette = kwargs.get('palette')
         
         if not plot_data.empty:
             sns.scatterplot(
                 data=plot_data, x=x_metric, y=y_metric,
                 hue='__policy__',
+                palette=policy_palette,
                 ax=ax,
                 alpha=alpha,
                 s=s,
