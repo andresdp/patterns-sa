@@ -95,6 +95,11 @@ context, support, precision/density, recall/coverage, lift, and test-set baselin
 box-restricted target frequency. ADEPT lift is absolute: box precision minus training target
 prevalence. The test-set what-if comparison is an observed conditional difference, not a
 causal improvement estimate.
+Each notebook also writes a Markdown report to its task's `boxes/` folder. The report groups
+all non-empty PRIM and CART boxes, gives the specification-aware architectural interpretation,
+lists discovery metrics and held-out support, precision, recall and lift, and flags boxes that
+include NaN or not-selected values. Its filename records the task, configuration slice, client
+scope and environment filter.
 
 ### Running
 
