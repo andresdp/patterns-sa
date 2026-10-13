@@ -18,7 +18,7 @@ Use the current notebook wording and analyze both questions in every case:
 
 These are observational questions. A box is a joint association over design and operating conditions; its architectural interpretation supplies specification context, not a causal explanation. Avoid causal wording such as “causes,” “improves because,” or “effect of a pattern.”
 
-Before interpreting notebook results, consult [ADEPT framework context](references/adept-framework.md) and [FL domain context](references/federated-learning-domain.md). Use these notes to explain the method and the architectural setting; use the current notebooks, box reports, and campaign README as the authority for the actual experiment, data, and results.
+Before interpreting notebook results, consult [ADEPT framework context](references/adept-framework.md) and [FL domain context](references/federated-learning-domain.md). The ADEPT reference contains domain-agnostic diagnostic guidance for the two primary evidence artefacts: objective-space allocations and scenario-discovery boxes. Apply that guidance even when the current campaign uses FL-specific names. Use the FL note to explain this study's setting; use current notebooks, box reports, and campaign README as the authority for the actual experiment, data, and results.
 
 ## Run
 
