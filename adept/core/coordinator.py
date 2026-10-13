@@ -149,6 +149,7 @@ class ArchSpaceCore:
         observed_configuration_counts: Optional[Dict[str, int]] = None,
         observed_scope: Optional[str] = None,
         observed_row_count: Optional[int] = None,
+        observed_partitions: Optional[Dict[str, Dict[str, Any]]] = None,
     ) -> Dict[str, Any]:
         """Adds specification context and, when supplied, observed activations to a box."""
         return self.explanation_manager.explain_box_context(
@@ -159,6 +160,7 @@ class ArchSpaceCore:
             observed_configuration_counts=observed_configuration_counts,
             observed_scope=observed_scope,
             observed_row_count=observed_row_count,
+            observed_partitions=observed_partitions,
         )
 
     def define_tradeoffs(self, df: pd.DataFrame, method: str = 'discretization', **kwargs) -> Tuple[pd.DataFrame, Any, Optional[pd.DataFrame]]:

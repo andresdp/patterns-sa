@@ -295,45 +295,62 @@ class PatternAnalysis:
         
         return results
 
-    def explain_box_context(self, box: Any, digits: int = 3, output_format: str = "plain") -> Dict[str, Any]:
-        """Explain a decoded box using its declared context and discovery-row configurations."""
+    def explain_box_context(
+        self,
+        box: Any,
+        digits: int = 3,
+        output_format: str = "plain",
+        activation_partitions: str = "both",
+    ) -> Dict[str, Any]:
+        """Explain a decoded box and summarize observed activations by data partition.
+
+        ``activation_partitions`` may be ``"train"`` or ``"both"``. The latter
+        reports training and held-out rows that satisfy the fixed box limits.
+        """
         if self.sys_def is None:
             raise RuntimeError("Load a system definition before explaining a box.")
-        counts, scope, row_count = self._box_configuration_counts(box)
+        partitions = self._box_configuration_counts(box, activation_partitions)
         return self.coordinator.explain_box_context(
             box,
             self.sys_def,
             digits=digits,
             output_format=output_format,
-            observed_configuration_counts=counts,
-            observed_scope=scope,
-            observed_row_count=row_count,
+            observed_partitions=partitions,
         )
 
-    def _box_configuration_counts(self, box: Any):
-        """Count configurations among discovery rows satisfying the decoded box."""
+    def _box_configuration_counts(self, box: Any, activation_partitions: str = "both"):
+        """Count configurations in selected partitions satisfying decoded box limits."""
         if self.sys_def is None or self.experiments_df is None:
-            return None, None, None
+            return None
+        if activation_partitions not in {"train", "both"}:
+            raise ValueError("activation_partitions must be 'train' or 'both'")
         config_col = self.sys_def.dataspace.configuration_identification.column
         if not config_col or config_col not in self.experiments_df.columns:
-            return None, None, None
+            return None
 
-        if self.train_indices is not None:
-            experiments = self.experiments_df.iloc[self.train_indices]
-            scope = "training discovery rows"
+        selections = {}
+        if self.train_indices is None:
+            selections["current session (no train/test split)"] = self.experiments_df
         else:
-            experiments = self.experiments_df
-            scope = "current session rows (no train split)"
+            selections["training partition"] = self.experiments_df.iloc[self.train_indices]
+            if activation_partitions == "both" and self.test_indices is not None:
+                selections["held-out partition"] = self.experiments_df.iloc[self.test_indices]
 
-        encoded = self._encode_for_boxes(experiments)
-        mask = pd.Series(True, index=encoded.index)
-        for parameter, bounds in box.limits.items():
-            if parameter not in encoded.columns:
-                return None, None, None
-            mask &= encoded[parameter].between(bounds["min"], bounds["max"], inclusive="both")
+        results = {}
+        for partition, experiments in selections.items():
+            encoded = self._encode_for_boxes(experiments)
+            mask = pd.Series(True, index=encoded.index)
+            for parameter, bounds in box.limits.items():
+                if parameter not in encoded.columns:
+                    return None
+                mask &= encoded[parameter].between(bounds["min"], bounds["max"], inclusive="both")
 
-        counts = experiments.loc[mask, config_col].dropna().astype(str).value_counts().to_dict()
-        return counts, scope, int(mask.sum())
+            counts = experiments.loc[mask, config_col].dropna().astype(str).value_counts().to_dict()
+            results[partition] = {
+                "configuration_counts": counts,
+                "row_count": int(mask.sum()),
+            }
+        return results
 
     def show_distributions(self, tradeoff: Optional[Tradeoff] = None, highlight_indices: Optional[np.ndarray] = None, **kwargs) -> plt.Figure:
         """Plots outcome distributions with tradeoff overlays for the current session."""

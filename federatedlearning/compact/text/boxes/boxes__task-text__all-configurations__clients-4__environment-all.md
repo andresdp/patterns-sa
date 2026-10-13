@@ -32,10 +32,14 @@ The architectural interpretation traces conditions through declared system-spec 
 
 - **Design prescription**:
   - No pattern policy is required by the box conditions
-- **Pattern activation among training discovery rows matching this box**:
+- **Observed pattern activation — training partition (rows matching this box)**:
   - Client Selector: OFF (7/17), ON (10/17)
   - HDH: ON (17/17)
   - Message Compressor: OFF (17/17)
+- **Observed pattern activation — held-out partition (rows matching this box)**:
+  - Client Selector: OFF (3/8), ON (5/8)
+  - HDH: ON (8/8)
+  - Message Compressor: OFF (8/8)
 - **Operating envelope**:
   - CPU Mean [8.25, 10.1]
   - HDH Instances [0.5, 3]
@@ -76,10 +80,14 @@ The architectural interpretation traces conditions through declared system-spec 
 
 - **Design prescription**:
   - Client Selector = ON (Strategy = Resource-Based; Criteria = CPU; Value = 2.0)
-- **Pattern activation among training discovery rows matching this box**:
+- **Observed pattern activation — training partition (rows matching this box)**:
   - Client Selector: ON (14/14)
   - HDH: OFF (7/14), ON (7/14)
   - Message Compressor: ON (14/14)
+- **Observed pattern activation — held-out partition (rows matching this box)**:
+  - Client Selector: ON (6/6)
+  - HDH: OFF (3/6), ON (3/6)
+  - Message Compressor: ON (6/6)
 - **Operating envelope**:
   - delay percentage [0, 12.5] (%)
 
@@ -121,10 +129,14 @@ The architectural interpretation traces conditions through declared system-spec 
 
 - **Design prescription**:
   - Client Selector = OFF
-- **Pattern activation among training discovery rows matching this box**:
+- **Observed pattern activation — training partition (rows matching this box)**:
   - Client Selector: OFF (105/105)
   - HDH: OFF (77/105), ON (28/105)
   - Message Compressor: OFF (49/105), ON (56/105)
+- **Observed pattern activation — held-out partition (rows matching this box)**:
+  - Client Selector: OFF (45/45)
+  - HDH: OFF (33/45), ON (12/45)
+  - Message Compressor: OFF (21/45), ON (24/45)
 - **Operating envelope**:
   - Pattern Instances [0, 5.5]
   - HDH Instances [0, 2.5]
@@ -169,10 +181,14 @@ The architectural interpretation traces conditions through declared system-spec 
 
 - **Design prescription**:
   - No pattern policy is required by the box conditions
-- **Pattern activation among training discovery rows matching this box**:
+- **Observed pattern activation — training partition (rows matching this box)**:
   - Client Selector: OFF (28/28)
   - HDH: ON (28/28)
   - Message Compressor: OFF (21/28), ON (7/28)
+- **Observed pattern activation — held-out partition (rows matching this box)**:
+  - Client Selector: OFF (12/12)
+  - HDH: ON (12/12)
+  - Message Compressor: OFF (9/12), ON (3/12)
 - **Operating envelope**:
   - Alpha Dirichlet Mean [0.625, 0.688]
   - Pattern Instances [2.5, 7]
@@ -208,24 +224,28 @@ The architectural interpretation traces conditions through declared system-spec 
 
 **Learned box conditions**
 
-- `Pattern Instances`: [0.000, 5.499]
+- `Client Selector Criteria`: {(not selected)}
 - `delay_percentage`: [12.500, 100.000]
 - `HDH Instances`: [0.000, 2.500]
-- `Client Selector Criteria`: {(not selected)}
+- `Pattern Instances`: [0.000, 5.499]
 - **Includes NaN / not-selected values:** `Client Selector Criteria`
 
 **Architectural interpretation**
 
 - **Design prescription**:
   - Client Selector = OFF
-- **Pattern activation among training discovery rows matching this box**:
+- **Observed pattern activation — training partition (rows matching this box)**:
   - Client Selector: OFF (105/105)
   - HDH: OFF (77/105), ON (28/105)
   - Message Compressor: OFF (49/105), ON (56/105)
+- **Observed pattern activation — held-out partition (rows matching this box)**:
+  - Client Selector: OFF (45/45)
+  - HDH: OFF (33/45), ON (12/45)
+  - Message Compressor: OFF (21/45), ON (24/45)
 - **Operating envelope**:
-  - Pattern Instances [0, 5.5]
   - delay percentage [12.5, 100] (%)
   - HDH Instances [0, 2.5]
+  - Pattern Instances [0, 5.5]
 - **Other parameter conditions**:
   - Criteria {(not selected)}
 
@@ -264,10 +284,14 @@ The architectural interpretation traces conditions through declared system-spec 
 
 - **Design prescription**:
   - No pattern policy is required by the box conditions
-- **Pattern activation among training discovery rows matching this box**:
+- **Observed pattern activation — training partition (rows matching this box)**:
   - Client Selector: OFF (21/35), ON (14/35)
   - HDH: OFF (21/35), ON (14/35)
   - Message Compressor: OFF (7/35), ON (28/35)
+- **Observed pattern activation — held-out partition (rows matching this box)**:
+  - Client Selector: OFF (9/15), ON (6/15)
+  - HDH: OFF (9/15), ON (6/15)
+  - Message Compressor: OFF (3/15), ON (12/15)
 - **Operating envelope**:
   - delay percentage [0, 12.5] (%)
 
@@ -299,20 +323,24 @@ The architectural interpretation traces conditions through declared system-spec 
 
 **Learned box conditions**
 
-- `Pattern Types Active`: [1.500, 3.000]
+- `Client Selector Criteria`: {(not selected)}
 - `delay_percentage`: [50.010, 100.000]
 - `HDH Instances`: [2.500, 3.000]
-- `Client Selector Criteria`: {(not selected)}
+- `Pattern Types Active`: [1.500, 3.000]
 - **Includes NaN / not-selected values:** `Client Selector Criteria`
 
 **Architectural interpretation**
 
 - **Design prescription**:
   - Client Selector = OFF
-- **Pattern activation among training discovery rows matching this box**:
+- **Observed pattern activation — training partition (rows matching this box)**:
   - Client Selector: OFF (7/7)
   - HDH: ON (7/7)
   - Message Compressor: ON (7/7)
+- **Observed pattern activation — held-out partition (rows matching this box)**:
+  - Client Selector: OFF (3/3)
+  - HDH: ON (3/3)
+  - Message Compressor: ON (3/3)
 - **Operating envelope**:
   - delay percentage [50, 100] (%)
   - HDH Instances [2.5, 3]

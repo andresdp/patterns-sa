@@ -33,10 +33,14 @@ The architectural interpretation traces conditions through declared system-spec 
 
 - **Design prescription**:
   - No pattern policy is required by the box conditions
-- **Pattern activation among training discovery rows matching this box**:
+- **Observed pattern activation — training partition (rows matching this box)**:
   - Client Selector: ON (21/21)
   - HDH: OFF (21/21)
   - Message Compressor: OFF (21/21)
+- **Observed pattern activation — held-out partition (rows matching this box)**:
+  - Client Selector: ON (9/9)
+  - HDH: OFF (9/9)
+  - Message Compressor: OFF (9/9)
 - **Operating envelope**:
   - CPU Mean [8, 8.88]
   - non-IID percentage [25, 50] (%)
@@ -78,10 +82,14 @@ The architectural interpretation traces conditions through declared system-spec 
 
 - **Design prescription**:
   - No pattern policy is required by the box conditions
-- **Pattern activation among training discovery rows matching this box**:
+- **Observed pattern activation — training partition (rows matching this box)**:
   - Client Selector: ON (14/14)
   - HDH: OFF (14/14)
   - Message Compressor: OFF (14/14)
+- **Observed pattern activation — held-out partition (rows matching this box)**:
+  - Client Selector: ON (6/6)
+  - HDH: OFF (6/6)
+  - Message Compressor: OFF (6/6)
 - **Operating envelope**:
   - low-spec percentage [25, 37.5] (%)
 - **Other design conditions**:
@@ -125,10 +133,14 @@ The architectural interpretation traces conditions through declared system-spec 
 
 - **Design prescription**:
   - No pattern policy is required by the box conditions
-- **Pattern activation among training discovery rows matching this box**:
+- **Observed pattern activation — training partition (rows matching this box)**:
   - Client Selector: ON (14/14)
   - HDH: OFF (14/14)
   - Message Compressor: OFF (14/14)
+- **Observed pattern activation — held-out partition (rows matching this box)**:
+  - Client Selector: ON (6/6)
+  - HDH: OFF (6/6)
+  - Message Compressor: OFF (6/6)
 - **Operating envelope**:
   - low-spec percentage [25, 37.5] (%)
 - **Other design conditions**:
@@ -162,26 +174,30 @@ The architectural interpretation traces conditions through declared system-spec 
 
 **Learned box conditions**
 
-- `non_iid_percentage`: [50.000, 75.000]
-- `low_spec_percentage`: [62.500, 75.000]
-- `delay_percentage`: [25.000, 50.000]
 - `Total Clients`: [5.999, 10.000]
+- `non_iid_percentage`: [50.000, 75.000]
 - `Alpha Dirichlet Mean`: [0.612, 0.900]
+- `delay_percentage`: [25.000, 50.000]
+- `low_spec_percentage`: [62.500, 75.000]
 - **Includes NaN / not-selected values:** No
 
 **Architectural interpretation**
 
 - **Design prescription**:
   - No pattern policy is required by the box conditions
-- **Pattern activation among training discovery rows matching this box**:
+- **Observed pattern activation — training partition (rows matching this box)**:
   - Client Selector: ON (7/7)
   - HDH: OFF (7/7)
   - Message Compressor: OFF (7/7)
+- **Observed pattern activation — held-out partition (rows matching this box)**:
+  - Client Selector: ON (3/3)
+  - HDH: OFF (3/3)
+  - Message Compressor: OFF (3/3)
 - **Operating envelope**:
   - non-IID percentage [50, 75] (%)
-  - low-spec percentage [62.5, 75] (%)
-  - delay percentage [25, 50] (%)
   - Alpha Dirichlet Mean [0.612, 0.9]
+  - delay percentage [25, 50] (%)
+  - low-spec percentage [62.5, 75] (%)
 - **Other design conditions**:
   - Total Clients [6, 10]
 

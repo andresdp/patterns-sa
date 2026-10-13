@@ -31,7 +31,7 @@ class TestBoxContextPatternActivation(unittest.TestCase):
         self.assertIn("Client Selector = ON", result["text"])
         self.assertIn("Message Compressor: OFF (8/8)", result["text"])
         self.assertIn("HDH: OFF (8/8)", result["text"])
-        self.assertIn("Pattern activation among training discovery rows matching this box", result["text"])
+        self.assertIn("Observed pattern activation — training discovery rows", result["text"])
 
     def test_baseline_scope_explicitly_shows_all_patterns_off(self):
         box = Box(limits={"Alpha Dirichlet Mean": {"min": 0.6, "max": 0.8}})
@@ -55,6 +55,29 @@ class TestBoxContextPatternActivation(unittest.TestCase):
 
         self.assertIn("OFF, ON (not fixed by the box)", result["text"])
         self.assertIn("Pattern activation allowed by declared configurations", result["text"])
+
+    def test_activation_observations_can_compare_training_and_held_out_partitions(self):
+        box = Box(limits={"Alpha Dirichlet Mean": {"min": 0.6, "max": 0.8}})
+
+        result = self.manager.explain_box_context(
+            box,
+            self.sys_def,
+            observed_partitions={
+                "training partition": {
+                    "configuration_counts": {"ON,OFF,OFF": 5},
+                    "row_count": 5,
+                },
+                "held-out partition": {
+                    "configuration_counts": {"OFF,OFF,OFF": 3, "ON,OFF,OFF": 1},
+                    "row_count": 4,
+                },
+            },
+        )
+
+        self.assertIn("Observed pattern activation — training partition", result["text"])
+        self.assertIn("Observed pattern activation — held-out partition", result["text"])
+        self.assertIn("Client Selector: ON (5/5)", result["text"])
+        self.assertIn("Client Selector: OFF (3/4), ON (1/4)", result["text"])
 
 
 if __name__ == "__main__":

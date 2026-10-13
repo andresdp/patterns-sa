@@ -64,6 +64,7 @@ class ExplanationManager:
         observed_configuration_counts: Optional[Dict[str, int]] = None,
         observed_scope: Optional[str] = None,
         observed_row_count: Optional[int] = None,
+        observed_partitions: Optional[Dict[str, Dict[str, Any]]] = None,
     ) -> Dict[str, Any]:
         """Explain a box from declared links and optional observed configuration counts."""
         result = self._box_context_explainer.explain(
@@ -73,6 +74,7 @@ class ExplanationManager:
             observed_configuration_counts=observed_configuration_counts,
             observed_scope=observed_scope,
             observed_row_count=observed_row_count,
+            observed_partitions=observed_partitions,
         )
         result["text"] = self._box_context_explainer.render(result, output_format=output_format)
         result["output_format"] = output_format

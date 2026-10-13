@@ -32,10 +32,14 @@ The architectural interpretation traces conditions through declared system-spec 
 
 - **Design prescription**:
   - No pattern policy is required by the box conditions
-- **Pattern activation among training discovery rows matching this box**:
+- **Observed pattern activation — training partition (rows matching this box)**:
   - Client Selector: OFF (14/14)
   - HDH: OFF (14/14)
   - Message Compressor: ON (14/14)
+- **Observed pattern activation — held-out partition (rows matching this box)**:
+  - Client Selector: OFF (6/6)
+  - HDH: OFF (6/6)
+  - Message Compressor: ON (6/6)
 - **Operating envelope**:
   - Message Compressor Instances [6, 10]
   - non-IID percentage [50, 75] (%)
@@ -76,10 +80,14 @@ The architectural interpretation traces conditions through declared system-spec 
 
 - **Design prescription**:
   - No pattern policy is required by the box conditions
-- **Pattern activation among training discovery rows matching this box**:
+- **Observed pattern activation — training partition (rows matching this box)**:
   - Client Selector: OFF (21/21)
   - HDH: OFF (21/21)
   - Message Compressor: ON (21/21)
+- **Observed pattern activation — held-out partition (rows matching this box)**:
+  - Client Selector: OFF (9/9)
+  - HDH: OFF (9/9)
+  - Message Compressor: ON (9/9)
 - **Operating envelope**:
   - Alpha Dirichlet Mean [0.75, 0.9]
   - delay percentage [0, 12.5] (%)
@@ -120,10 +128,14 @@ The architectural interpretation traces conditions through declared system-spec 
 
 - **Design prescription**:
   - No pattern policy is required by the box conditions
-- **Pattern activation among training discovery rows matching this box**:
+- **Observed pattern activation — training partition (rows matching this box)**:
   - Client Selector: OFF (105/105)
   - HDH: OFF (105/105)
   - Message Compressor: ON (105/105)
+- **Observed pattern activation — held-out partition (rows matching this box)**:
+  - Client Selector: OFF (45/45)
+  - HDH: OFF (45/45)
+  - Message Compressor: ON (45/45)
 - **Operating envelope**:
   - Alpha Dirichlet Mean [0.75, 0.9]
   - delay percentage [12.5, 100] (%)
@@ -166,10 +178,14 @@ The architectural interpretation traces conditions through declared system-spec 
 
 - **Design prescription**:
   - No pattern policy is required by the box conditions
-- **Pattern activation among training discovery rows matching this box**:
+- **Observed pattern activation — training partition (rows matching this box)**:
   - Client Selector: OFF (105/105)
   - HDH: OFF (105/105)
   - Message Compressor: ON (105/105)
+- **Observed pattern activation — held-out partition (rows matching this box)**:
+  - Client Selector: OFF (45/45)
+  - HDH: OFF (45/45)
+  - Message Compressor: ON (45/45)
 - **Operating envelope**:
   - delay percentage [12.5, 100] (%)
   - Alpha Dirichlet Mean [0.75, 0.9]
@@ -209,10 +225,14 @@ The architectural interpretation traces conditions through declared system-spec 
 
 - **Design prescription**:
   - No pattern policy is required by the box conditions
-- **Pattern activation among training discovery rows matching this box**:
+- **Observed pattern activation — training partition (rows matching this box)**:
   - Client Selector: OFF (21/21)
   - HDH: OFF (21/21)
   - Message Compressor: ON (21/21)
+- **Observed pattern activation — held-out partition (rows matching this box)**:
+  - Client Selector: OFF (9/9)
+  - HDH: OFF (9/9)
+  - Message Compressor: ON (9/9)
 - **Operating envelope**:
   - delay percentage [0, 12.5] (%)
 
@@ -253,10 +273,14 @@ The architectural interpretation traces conditions through declared system-spec 
 
 - **Design prescription**:
   - No pattern policy is required by the box conditions
-- **Pattern activation among training discovery rows matching this box**:
+- **Observed pattern activation — training partition (rows matching this box)**:
   - Client Selector: OFF (14/14)
   - HDH: OFF (14/14)
   - Message Compressor: ON (14/14)
+- **Observed pattern activation — held-out partition (rows matching this box)**:
+  - Client Selector: OFF (6/6)
+  - HDH: OFF (6/6)
+  - Message Compressor: ON (6/6)
 - **Operating envelope**:
   - delay percentage [12.5, 100] (%)
   - Alpha Dirichlet Mean [0.6, 0.75]

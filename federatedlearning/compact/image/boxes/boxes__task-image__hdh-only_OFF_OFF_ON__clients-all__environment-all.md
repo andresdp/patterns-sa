@@ -33,10 +33,14 @@ The architectural interpretation traces conditions through declared system-spec 
 
 - **Design prescription**:
   - No pattern policy is required by the box conditions
-- **Pattern activation among training discovery rows matching this box**:
+- **Observed pattern activation — training partition (rows matching this box)**:
   - Client Selector: OFF (53/53)
   - HDH: ON (53/53)
   - Message Compressor: OFF (53/53)
+- **Observed pattern activation — held-out partition (rows matching this box)**:
+  - Client Selector: OFF (20/20)
+  - HDH: ON (20/20)
+  - Message Compressor: OFF (20/20)
 - **Operating envelope**:
   - Alpha Dirichlet Mean [0.6, 0.812]
   - JSD Mean [0.0194, 0.081]
@@ -81,10 +85,14 @@ The architectural interpretation traces conditions through declared system-spec 
 
 - **Design prescription**:
   - No pattern policy is required by the box conditions
-- **Pattern activation among training discovery rows matching this box**:
+- **Observed pattern activation — training partition (rows matching this box)**:
   - Client Selector: OFF (9/9)
   - HDH: ON (9/9)
   - Message Compressor: OFF (9/9)
+- **Observed pattern activation — held-out partition (rows matching this box)**:
+  - Client Selector: OFF (3/3)
+  - HDH: ON (3/3)
+  - Message Compressor: OFF (3/3)
 - **Operating envelope**:
   - Alpha Dirichlet Mean [0.613, 0.9]
   - JSD Mean [0, 0.0575]
@@ -130,10 +138,14 @@ The architectural interpretation traces conditions through declared system-spec 
 
 - **Design prescription**:
   - No pattern policy is required by the box conditions
-- **Pattern activation among training discovery rows matching this box**:
+- **Observed pattern activation — training partition (rows matching this box)**:
   - Client Selector: OFF (54/54)
   - HDH: ON (54/54)
   - Message Compressor: OFF (54/54)
+- **Observed pattern activation — held-out partition (rows matching this box)**:
+  - Client Selector: OFF (20/20)
+  - HDH: ON (20/20)
+  - Message Compressor: OFF (20/20)
 - **Operating envelope**:
   - JSD Mean [0.0181, 0.081]
 - **Other design conditions**:
@@ -174,10 +186,14 @@ The architectural interpretation traces conditions through declared system-spec 
 
 - **Design prescription**:
   - No pattern policy is required by the box conditions
-- **Pattern activation among training discovery rows matching this box**:
+- **Observed pattern activation — training partition (rows matching this box)**:
   - Client Selector: OFF (19/19)
   - HDH: ON (19/19)
   - Message Compressor: OFF (19/19)
+- **Observed pattern activation — held-out partition (rows matching this box)**:
+  - Client Selector: OFF (8/8)
+  - HDH: ON (8/8)
+  - Message Compressor: OFF (8/8)
 - **Operating envelope**:
   - JSD Mean [0.000991, 0.0144]
 

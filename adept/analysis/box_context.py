@@ -81,6 +81,7 @@ class BoxContextExplainer:
         observed_configuration_counts: Optional[Mapping[str, int]] = None,
         observed_scope: Optional[str] = None,
         observed_row_count: Optional[int] = None,
+        observed_partitions: Optional[Mapping[str, Mapping[str, Any]]] = None,
     ) -> Dict[str, Any]:
         params: Dict[str, Dict[str, Any]] = {}
         aliases: Dict[str, List[str]] = {}
@@ -262,26 +263,36 @@ class BoxContextExplainer:
 
         activation: List[Dict[str, Any]] = []
         configs_by_id = dict(configs)
-        observed_counts = {
-            str(config_id): max(0, int(count))
-            for config_id, count in (observed_configuration_counts or {}).items()
-        }
+        partitions = dict(observed_partitions or {})
+        # Preserve the prior single-partition inputs for direct callers.
+        if not partitions and observed_configuration_counts is not None:
+            partitions[observed_scope or "observed rows"] = {
+                "configuration_counts": observed_configuration_counts,
+                "row_count": observed_row_count,
+            }
         for component_id, decision_id in sorted(decision_keys):
-            policy_counts: Dict[str, int] = {}
-            if observed_configuration_counts is not None:
-                for config_id, count in observed_counts.items():
-                    config = configs_by_id.get(config_id)
-                    if config is None:
-                        continue
-                    for ref in config.pattern_policy_references:
-                        if (ref.component, ref.decision) == (component_id, decision_id):
-                            policy_counts[ref.policy] = policy_counts.get(ref.policy, 0) + count
-                            break
+            if partitions:
+                partition_counts = {}
+                for partition, details in partitions.items():
+                    policy_counts: Dict[str, int] = {}
+                    counts = details.get("configuration_counts", {})
+                    for config_id, count in counts.items():
+                        config = configs_by_id.get(str(config_id))
+                        if config is None:
+                            continue
+                        for ref in config.pattern_policy_references:
+                            if (ref.component, ref.decision) == (component_id, decision_id):
+                                policy_counts[ref.policy] = policy_counts.get(ref.policy, 0) + max(0, int(count))
+                                break
+                    partition_counts[partition] = {
+                        "policy_counts": policy_counts,
+                        "row_count": details.get("row_count"),
+                    }
                 activation.append({
                     "component": component_id,
                     "decision": decision_id,
                     "decision_label": _decision_label(decision_id),
-                    "policy_counts": policy_counts,
+                    "partitions": partition_counts,
                     "source": "observed_box_rows",
                 })
                 continue
@@ -348,23 +359,22 @@ class BoxContextExplainer:
         activation = result.get("pattern_activation", [])
         if activation:
             if activation[0].get("source") == "observed_box_rows":
-                scope = result.get("observed_scope") or "observed rows"
-                heading = f"Pattern activation among {scope} matching this box"
-                lines.append(f"{bullet}{label(heading)}:")
-                row_count = result.get("observed_row_count")
-                if not row_count:
-                    lines.append(f"{sub_bullet}No matching discovery rows; activation cannot be summarized")
-                else:
+                partitions = activation[0].get("partitions", {})
+                for partition, details in partitions.items():
+                    lines.append(f"{bullet}{label(f'Observed pattern activation — {partition} (rows matching this box)')}:")
+                    row_count = details.get("row_count") or 0
                     for item in activation:
-                        states = item.get("policy_counts", {})
-                        if not states:
+                        states = item.get("partitions", {}).get(partition, {}).get("policy_counts", {})
+                        if not row_count:
+                            lines.append(f"{sub_bullet}{item['decision_label']}: no matching rows")
+                        elif not states:
                             lines.append(f"{sub_bullet}{item['decision_label']}: not resolved from the observed configuration IDs")
-                            continue
-                        summary = ", ".join(
-                            f"{policy} ({count}/{row_count})"
-                            for policy, count in sorted(states.items())
-                        )
-                        lines.append(f"{sub_bullet}{item['decision_label']}: {summary}")
+                        else:
+                            summary = ", ".join(
+                                f"{policy} ({count}/{row_count})"
+                                for policy, count in sorted(states.items())
+                            )
+                            lines.append(f"{sub_bullet}{item['decision_label']}: {summary}")
             else:
                 lines.append(f"{bullet}{label('Pattern activation allowed by declared configurations')}:")
                 for item in activation:

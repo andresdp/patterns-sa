@@ -32,10 +32,14 @@ The architectural interpretation traces conditions through declared system-spec 
 
 - **Design prescription**:
   - No pattern policy is required by the box conditions
-- **Pattern activation among training discovery rows matching this box**:
+- **Observed pattern activation — training partition (rows matching this box)**:
   - Client Selector: OFF (28/28)
   - HDH: OFF (28/28)
   - Message Compressor: OFF (28/28)
+- **Observed pattern activation — held-out partition (rows matching this box)**:
+  - Client Selector: OFF (12/12)
+  - HDH: OFF (12/12)
+  - Message Compressor: OFF (12/12)
 - **Operating envelope**:
   - Alpha Dirichlet Mean [0.6, 0.75]
 - **Other design conditions**:
@@ -76,10 +80,14 @@ The architectural interpretation traces conditions through declared system-spec 
 
 - **Design prescription**:
   - No pattern policy is required by the box conditions
-- **Pattern activation among training discovery rows matching this box**:
+- **Observed pattern activation — training partition (rows matching this box)**:
   - Client Selector: OFF (21/21)
   - HDH: OFF (21/21)
   - Message Compressor: OFF (21/21)
+- **Observed pattern activation — held-out partition (rows matching this box)**:
+  - Client Selector: OFF (9/9)
+  - HDH: OFF (9/9)
+  - Message Compressor: OFF (9/9)
 - **Operating envelope**:
   - delay percentage [0, 12.5] (%)
 
@@ -119,10 +127,14 @@ The architectural interpretation traces conditions through declared system-spec 
 
 - **Design prescription**:
   - No pattern policy is required by the box conditions
-- **Pattern activation among training discovery rows matching this box**:
+- **Observed pattern activation — training partition (rows matching this box)**:
   - Client Selector: OFF (63/63)
   - HDH: OFF (63/63)
   - Message Compressor: OFF (63/63)
+- **Observed pattern activation — held-out partition (rows matching this box)**:
+  - Client Selector: OFF (27/27)
+  - HDH: OFF (27/27)
+  - Message Compressor: OFF (27/27)
 - **Operating envelope**:
   - Alpha Dirichlet Mean [0.75, 0.9]
   - delay percentage [12.5, 100] (%)
@@ -157,21 +169,25 @@ The architectural interpretation traces conditions through declared system-spec 
 
 **Learned box conditions**
 
-- `delay_percentage`: [12.488, 100.000]
 - `Alpha Dirichlet Mean`: [0.750, 0.900]
+- `delay_percentage`: [12.488, 100.000]
 - **Includes NaN / not-selected values:** No
 
 **Architectural interpretation**
 
 - **Design prescription**:
   - No pattern policy is required by the box conditions
-- **Pattern activation among training discovery rows matching this box**:
+- **Observed pattern activation — training partition (rows matching this box)**:
   - Client Selector: OFF (63/63)
   - HDH: OFF (63/63)
   - Message Compressor: OFF (63/63)
+- **Observed pattern activation — held-out partition (rows matching this box)**:
+  - Client Selector: OFF (27/27)
+  - HDH: OFF (27/27)
+  - Message Compressor: OFF (27/27)
 - **Operating envelope**:
-  - delay percentage [12.5, 100] (%)
   - Alpha Dirichlet Mean [0.75, 0.9]
+  - delay percentage [12.5, 100] (%)
 
 **Discovery metrics (training partition)**
 
@@ -201,22 +217,26 @@ The architectural interpretation traces conditions through declared system-spec 
 
 **Learned box conditions**
 
+- `Alpha Dirichlet Mean`: [0.600, 0.750]
 - `Total Clients`: [5.999, 10.000]
 - `delay_percentage`: [12.488, 100.000]
-- `Alpha Dirichlet Mean`: [0.600, 0.750]
 - **Includes NaN / not-selected values:** No
 
 **Architectural interpretation**
 
 - **Design prescription**:
   - No pattern policy is required by the box conditions
-- **Pattern activation among training discovery rows matching this box**:
+- **Observed pattern activation — training partition (rows matching this box)**:
   - Client Selector: OFF (28/28)
   - HDH: OFF (28/28)
   - Message Compressor: OFF (28/28)
+- **Observed pattern activation — held-out partition (rows matching this box)**:
+  - Client Selector: OFF (12/12)
+  - HDH: OFF (12/12)
+  - Message Compressor: OFF (12/12)
 - **Operating envelope**:
-  - delay percentage [12.5, 100] (%)
   - Alpha Dirichlet Mean [0.6, 0.75]
+  - delay percentage [12.5, 100] (%)
 - **Other design conditions**:
   - Total Clients [6, 10]
 
@@ -255,10 +275,14 @@ The architectural interpretation traces conditions through declared system-spec 
 
 - **Design prescription**:
   - No pattern policy is required by the box conditions
-- **Pattern activation among training discovery rows matching this box**:
+- **Observed pattern activation — training partition (rows matching this box)**:
   - Client Selector: OFF (21/21)
   - HDH: OFF (21/21)
   - Message Compressor: OFF (21/21)
+- **Observed pattern activation — held-out partition (rows matching this box)**:
+  - Client Selector: OFF (9/9)
+  - HDH: OFF (9/9)
+  - Message Compressor: OFF (9/9)
 - **Operating envelope**:
   - delay percentage [0, 12.5] (%)
 
