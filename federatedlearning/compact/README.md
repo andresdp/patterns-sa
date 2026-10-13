@@ -51,7 +51,7 @@ It must therefore be loaded through `fl_slices.slice_filter(...)`, as every note
 
 ## 3. Notebooks and their rationale
 
-The six maintained notebooks are organized by task and use **only the all-environment
+The six maintained pattern-analysis notebooks are organized by task and use **only the all-environment
 view**. Each analyzes one task/client-count slice and retains every available run for it.
 The analysis therefore has 390 runs per slice (273 training and 117 held out), including
 the environment point shared by configurations and additional sampled settings. The
@@ -70,6 +70,8 @@ analyses if needed.
 |:---|:---|:---|
 | `image/analysis-fl-rq-c{4,8,10}-image.ipynb` | CIFAR-10/CNN 16k at 4, 8 or 10 clients | RQ1: observed objective tradeoffs by configuration and pattern count. RQ2: conditions associated with each observed tradeoff and held-out box comparisons. |
 | `text/analysis-fl-rq-c{4,8,10}-text.ipynb` | AG_NEWS/MLP at 4, 8 or 10 clients | Same RQ1 and RQ2 analyses for the text task. |
+| `image/analysis-fl-rq-baseline-image.ipynb` | CIFAR-10/CNN 16k, baseline only | Reference profile for `OFF,OFF,OFF`, retaining all client counts and all available environments. |
+| `text/analysis-fl-rq-baseline-text.ipynb` | AG_NEWS/MLP, baseline only | Reference profile for `OFF,OFF,OFF`, retaining all client counts and all available environments. |
 
 All notebooks use one fixed set of objective bin edges derived from the full compact campaign,
 so the S/M/L quadrants retain the same meaning across scenarios. Empty quadrants are shown as
@@ -95,8 +97,11 @@ causal improvement estimate.
 Open a notebook from its task folder and run it top to bottom with the `perfmodels` conda
 environment. Each notebook sets `ENVIRONMENT = 'all'`; it does not run or report the
 same-environment analysis. Run the three notebooks in `image/` and the three in `text/`,
-with client counts in ascending order within each folder. The outputs already saved in each
-notebook are from its all-environment analysis.
+with client counts in ascending order within each folder. The baseline notebooks are separate
+reference analyses: each keeps `OFF,OFF,OFF` for its task and uses `CLIENTS = None`, so all three
+client counts and all available environments are included. They describe baseline tradeoffs and
+operating envelopes; they cannot compare pattern policies. The findings markdown files have not
+yet been revised to include these notebooks.
 
 ## 4. Filters (`fl_slices.slice_filter`)
 
