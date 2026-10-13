@@ -1,32 +1,27 @@
-# Findings — Text task — C8
+# Text case findings: C8
 
-## Scope and evidence
+## Scope and support
 
-- **Slice:** All pattern configurations; exactly 8 clients; all environment; all-environment view. The fixed-policy cases retain client counts 4, 8, and 10; c4/c8/c10 fix that count and include all available pattern configurations.
-- **Held-out test distribution:** Test n=117: M-S 1 (.9%), M-M 1 (.9%), L-S 23 (19.7%), L-M 92 (78.6%); others empty.
-- **Sources:** [executed notebook](../analysis-fl-rq-c8-text.ipynb) (sections 4–11), [box report](../boxes/boxes__task-text__all-configurations__clients-8__environment-all.md), [quality-space chart](../plots/quality-space__task-text__all-configurations__clients-8__environment-all__final_val_accuracy-vs-avg_total_time.png), and [feature-importance heatmap](../plots/feature-importance__task-text__all-configurations__clients-8__environment-all.png). The notebook contains the numeric tables; the figures provide a visual cross-check.
+- **Task/configuration/client/environment:** All available configurations; 8 clients fixed; all sampled environments.
+- **Rows:** 390 total; 273 training; 117 held out. Split: Grouped holdout: 3/10 partition_seed groups; stratification score 0.000034. Seeds were kept wholly in one partition.
+- **Tradeoff definitions:** final validation accuracy is maximized and average total round time minimized. The shared 3×3 grid uses accuracy edges 0.2075/0.4774/0.7473/1.0172 and time edges 1.5625/9.5065/17.4505/25.3945.
+- **Training region counts (all nine regions):** M-S 4 (1.5%); M-M 1 (0.4%); L-S 53 (19.4%); L-M 215 (78.8%); all other cells among S-S, S-M, S-L, M-S, M-M, M-L, L-S, L-M, L-L are zero.
+- **Held-out region counts (all nine regions):** M-S 1 (0.9%); M-M 1 (0.9%); L-S 23 (19.7%); L-M 92 (78.6%); all other cells among S-S, S-M, S-L, M-S, M-M, M-L, L-S, L-M, L-L are zero.
+- **Occupancy:** Four regions occur; five regions are empty. L-M dominates; M-S and M-M are single-digit targets and unstable for evaluation. See notebook Section 4 / cell 18 and Section 3 / cell 14 for exact partition counts and thresholds.
 
 ## RQ1 — Which tradeoffs occur, and how do design choices relate to them?
 
-L-M is the dominant outcome. Pattern type groups show L-S share rising from 17% with no active types to 33% with three; L-M falls 83%→67%, but the three-type group is only 30 runs and mixtures differ.
-
-Feature ranking in this slice places **Alpha Dirichlet Mean, delay_percentage, Client Selector Criteria, HDH Instances, Pattern Instances, CPU Mean, Pattern Types Active** among the highest relative predictors. This ranking describes predictive credit within the fitted model; it gives neither a direction nor an intervention effect.
+Across configurations, L-M accounts for 78.8% train and 78.6% test; L-S is 19.4% and 19.7%. The two medium-accuracy regions total only five training and two held-out runs. OFF,OFF,ON is deterministic in L-M; M-M occurs exclusively in one composite configuration but only one training and one test observation, so this is fragile support, not a reliable design rule. Pattern-count groups are broad mixtures; counts by 0 versus 1 versus 2–3 types show L-M dominant throughout. Instance counts include 12/14 outlying observations; interpret as stress/context. Compare configurations only within the stated client scope; `Pattern Types Active` counts decisions, whereas `Pattern Instances` is a context-dependent deployment/stress descriptor. The accuracy–time plot corroborates occupancy: [quality-space plot](../plots/quality-space__task-text__all-configurations__clients-8__environment-all__final_val_accuracy-vs-avg_total_time.png). Notebook contingency and robustness outputs: [analysis notebook](../analysis-fl-rq-c8-text.ipynb) (Sections 5–7; cells 30–44).
 
 ## RQ2 — Which joint conditions identify a target tradeoff, and what changes inside the box?
 
-CART L-S uses delay ≤12.5%; L-M combines delay ≥12.5% and CPU 10.125–10.75. M-S PRIM box is weak and target is a single held-out run.
-
-**Architectural reading:** the common L-S/L-M rules do not add a pattern prescription; they narrow the environment using delay and, for L-M, CPU. The rare M-S box has too little support to guide design.
-
-**Held-out what-if comparison (Section 11):** Held out: L-S CART retains 15, all target (65.2% coverage; baseline 23/117); L-M retains 66, all target (71.7% coverage; baseline 92/117). M-S PRIM retains 6 with 1 target (16.7% precision; target support 1). Here, box precision is the target share among retained test runs; target coverage is the share of all target test runs retained. “Retained” is the number of all test runs satisfying the rule. Lift is the increase in target share over the unrestricted test prevalence. These are conditional filtering results, not a rerun of the FL system.
-
-**Policy-matrix cross-check (Section 11):** The notebook also reports policy-specific tradeoff shares before and after each target box, the change matrix, target-coverage matrix, and retained counts. Read these as conditional distributions within the named policy. A displayed zero may reflect no retained/supporting observations, and `None` means no box; inspect coverage and count before interpreting either. The unrestricted `test set` rows describe observed policy distributions, not a counterfactual. The OFF/OFF/OFF row is only the baseline configuration.
+Delay has strongest association with time objective in feature ranking; Alpha Dirichlet Mean is strongest for accuracy. This is predictive credit in this eight-client slice. Alpha Dirichlet Mean and delay percentage dominate model-relative importance, followed by Client Selector Criteria and HDH/pattern-instance descriptors. For L-S, the delay ≤12.5% box achieves held-out precision 100% (15/15), captures 15/23 targets (65.2%), +80.3 pp over 23/117 baseline. L-M rule yields 66/66 (100%) and captures 66/92 (71.7%), +21.4 pp. M-S has only one held-out target and one hit/6 retained (precision 16.7%, coverage 100%); M-M also has one test target but its discovered rule retains 6 and captures zero, so test precision is 0% and coverage 0%, signaling poor stability. L-L is unpopulated and has no discovery box. Report box-specific NaN coverage from box report; policy activation summaries show boxes can include OFF states. No rule should imply pattern ON absent an explicit decision binding. For target coverage and held-out policy matrices, see notebook Section 11 (cells 66–73) and [box report](../boxes/boxes__task-text__all-configurations__clients-8__environment-all.md). The feature ranking plot is [feature-importance plot](../plots/feature-importance__task-text__all-configurations__clients-8__environment-all.png). A box is a joint observational rule, and filtering is a what-if over already observed held-out rows.
 
 ## Implications
 
-- **For practitioners:** Use delay as a candidate L-S/L-M divider, but do not derive a separate M-S rule from one target.
-- **For researchers:** Read this as an observational, task- and slice-specific association. Compare discovery with held-out metrics in the linked report, and repeat across partition seeds or campaigns before claiming transfer.
+- **Practitioners:** Treat the reported rule as a candidate monitoring/selection envelope within this exact task and configuration/client scope. Validate on additional seeds before operational use; sparse targets and retained subsets limit confidence.
+- **Researchers:** The fixed-grid occupancy and grouped seed holdout support descriptive within-slice comparisons. Policy attribution is limited by observational coverage, uneven environment composition, run-level aggregates, and rare/empty regions. Importance ranks are model-relative predictive credit, not slopes or causal effects.
 
-## Limits
+## Case limitations and evidence
 
-Rare M-S/M-M target regions (one run each); empty quadrants mean unobserved in this sample. Compact client attributes are run-level averages, so within-client heterogeneity and round-level variation are hidden. Empty quadrants mean no observed runs in this slice, not infeasible outcomes. Box conditions must be read jointly; NaN/not-selected states and their parent pattern decisions are documented in the architectural interpretation linked above.
+The compact client/resource/non-IID summaries aggregate at run level and hide client- and round-level variation. Empty grid cells mean unobserved in this sample, not infeasible. All conclusions are conditional on the sampled environments and seeds. Evidence: [analysis notebook](../analysis-fl-rq-c8-text.ipynb); [box report](../boxes/boxes__task-text__all-configurations__clients-8__environment-all.md); [quality-space plot](../plots/quality-space__task-text__all-configurations__clients-8__environment-all__final_val_accuracy-vs-avg_total_time.png); [feature-importance plot](../plots/feature-importance__task-text__all-configurations__clients-8__environment-all.png).

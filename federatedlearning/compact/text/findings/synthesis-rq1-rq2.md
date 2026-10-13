@@ -1,44 +1,35 @@
-# Cross-case synthesis — Text task — RQ1 and RQ2
-
-This synthesis crosschecks the seven individual case reports for the compact all-environment campaign. It addresses the task’s cases independently; it does not pool image and text outcomes. Case analyses: [baseline](analysis-fl-rq-baseline-text-findings.md), [c4](analysis-fl-rq-c4-text-findings.md), [c8](analysis-fl-rq-c8-text-findings.md), [c10](analysis-fl-rq-c10-text-findings.md), [client_selector](analysis-fl-rq-client_selector-text-findings.md), [hdh](analysis-fl-rq-hdh-text-findings.md), [message_compressor](analysis-fl-rq-message_compressor-text-findings.md).
-
-## RQ1 — Which tradeoffs occur, and how do design choices relate to them?
+# Text task synthesis: RQ1 and RQ2
 
 ### Recurring findings
 
-- L-M dominates each c4/c8/c10 held-out slice (79, 92, and 92 of 117 runs); L-S is the consistent second region (31, 23, and 24). Other regions are rare or empty: c8 has one M-S and one M-M run, c10 has one M-M and no M-S. Baseline and compressor-only are similarly L-M-heavy (45/54 and 54/63).
-- Delay and Alpha Dirichlet Mean recur in feature rankings. At fixed client count, Client Selector Criteria and HDH Instances also recur among leading parameters. In single-policy profiles, environmental features such as non-IID share and low-spec share rise in rank. Rankings are model-relative associations, not directions or causal levers.
-- Pattern Types Active groups show L-S share increasing from about 17% in the zero-type group to 33% at c8/c10 and 43% at c4, with a corresponding L-M decline. The three-type group has only 30 runs and groups differ in complete configurations and operating conditions. This is a descriptive lead, not a pattern-count effect.
+Across the seven text slices, populated regions are concentrated at high accuracy: L-S (high accuracy, short time) and L-M (high accuracy, medium time) recur in the baseline, compressor-only, client-count slices and much of HDH-only. Low-accuracy regions are consistently empty. L-M generally dominates the observed run mix. The all-configuration c4/c8/c10 slices add sparse medium-accuracy outcomes and, at c4, a small L-L tail. Empty cells are sample gaps, not feasibility claims. [c4 plot](../plots/quality-space__task-text__all-configurations__clients-4__environment-all__final_val_accuracy-vs-avg_total_time.png), [c8 plot](../plots/quality-space__task-text__all-configurations__clients-8__environment-all__final_val_accuracy-vs-avg_total_time.png), [c10 plot](../plots/quality-space__task-text__all-configurations__clients-10__environment-all__final_val_accuracy-vs-avg_total_time.png).
 
-### Configuration-profile findings
+The baseline (180 runs) splits into L-M 150/180 and L-S 30/180. Fixed-client all-configuration samples each contain 390 runs: L-M is 263/390 at c4, 307/390 at c8, 305/390 at c10. Single-pattern profiles are distinct slices: selector 78/150 L-M and 68/150 L-S; HDH 138/150 L-M and 9/150 L-L; compressor 180/210 L-M and 30/210 L-S. These are profile summaries, not matched policy effects.
 
-- Baseline, selector-only, HDH-only, and compressor-only are different all-client-count profiles. HDH-only has 42/45 L-M while compressor-only has 54/63 L-M; neither comparison isolates what enabling that pattern does.
-- In HDH-only, the 93.3% L-M starting prevalence means its box contributes only 6.7 percentage points of additional concentration. A high precision should not be mistaken for a valuable restriction when the target is already nearly universal.
+### Configuration/client-count-specific findings
 
-### Conclusion for RQ1
+At c4, M-S/M-M/L-L appear (small support); c8 and c10 emphasize L-S/L-M, with M-S/M-M rare. The baseline and single-pattern notebooks pool clients 4/8/10 and cannot replace fixed-count comparisons. Within c4 the L-M allocation spans configurations; c8 has one deterministic configuration in L-M; c4 and c10 have none. Pattern-count strata combine policies and context: neither active-type count nor instance count is a randomized dose.
 
-For the text task, the compact evidence is dominated by L-M, with delay separating L-S from L-M across several slices. Other quadrants lack enough observations for stable conclusions. Designers can use the observed delay division to organize exploration, while researchers should prioritize data that populates rare regions and separates pattern configurations under comparable operating conditions.
+### Evidence gaps
+
+The environment design is uneven, and run-level client averages hide imbalance. Rare and absent held-out targets limit comparisons: c4 M-M absent, c10 M-S absent, HDH-only M-M absent, and several medium tradeoffs have one or two test rows. Grouped splits use only 3 of 10 partition seeds for test.
 
 ## RQ2 — Which joint conditions identify a target tradeoff, and what changes inside the box?
 
 ### Recurring findings
 
-- In baseline, compressor-only, and c8/c10 all-configuration cases, PRIM and CART repeatedly recover the approximate delay boundary of 12.5%: lower delay identifies L-S, and higher delay identifies L-M. In c8/c10, the longer-delay L-M boxes also use CPU bounds. At c4, L-M rules include client selector OFF and low pattern/HDH instances, showing that the same tradeoff can require additional joint context in a different slice.
-- Held-out concentration is strong for common outcomes: c8 CART retains 15/117 L-S runs (15/23 target coverage) and 66/117 L-M runs (66/92); c10 yields 15/24 and 66/92. In baseline and compressor-only, both boxes match all held-out runs in their respective target classes. These supports range from 9 to 66 and should remain visible beside precision.
-- Rare-region boxes are much weaker: c8 M-S has only one target run and PRIM precision 1/6; c10 M-M has one target and PRIM precision 1/9; c4 M-S has two targets and PRIM precision 1/8. These are not actionable rules.
+Delay percentage repeatedly separates high-accuracy short-time from medium-time boxes: low delay (roughly 0–12.5%) is associated with L-S, while higher delay (12.5–100%) aligns with L-M in the compressor-only and several fixed-client slices. This is an operating-context association, not evidence that manipulating delay or a pattern would cause a tradeoff. Box-restricted held-out purity is often high, but coverage varies: at c4 L-S coverage is 19.4%; c8 it is 65.2%; c10 it is 62.5%. L-M coverage is about 57–72% across fixed client counts. [Text case reports](.) link each exact rule and support to its notebook and box report.
 
-### Scope-specific findings and evidence gaps
+### Configuration/client-count-specific findings
 
-- Selector-only boxes retain only 3–9 cases and capture 15–35% of target runs; the conditions are multi-variable. Use them as candidate filters for data collection or review, not deployment prescriptions.
-- HDH-only illustrates why baseline prevalence matters: L-M is already 42/45 and the box retains 30, all target. Precision rises to 100%, but the rate rises only 6.7 points and coverage is 71.4%. L-L has three target runs and one is captured.
-- The architectural explanation correctly converts “criteria not selected” into Client Selector OFF when supported by the system specification. Read this as context for joint box conditions, not independent feature effects. Section 11 support counts are essential; unsupported zeros/`None` do not represent proven robustness or infeasibility.
+In c4, the L-S rule includes Client Selector ON/CPU criterion jointly with low delay; L-M is associated with higher delay and low pattern/HDH instance bounds, with selector not selected. In c8 and c10, low/high delay rules dominate. Baseline and compressor-only rules mainly separate delay because their pattern configuration is fixed. Selector-only and HDH-only boxes instead profile context under a fixed pattern choice; they cannot validate the choice against OFF. Feature rankings shift by slice, though delay, Alpha Dirichlet Mean, CPU/client summaries, pattern instances, and selector criteria recur. Treat importance as relative predictive credit; zero scores can reflect constants/correlation pruning.
 
-### Conclusion for RQ2
+### Evidence gaps
 
-The repeated delay split is the clearest actionable result for common text-task tradeoffs. Treat it as a screening boundary for the compact campaign and validate it on new partitions. Avoid operational guidance for M-* and L-L regions until test support grows; report precision with baseline prevalence, retained count, and target coverage.
+Some discovered boxes have no held-out target rows (unavailable evaluation), while others are based on tiny test supports. A 100% precision from a handful of retained runs does not imply broad robustness. Section 11 policy matrices are conditional on each policy group; zeros can indicate unsupported cells. Box restrictions filter existing held-out rows, and STARR-style results describe discretized tradeoff membership only.
 
-## Cross-cutting interpretation
+## Task conclusions and implications
 
-- “All-environment” includes all available environmental conditions, not a shared/fixed environment. Fixed client-count cases and all-client-count policy profiles have different scopes and denominators.
-- Box restrictions filter held-out runs. They do not rerun FL under prescribed conditions, change actual system inputs, prove causality, or establish reduced variance of continuous accuracy/time. Report baseline rate, precision, lift in percentage points, retained count, and target coverage together.
-- The compact representation averages client attributes; within-client and round variation remain hidden. Findings apply to the measured run-level data and current campaign.
+For AG_NEWS/MLP under the sampled compact campaign, high accuracy is common, with round-time category varying most visibly with operating conditions, particularly delay. The evidence supports using the boxes to prioritize validation scenarios within the same configuration and client scope. It does not support causal claims about CS, MC, or HDH, generalization beyond the sampled seed/environment mix, or treating an empty region as impossible.
+
+**Practitioner implication:** use the delay/context envelopes as candidate run filters for further evaluation; preserve the stated policy and client scope and gather more held-out seeds for rare targets. **Research implication:** add balanced policy-by-environment coverage and larger independent seed holdouts, then test whether the observed associations persist. The case reports cite each notebook, box report, and plot; the refreshed [evidence manifest](evidence-manifest.json) fingerprints the inputs.

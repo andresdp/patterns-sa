@@ -1,32 +1,27 @@
-# Findings — Text task — HDH
+# Text case findings: HDH
 
-## Scope and evidence
+## Scope and support
 
-- **Slice:** HDH ON; client selector and compressor OFF; client counts 4, 8, 10; all environment; all-environment view. The fixed-policy cases retain client counts 4, 8, and 10; c4/c8/c10 fix that count and include all available pattern configurations.
-- **Held-out test distribution:** Test n=45: L-M 42 (93.3%), L-L 3 (6.7%); remaining quadrants empty.
-- **Sources:** [executed notebook](../analysis-fl-rq-hdh-text.ipynb) (sections 4–11), [box report](../boxes/boxes__task-text__hdh-only_OFF_OFF_ON__clients-all__environment-all.md), [quality-space chart](../plots/quality-space__task-text__hdh-only_OFF_OFF_ON__clients-all__environment-all__final_val_accuracy-vs-avg_total_time.png), and [feature-importance heatmap](../plots/feature-importance__task-text__hdh-only_OFF_OFF_ON__clients-all__environment-all.png). The notebook contains the numeric tables; the figures provide a visual cross-check.
+- **Task/configuration/client/environment:** HDH only (OFF,OFF,ON); all client counts (4, 8, 10); all sampled environments.
+- **Rows:** 150 total; 105 training; 45 held out. Split: Grouped holdout: 3/10 partition_seed groups; stratification score 0.000622. Seeds were kept wholly in one partition.
+- **Tradeoff definitions:** final validation accuracy is maximized and average total round time minimized. The shared 3×3 grid uses accuracy edges 0.2075/0.4774/0.7473/1.0172 and time edges 1.5625/9.5065/17.4505/25.3945.
+- **Training region counts (all nine regions):** M-M 3 (2.9%); L-M 96 (91.4%); L-L 6 (5.7%); all other cells among S-S, S-M, S-L, M-S, M-M, M-L, L-S, L-M, L-L are zero.
+- **Held-out region counts (all nine regions):** M-M 0 (0%); L-M 42 (93.3%); L-L 3 (6.7%); all other cells among S-S, S-M, S-L, M-S, M-M, M-L, L-S, L-M, L-L are zero.
+- **Occupancy:** Three regions populated; six empty. M-M is absent from test and not evaluable. See notebook Section 4 / cell 18 and Section 3 / cell 14 for exact partition counts and thresholds.
 
 ## RQ1 — Which tradeoffs occur, and how do design choices relate to them?
 
-The sample is overwhelmingly L-M. This high starting prevalence limits the practical value of a box that only isolates the same common outcome.
-
-Feature ranking in this slice places **non_iid_percentage, Alpha Dirichlet Mean, JSD Mean, Total Clients, delay_percentage, CPU Mean, low_spec_percentage** among the highest relative predictors. This ranking describes predictive credit within the fitted model; it gives neither a direction nor an intervention effect.
+L-M dominates both partitions (91.4% train; 93.3% test); L-L is a small tail. The only-pattern profile cannot establish the effect of enabling HDH compared with other configurations. No test target exists for M-M. Pattern Types Active is fixed at one, but HDH instance count varies with client count/context; it remains a stress descriptor. Compare configurations only within the stated client scope; `Pattern Types Active` counts decisions, whereas `Pattern Instances` is a context-dependent deployment/stress descriptor. The accuracy–time plot corroborates occupancy: [quality-space plot](../plots/quality-space__task-text__hdh-only_OFF_OFF_ON__clients-all__environment-all__final_val_accuracy-vs-avg_total_time.png). Notebook contingency and robustness outputs: [analysis notebook](../analysis-fl-rq-hdh-text.ipynb) (Sections 5–7; cells 30–44).
 
 ## RQ2 — Which joint conditions identify a target tradeoff, and what changes inside the box?
 
-PRIM/CART L-M rule reduces to clients ≥6; L-L uses a narrow delay/client/JSD envelope and is weak. HDH is ON throughout, so these are conditional associations.
-
-**Architectural reading:** HDH is ON throughout. The L-M rule adds only a client-count bound; the L-L rule adds delay, client-count, and JSD conditions, but rests on three targets.
-
-**Held-out what-if comparison (Section 11):** L-M: box retains 30/45, all target, 30/42=71.4% coverage; baseline already 93.3%, so absolute prevalence gain is only 6.7 pp. L-L retains 3 with 1 target (33.3% precision, 33.3% coverage; baseline 3/45). Here, box precision is the target share among retained test runs; target coverage is the share of all target test runs retained. “Retained” is the number of all test runs satisfying the rule. Lift is the increase in target share over the unrestricted test prevalence. These are conditional filtering results, not a rerun of the FL system.
-
-**Policy-matrix cross-check (Section 11):** The notebook also reports policy-specific tradeoff shares before and after each target box, the change matrix, target-coverage matrix, and retained counts. Read these as conditional distributions within the named policy. A displayed zero may reflect no retained/supporting observations, and `None` means no box; inspect coverage and count before interpreting either. The unrestricted `test set` rows describe observed policy distributions, not a counterfactual. The OFF/OFF/OFF row is only the baseline configuration.
+HDH instances and non-IID/client summary features are slice-relevant; with HDH fixed ON, this does not compare the HDH decision. Importance is predictive credit only. The L-M rule has held-out precision 100% (30/30), baseline 42/45 (93.3%), +6.7 pp, and coverage 30/42 (71.4%). L-L target is rare: 1/3 retained gives 33.3% precision, +26.7 pp over baseline 3/45 (6.7%), coverage 1/3 (33.3%). The report’s box conditions include operating/run context; use as a candidate validation envelope only. M-M was found in training but has no test targets, so held-out precision/recall are unavailable. Not-selected values for HDH settings are structurally absent under HDH ON and cannot be generalized to HDH OFF. For target coverage and held-out policy matrices, see notebook Section 11 (cells 66–73) and [box report](../boxes/boxes__task-text__hdh-only_OFF_OFF_ON__clients-all__environment-all.md). The feature ranking plot is [feature-importance plot](../plots/feature-importance__task-text__hdh-only_OFF_OFF_ON__clients-all__environment-all.png). A box is a joint observational rule, and filtering is a what-if over already observed held-out rows.
 
 ## Implications
 
-- **For practitioners:** Do not add a complex control for L-M based on a small +6.7 pp concentration gain. The L-L condition is exploratory only.
-- **For researchers:** Read this as an observational, task- and slice-specific association. Compare discovery with held-out metrics in the linked report, and repeat across partition seeds or campaigns before claiming transfer.
+- **Practitioners:** Treat the reported rule as a candidate monitoring/selection envelope within this exact task and configuration/client scope. Validate on additional seeds before operational use; sparse targets and retained subsets limit confidence.
+- **Researchers:** The fixed-grid occupancy and grouped seed holdout support descriptive within-slice comparisons. Policy attribution is limited by observational coverage, uneven environment composition, run-level aggregates, and rare/empty regions. Importance ranks are model-relative predictive credit, not slopes or causal effects.
 
-## Limits
+## Case limitations and evidence
 
-Only three L-L targets; high base prevalence makes precision alone misleading. Compact client attributes are run-level averages, so within-client heterogeneity and round-level variation are hidden. Empty quadrants mean no observed runs in this slice, not infeasible outcomes. Box conditions must be read jointly; NaN/not-selected states and their parent pattern decisions are documented in the architectural interpretation linked above.
+The compact client/resource/non-IID summaries aggregate at run level and hide client- and round-level variation. Empty grid cells mean unobserved in this sample, not infeasible. All conclusions are conditional on the sampled environments and seeds. Evidence: [analysis notebook](../analysis-fl-rq-hdh-text.ipynb); [box report](../boxes/boxes__task-text__hdh-only_OFF_OFF_ON__clients-all__environment-all.md); [quality-space plot](../plots/quality-space__task-text__hdh-only_OFF_OFF_ON__clients-all__environment-all__final_val_accuracy-vs-avg_total_time.png); [feature-importance plot](../plots/feature-importance__task-text__hdh-only_OFF_OFF_ON__clients-all__environment-all.png).
