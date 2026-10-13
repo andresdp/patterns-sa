@@ -101,6 +101,20 @@ lists discovery metrics and held-out support, precision, recall and lift, and fl
 include NaN or not-selected values. Its filename records the task, configuration slice, client
 scope and environment filter.
 
+### Refreshing research findings
+
+After changing or rerunning notebooks, regenerate their plots and box reports first. Then run
+the [`adept-compact-findings` skill](../../.claude/skills/adept-compact-findings/SKILL.md) in a
+fresh analysis context for each task (`image` and `text` separately). The skill assumes notebook
+outputs already exist; it refreshes the evidence manifest and writes seven case findings plus a
+task synthesis under that task's `findings/` folder. A fresh context helps avoid carrying forward
+conclusions from an earlier run. Give it the task and current experiment scope, but not expected
+conclusions.
+
+For an independent quality check, use another fresh context to review the new findings against
+that task's manifest, notebooks, box reports and plots. Ask it to verify factual claims, scope,
+support, and whether the design/context distinctions and observational limits are respected.
+
 ### Running
 
 Open a notebook from its task folder and run it top to bottom with the `perfmodels` conda
