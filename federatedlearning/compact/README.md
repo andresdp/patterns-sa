@@ -51,9 +51,11 @@ It must therefore be loaded through `fl_slices.slice_filter(...)`, as every note
 
 ## 3. Notebooks and their rationale
 
-The six maintained pattern-analysis notebooks are organized by task and use **only the all-environment
-view**. Each analyzes one task/client-count slice and retains every available run for it.
-The analysis therefore has 390 runs per slice (273 training and 117 held out), including
+The maintained notebooks are organized by task and use **only the all-environment view**. Six
+analyze all pattern configurations at one client count; the baseline and single-pattern notebooks
+below retain all client counts for their selected task and configuration. Each all-configuration
+notebook analyzes one task/client-count slice and retains every available run for it, giving 390
+runs per slice (273 training and 117 held out), including
 the environment point shared by configurations and additional sampled settings. The
 environmental design is not fully crossed: configurations can have different mixes of
 sampled conditions, so observed configuration differences may reflect both pattern choices
@@ -72,6 +74,8 @@ analyses if needed.
 | `text/analysis-fl-rq-c{4,8,10}-text.ipynb` | AG_NEWS/MLP at 4, 8 or 10 clients | Same RQ1 and RQ2 analyses for the text task. |
 | `image/analysis-fl-rq-baseline-image.ipynb` | CIFAR-10/CNN 16k, baseline only | Reference profile for `OFF,OFF,OFF`, retaining all client counts and all available environments. |
 | `text/analysis-fl-rq-baseline-text.ipynb` | AG_NEWS/MLP, baseline only | Reference profile for `OFF,OFF,OFF`, retaining all client counts and all available environments. |
+| `image/analysis-fl-rq-{client_selector,message_compressor,hdh}-image.ipynb` | CIFAR-10/CNN 16k, one pattern only | Separate profiles for `ON,OFF,OFF`, `OFF,ON,OFF` and `OFF,OFF,ON`, retaining all client counts and environments. |
+| `text/analysis-fl-rq-{client_selector,message_compressor,hdh}-text.ipynb` | AG_NEWS/MLP, one pattern only | Same three single-pattern configurations and all-environment scope for the text task. |
 
 All notebooks use one fixed set of objective bin edges derived from the full compact campaign,
 so the S/M/L quadrants retain the same meaning across scenarios. Empty quadrants are shown as
@@ -95,13 +99,14 @@ causal improvement estimate.
 ### Running
 
 Open a notebook from its task folder and run it top to bottom with the `perfmodels` conda
-environment. Each notebook sets `ENVIRONMENT = 'all'`; it does not run or report the
-same-environment analysis. Run the three notebooks in `image/` and the three in `text/`,
-with client counts in ascending order within each folder. The baseline notebooks are separate
-reference analyses: each keeps `OFF,OFF,OFF` for its task and uses `CLIENTS = None`, so all three
-client counts and all available environments are included. They describe baseline tradeoffs and
-operating envelopes; they cannot compare pattern policies. The findings markdown files have not
-yet been revised to include these notebooks.
+environment. Each notebook sets `ENVIRONMENT = 'all'`; none runs or reports the same-environment
+analysis. In each task folder, run the three all-configuration notebooks in client-count order,
+then the baseline reference and the three single-pattern notebooks. The baseline and single-pattern
+notebooks use `CLIENTS = None`, so all client counts and available environments are included.
+Each single-pattern notebook keeps exactly one pattern ON and the other two OFF; it excludes
+baseline and combined-pattern runs. These notebooks profile each policy's tradeoffs and operating
+envelopes, but do not by themselves estimate differences against another policy. The findings
+markdown files have not yet been revised to include these notebooks.
 
 ## 4. Filters (`fl_slices.slice_filter`)
 
