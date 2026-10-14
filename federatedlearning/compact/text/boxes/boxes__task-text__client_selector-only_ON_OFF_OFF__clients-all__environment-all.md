@@ -18,6 +18,20 @@
 
 The architectural interpretation traces conditions through declared system-spec relationships.
 
+## Cross-algorithm box ranking and duplicate marks
+
+The table includes a **global rank** across all scoreable boxes and a **within-target rank** that compares PRIM/CART boxes for the same tradeoff. The held-out score is the harmonic mean of normalized enrichment and target coverage: normalized enrichment = max(0, (precision − baseline prevalence) / (1 − baseline prevalence)); score = 2 × enrichment × coverage / (enrichment + coverage). The score ranges from 0 to 1. Compare ranks alongside target support counts because tradeoffs can have different numbers of held-out examples; training-to-test stability and rule complexity are also shown.
+
+**Unvalidated** means the held-out evaluation is unavailable or contains no target examples, so the rule has no held-out target evidence. A supported rule that selects no held-out rows is evaluated with score 0. Duplicate checks compare boxes for the same target only. Exact duplicates have identical readable conditions, including categories and NaN/not-selected inclusion. Near duplicates require the same constrained parameters and at least 90% condition similarity; when held-out membership can be compared, it must also reach 95% Jaccard similarity. Duplicate boxes are retained and individually marked.
+
+| Global rank | Within-target rank | Target | Box | Status | Test score | Train score | Score Δ (test−train) | Enrichment | Coverage | Hits / targets | Retained / test | Conditions | Duplicate mark |
+|---:|---:|:---|:---|:---|---:|---:|---:|---:|---:|---:|---:|---:|:---|
+| 1 | 1 | L-S | PRIM Box 2 | Evaluated | 0.4421 | 0.4970 | -0.0549 | 0.6000 | 0.3500 | 7 / 20 | 9 / 45 | 3 | — |
+| 2 | 1 | L-M | CART Box 1 | Evaluated | 0.4000 | 0.4118 | -0.0118 | 1 | 0.2500 | 6 / 24 | 6 / 45 | 2 | — |
+| 3 | 2 | L-M | PRIM Box 3 | Evaluated | 0.4000 | 0.4118 | -0.0118 | 1 | 0.2500 | 6 / 24 | 6 / 45 | 2 | — |
+| 4 | 2 | L-S | CART Box 2 | Evaluated | 0 | 0.2137 | -0.2137 | 0 | 0.0500 | 1 / 20 | 3 / 45 | 4 | — |
+| 5 | 1 | M-S | PRIM Box 1 | Evaluated | 0 | 0.3789 | -0.3789 | 0 | 0 | 0 / 1 | 3 / 45 | 2 | — |
+
 ## PRIM
 
 ### Box 1 — M-S (M,S)
@@ -207,8 +221,8 @@ The architectural interpretation traces conditions through declared system-spec 
 
 **Learned box conditions**
 
-- `CPU Mean`: [10.125, 11.000]
 - `Total Clients`: [5.999, 10.000]
+- `CPU Mean`: [10.125, 11.000]
 - **Includes NaN / not-selected values:** No
 
 **Architectural interpretation**
@@ -258,10 +272,10 @@ The architectural interpretation traces conditions through declared system-spec 
 
 **Learned box conditions**
 
-- `CPU Mean`: [8.000, 8.874]
-- `delay_percentage`: [25.000, 50.000]
-- `non_iid_percentage`: [50.000, 75.000]
 - `Total Clients`: [9.000, 10.000]
+- `non_iid_percentage`: [50.000, 75.000]
+- `delay_percentage`: [25.000, 50.000]
+- `CPU Mean`: [8.000, 8.874]
 - **Includes NaN / not-selected values:** No
 
 **Architectural interpretation**
@@ -277,9 +291,9 @@ The architectural interpretation traces conditions through declared system-spec 
   - HDH: OFF (3/3)
   - Message Compressor: OFF (3/3)
 - **Operating envelope**:
-  - CPU Mean [8, 8.87]
-  - delay percentage [25, 50] (%)
   - non-IID percentage [50, 75] (%)
+  - delay percentage [25, 50] (%)
+  - CPU Mean [8, 8.87]
 - **Other design conditions**:
   - Total Clients [9, 10]
 

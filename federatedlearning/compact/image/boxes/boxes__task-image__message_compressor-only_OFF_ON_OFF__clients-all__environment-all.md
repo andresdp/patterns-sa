@@ -18,6 +18,21 @@
 
 The architectural interpretation traces conditions through declared system-spec relationships.
 
+## Cross-algorithm box ranking and duplicate marks
+
+The table includes a **global rank** across all scoreable boxes and a **within-target rank** that compares PRIM/CART boxes for the same tradeoff. The held-out score is the harmonic mean of normalized enrichment and target coverage: normalized enrichment = max(0, (precision − baseline prevalence) / (1 − baseline prevalence)); score = 2 × enrichment × coverage / (enrichment + coverage). The score ranges from 0 to 1. Compare ranks alongside target support counts because tradeoffs can have different numbers of held-out examples; training-to-test stability and rule complexity are also shown.
+
+**Unvalidated** means the held-out evaluation is unavailable or contains no target examples, so the rule has no held-out target evidence. A supported rule that selects no held-out rows is evaluated with score 0. Duplicate checks compare boxes for the same target only. Exact duplicates have identical readable conditions, including categories and NaN/not-selected inclusion. Near duplicates require the same constrained parameters and at least 90% condition similarity; when held-out membership can be compared, it must also reach 95% Jaccard similarity. Duplicate boxes are retained and individually marked.
+
+| Global rank | Within-target rank | Target | Box | Status | Test score | Train score | Score Δ (test−train) | Enrichment | Coverage | Hits / targets | Retained / test | Conditions | Duplicate mark |
+|---:|---:|:---|:---|:---|---:|---:|---:|---:|---:|---:|---:|---:|:---|
+| 1 | 1 | M-S | CART Box 2 | Evaluated | 1 | 1 | 0 | 1 | 1 | 9 / 9 | 9 / 63 | 1 | — |
+| 2 | 2 | M-S | PRIM Box 2 | Evaluated | 1 | 1 | 0 | 1 | 1 | 9 / 9 | 9 / 63 | 2 | — |
+| 3 | 1 | M-M | CART Box 1 | Evaluated | 0.9783 | 0.9722 | 0.0060 | 1 | 0.9574 | 45 / 47 | 45 / 63 | 2 | Near duplicate of PRIM Box 3 (condition similarity 100%; held-out membership Jaccard 100%) |
+| 4 | 2 | M-M | PRIM Box 3 | Evaluated | 0.9783 | 0.9722 | 0.0060 | 1 | 0.9574 | 45 / 47 | 45 / 63 | 2 | Representative for CART Box 1 |
+| 5 | 1 | S-M | PRIM Box 1 | Evaluated | 0.9231 | 0.9655 | -0.0424 | 1 | 0.8571 | 6 / 7 | 6 / 63 | 2 | — |
+| 6 | 2 | S-M | CART Box 3 | Evaluated | 0.9231 | 0.9655 | -0.0424 | 1 | 0.8571 | 6 / 7 | 6 / 63 | 3 | — |
+
 ## PRIM
 
 ### Box 1 — S-M (S,M)
@@ -138,7 +153,7 @@ The architectural interpretation traces conditions through declared system-spec 
 | Recall / target coverage | 1 |
 | Absolute lift over held-out prevalence | 0.8571 |
 
-### Box 3 — M-M (M,M)
+### Box 3 — M-M (M,M) — Representative for CART Box 1
 
 **Learned box conditions**
 
@@ -199,12 +214,12 @@ The architectural interpretation traces conditions through declared system-spec 
 
 ## CART
 
-### Box 1 — M-M (M,M)
+### Box 1 — M-M (M,M) — Near duplicate of PRIM Box 3 (condition similarity 100%; held-out membership Jaccard 100%)
 
 **Learned box conditions**
 
-- `Alpha Dirichlet Mean`: [0.750, 0.900]
 - `delay_percentage`: [12.485, 100.000]
+- `Alpha Dirichlet Mean`: [0.750, 0.900]
 - **Includes NaN / not-selected values:** No
 
 **Architectural interpretation**
@@ -220,8 +235,8 @@ The architectural interpretation traces conditions through declared system-spec 
   - HDH: OFF (45/45)
   - Message Compressor: ON (45/45)
 - **Operating envelope**:
-  - Alpha Dirichlet Mean [0.75, 0.9]
   - delay percentage [12.5, 100] (%)
+  - Alpha Dirichlet Mean [0.75, 0.9]
 
 **Discovery metrics (training partition)**
 
@@ -301,9 +316,9 @@ The architectural interpretation traces conditions through declared system-spec 
 
 **Learned box conditions**
 
-- `Alpha Dirichlet Mean`: [0.600, 0.750]
 - `Message Compressor Instances`: [5.999, 10.000]
 - `delay_percentage`: [12.485, 100.000]
+- `Alpha Dirichlet Mean`: [0.600, 0.750]
 - **Includes NaN / not-selected values:** No
 
 **Architectural interpretation**
@@ -319,9 +334,9 @@ The architectural interpretation traces conditions through declared system-spec 
   - HDH: OFF (6/6)
   - Message Compressor: ON (6/6)
 - **Operating envelope**:
-  - Alpha Dirichlet Mean [0.6, 0.75]
   - Message Compressor Instances [6, 10]
   - delay percentage [12.5, 100] (%)
+  - Alpha Dirichlet Mean [0.6, 0.75]
 
 **Discovery metrics (training partition)**
 

@@ -18,6 +18,22 @@
 
 The architectural interpretation traces conditions through declared system-spec relationships.
 
+## Cross-algorithm box ranking and duplicate marks
+
+The table includes a **global rank** across all scoreable boxes and a **within-target rank** that compares PRIM/CART boxes for the same tradeoff. The held-out score is the harmonic mean of normalized enrichment and target coverage: normalized enrichment = max(0, (precision − baseline prevalence) / (1 − baseline prevalence)); score = 2 × enrichment × coverage / (enrichment + coverage). The score ranges from 0 to 1. Compare ranks alongside target support counts because tradeoffs can have different numbers of held-out examples; training-to-test stability and rule complexity are also shown.
+
+**Unvalidated** means the held-out evaluation is unavailable or contains no target examples, so the rule has no held-out target evidence. A supported rule that selects no held-out rows is evaluated with score 0. Duplicate checks compare boxes for the same target only. Exact duplicates have identical readable conditions, including categories and NaN/not-selected inclusion. Near duplicates require the same constrained parameters and at least 90% condition similarity; when held-out membership can be compared, it must also reach 95% Jaccard similarity. Duplicate boxes are retained and individually marked.
+
+| Global rank | Within-target rank | Target | Box | Status | Test score | Train score | Score Δ (test−train) | Enrichment | Coverage | Hits / targets | Retained / test | Conditions | Duplicate mark |
+|---:|---:|:---|:---|:---|---:|---:|---:|---:|---:|---:|---:|---:|:---|
+| 1 | 1 | L-M | CART Box 1 | Evaluated | 0.9176 | 0.9169 | 0.0008 | 1 | 0.8478 | 78 / 92 | 78 / 117 | 2 | Near duplicate of PRIM Box 4 (condition similarity 100%; held-out membership Jaccard 100%) |
+| 2 | 2 | L-M | PRIM Box 4 | Evaluated | 0.9176 | 0.9169 | 0.0008 | 1 | 0.8478 | 78 / 92 | 78 / 117 | 2 | Representative for CART Box 1 |
+| 3 | 1 | L-S | CART Box 2 | Evaluated | 0.7895 | 0.7955 | -0.0060 | 1 | 0.6522 | 15 / 23 | 15 / 117 | 1 | Near duplicate of PRIM Box 3 (condition similarity 100%; held-out membership Jaccard 100%) |
+| 4 | 2 | L-S | PRIM Box 3 | Evaluated | 0.7895 | 0.7955 | -0.0060 | 1 | 0.6522 | 15 / 23 | 15 / 117 | 1 | Representative for CART Box 2 |
+| 5 | 1 | M-S | PRIM Box 1 | Evaluated | 0.2386 | 0.3316 | -0.0930 | 0.1355 | 1 | 1 / 1 | 7 / 117 | 3 | — |
+| 6 | 1 | M-M | PRIM Box 2 | Evaluated | 0 | 0.1274 | -0.1274 | 0 | 0 | 0 / 1 | 6 / 117 | 2 | — |
+| 7 | 2 | M-S | CART Box 3 | Evaluated | 0 | 0.4963 | -0.4963 | 0 | 0 | 0 / 1 | 1 / 117 | 4 | — |
+
 ## PRIM
 
 ### Box 1 — M-S (M,S)
@@ -140,7 +156,7 @@ The architectural interpretation traces conditions through declared system-spec 
 | Recall / target coverage | 0 |
 | Absolute lift over held-out prevalence | -0.0085 |
 
-### Box 3 — L-S (L,S)
+### Box 3 — L-S (L,S) — Representative for CART Box 2
 
 **Learned box conditions**
 
@@ -197,7 +213,7 @@ The architectural interpretation traces conditions through declared system-spec 
 | Recall / target coverage | 0.6522 |
 | Absolute lift over held-out prevalence | 0.8034 |
 
-### Box 4 — L-M (L,M)
+### Box 4 — L-M (L,M) — Representative for CART Box 1
 
 **Learned box conditions**
 
@@ -258,12 +274,12 @@ The architectural interpretation traces conditions through declared system-spec 
 
 ## CART
 
-### Box 1 — L-M (L,M)
+### Box 1 — L-M (L,M) — Near duplicate of PRIM Box 4 (condition similarity 100%; held-out membership Jaccard 100%)
 
 **Learned box conditions**
 
-- `delay_percentage`: [12.500, 100.000]
 - `Client Selector Stress Percentage`: (not selected) or <= 37.500
+- `delay_percentage`: [12.500, 100.000]
 - **Includes NaN / not-selected values:** `Client Selector Stress Percentage`
 
 **Architectural interpretation**
@@ -279,8 +295,8 @@ The architectural interpretation traces conditions through declared system-spec 
   - HDH: OFF (42/78), ON (36/78)
   - Message Compressor: OFF (36/78), ON (42/78)
 - **Operating envelope**:
-  - delay percentage [12.5, 100] (%)
   - Client Selector Stress Percentage [20, 37.5] (%)
+  - delay percentage [12.5, 100] (%)
 
 **Discovery metrics (training partition)**
 
@@ -308,7 +324,7 @@ The architectural interpretation traces conditions through declared system-spec 
 | Recall / target coverage | 0.8478 |
 | Absolute lift over held-out prevalence | 0.2137 |
 
-### Box 2 — L-S (L,S)
+### Box 2 — L-S (L,S) — Near duplicate of PRIM Box 3 (condition similarity 100%; held-out membership Jaccard 100%)
 
 **Learned box conditions**
 
@@ -361,9 +377,9 @@ The architectural interpretation traces conditions through declared system-spec 
 **Learned box conditions**
 
 - `HDH Instances`: [0.500, 6.000]
+- `Client Selector Stress Percentage`: [62.498, 75.000]
 - `Pattern Instances`: [0.000, 2.499]
 - `delay_percentage`: [12.500, 37.485]
-- `Client Selector Stress Percentage`: [62.498, 75.000]
 - **Includes NaN / not-selected values:** No
 
 **Architectural interpretation**
@@ -380,9 +396,9 @@ The architectural interpretation traces conditions through declared system-spec 
   - Message Compressor: OFF (1/1)
 - **Operating envelope**:
   - HDH Instances [0.5, 6]
+  - Client Selector Stress Percentage [62.5, 75] (%)
   - Pattern Instances [0, 2.5]
   - delay percentage [12.5, 37.5] (%)
-  - Client Selector Stress Percentage [62.5, 75] (%)
 
 **Discovery metrics (training partition)**
 

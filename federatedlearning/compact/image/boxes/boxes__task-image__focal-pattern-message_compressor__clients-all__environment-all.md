@@ -18,6 +18,22 @@
 
 The architectural interpretation traces conditions through declared system-spec relationships.
 
+## Cross-algorithm box ranking and duplicate marks
+
+The table includes a **global rank** across all scoreable boxes and a **within-target rank** that compares PRIM/CART boxes for the same tradeoff. The held-out score is the harmonic mean of normalized enrichment and target coverage: normalized enrichment = max(0, (precision − baseline prevalence) / (1 − baseline prevalence)); score = 2 × enrichment × coverage / (enrichment + coverage). The score ranges from 0 to 1. Compare ranks alongside target support counts because tradeoffs can have different numbers of held-out examples; training-to-test stability and rule complexity are also shown.
+
+**Unvalidated** means the held-out evaluation is unavailable or contains no target examples, so the rule has no held-out target evidence. A supported rule that selects no held-out rows is evaluated with score 0. Duplicate checks compare boxes for the same target only. Exact duplicates have identical readable conditions, including categories and NaN/not-selected inclusion. Near duplicates require the same constrained parameters and at least 90% condition similarity; when held-out membership can be compared, it must also reach 95% Jaccard similarity. Duplicate boxes are retained and individually marked.
+
+| Global rank | Within-target rank | Target | Box | Status | Test score | Train score | Score Δ (test−train) | Enrichment | Coverage | Hits / targets | Retained / test | Conditions | Duplicate mark |
+|---:|---:|:---|:---|:---|---:|---:|---:|---:|---:|---:|---:|---:|:---|
+| 1 | 1 | M-S | CART Box 2 | Evaluated | 0.9014 | 0.8982 | 0.0032 | 1 | 0.8205 | 32 / 39 | 32 / 180 | 2 | — |
+| 2 | 1 | M-M | CART Box 1 | Evaluated | 0.7817 | 0.7852 | -0.0035 | 1 | 0.6417 | 77 / 120 | 77 / 180 | 4 | — |
+| 3 | 1 | S-M | PRIM Box 2 | Evaluated | 0.7500 | 0.7568 | -0.0068 | 1 | 0.6000 | 12 / 20 | 12 / 180 | 2 | — |
+| 4 | 2 | S-M | CART Box 3 | Evaluated | 0.7097 | 0.7568 | -0.0471 | 1 | 0.5500 | 11 / 20 | 11 / 180 | 3 | — |
+| 5 | 2 | M-S | PRIM Box 3 | Evaluated | 0.6316 | 0.6269 | 0.0047 | 1 | 0.4615 | 18 / 39 | 18 / 180 | 2 | — |
+| 6 | 2 | M-M | PRIM Box 4 | Evaluated | 0.4615 | 0.4615 | 0 | 1 | 0.3000 | 36 / 120 | 36 / 180 | 5 | — |
+| 7 | 1 | S-S | PRIM Box 1 | Evaluated | 0.0957 | 0.0369 | 0.0589 | 0.0503 | 1 | 1 / 1 | 18 / 180 | 1 | — |
+
 ## PRIM
 
 ### Box 1 — S-S (S,S)
@@ -266,9 +282,9 @@ The architectural interpretation traces conditions through declared system-spec 
 
 **Learned box conditions**
 
-- `Message Compressor Stress Percentage`: [12.508, 100.000]
 - `Alpha Dirichlet Mean`: [0.812, 0.900]
 - `JSD Mean`: (not selected) or <= 0.003
+- `Message Compressor Stress Percentage`: [12.508, 100.000]
 - `Message Compressor Instances`: [3.499, 10.000]
 - **Includes NaN / not-selected values:** `JSD Mean`
 
@@ -285,9 +301,9 @@ The architectural interpretation traces conditions through declared system-spec 
   - HDH: OFF (63/77), ON (14/77)
   - Message Compressor: ON (77/77)
 - **Operating envelope**:
-  - Message Compressor Stress Percentage [12.5, 100] (%)
   - Alpha Dirichlet Mean [0.812, 0.9]
   - JSD Mean [-0.0081, 0.00316]
+  - Message Compressor Stress Percentage [12.5, 100] (%)
   - Message Compressor Instances [3.5, 10]
 
 **Discovery metrics (training partition)**
@@ -320,8 +336,8 @@ The architectural interpretation traces conditions through declared system-spec 
 
 **Learned box conditions**
 
-- `Message Compressor Stress Percentage`: [0.000, 12.508]
 - `JSD Mean`: (not selected) or <= 0.006
+- `Message Compressor Stress Percentage`: [0.000, 12.508]
 - **Includes NaN / not-selected values:** `JSD Mean`
 
 **Architectural interpretation**
@@ -337,8 +353,8 @@ The architectural interpretation traces conditions through declared system-spec 
   - HDH: OFF (18/32), ON (14/32)
   - Message Compressor: ON (32/32)
 - **Operating envelope**:
-  - Message Compressor Stress Percentage [0, 12.5] (%)
   - JSD Mean [-0.0081, 0.00584]
+  - Message Compressor Stress Percentage [0, 12.5] (%)
 
 **Discovery metrics (training partition)**
 
@@ -370,9 +386,9 @@ The architectural interpretation traces conditions through declared system-spec 
 
 **Learned box conditions**
 
+- `Alpha Dirichlet Mean`: [0.600, 0.688]
 - `Message Compressor Stress Percentage`: [12.508, 100.000]
 - `Pattern Instances`: [7.000, 10.000]
-- `Alpha Dirichlet Mean`: [0.600, 0.688]
 - **Includes NaN / not-selected values:** No
 
 **Architectural interpretation**
@@ -388,9 +404,9 @@ The architectural interpretation traces conditions through declared system-spec 
   - HDH: OFF (6/11), ON (5/11)
   - Message Compressor: ON (11/11)
 - **Operating envelope**:
+  - Alpha Dirichlet Mean [0.6, 0.688]
   - Message Compressor Stress Percentage [12.5, 100] (%)
   - Pattern Instances [7, 10]
-  - Alpha Dirichlet Mean [0.6, 0.688]
 
 **Discovery metrics (training partition)**
 

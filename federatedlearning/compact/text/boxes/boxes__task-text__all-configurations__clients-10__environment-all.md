@@ -18,9 +18,24 @@
 
 The architectural interpretation traces conditions through declared system-spec relationships.
 
+## Cross-algorithm box ranking and duplicate marks
+
+The table includes a **global rank** across all scoreable boxes and a **within-target rank** that compares PRIM/CART boxes for the same tradeoff. The held-out score is the harmonic mean of normalized enrichment and target coverage: normalized enrichment = max(0, (precision − baseline prevalence) / (1 − baseline prevalence)); score = 2 × enrichment × coverage / (enrichment + coverage). The score ranges from 0 to 1. Compare ranks alongside target support counts because tradeoffs can have different numbers of held-out examples; training-to-test stability and rule complexity are also shown.
+
+**Unvalidated** means the held-out evaluation is unavailable or contains no target examples, so the rule has no held-out target evidence. A supported rule that selects no held-out rows is evaluated with score 0. Duplicate checks compare boxes for the same target only. Exact duplicates have identical readable conditions, including categories and NaN/not-selected inclusion. Near duplicates require the same constrained parameters and at least 90% condition similarity; when held-out membership can be compared, it must also reach 95% Jaccard similarity. Duplicate boxes are retained and individually marked.
+
+| Global rank | Within-target rank | Target | Box | Status | Test score | Train score | Score Δ (test−train) | Enrichment | Coverage | Hits / targets | Retained / test | Conditions | Duplicate mark |
+|---:|---:|:---|:---|:---|---:|---:|---:|---:|---:|---:|---:|---:|:---|
+| 1 | 1 | L-M | CART Box 1 | Evaluated | 0.9176 | 0.9215 | -0.0039 | 1 | 0.8478 | 78 / 92 | 78 / 117 | 2 | Near duplicate of PRIM Box 4 (condition similarity 100%; held-out membership Jaccard 100%) |
+| 2 | 2 | L-M | PRIM Box 4 | Evaluated | 0.9176 | 0.9215 | -0.0039 | 1 | 0.8478 | 78 / 92 | 78 / 117 | 2 | Representative for CART Box 1 |
+| 3 | 1 | L-S | CART Box 2 | Evaluated | 0.7692 | 0.7609 | 0.0084 | 1 | 0.6250 | 15 / 24 | 15 / 117 | 1 | — |
+| 4 | 2 | L-S | PRIM Box 3 | Evaluated | 0.7692 | 0.7609 | 0.0084 | 1 | 0.6250 | 15 / 24 | 15 / 117 | 2 | — |
+| 5 | 1 | M-M | PRIM Box 2 | Evaluated | 0.1875 | 0.1627 | 0.0248 | 0.1034 | 1 | 1 / 1 | 9 / 117 | 2 | — |
+| — | — | M-S | PRIM Box 1 | Unvalidated: no held-out target examples | not available | 0.1274 | not available | not available | not available | 0 / 0 | 6 / 117 | 2 | — |
+
 ## PRIM
 
-### Box 1 — M-S (M,S)
+### Box 1 — M-S (M,S) — Unvalidated: no held-out target examples
 
 **Learned box conditions**
 
@@ -197,7 +212,7 @@ The architectural interpretation traces conditions through declared system-spec 
 | Recall / target coverage | 0.6250 |
 | Absolute lift over held-out prevalence | 0.7949 |
 
-### Box 4 — L-M (L,M)
+### Box 4 — L-M (L,M) — Representative for CART Box 1
 
 **Learned box conditions**
 
@@ -258,7 +273,7 @@ The architectural interpretation traces conditions through declared system-spec 
 
 ## CART
 
-### Box 1 — L-M (L,M)
+### Box 1 — L-M (L,M) — Near duplicate of PRIM Box 4 (condition similarity 100%; held-out membership Jaccard 100%)
 
 **Learned box conditions**
 

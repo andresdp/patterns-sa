@@ -18,6 +18,22 @@
 
 The architectural interpretation traces conditions through declared system-spec relationships.
 
+## Cross-algorithm box ranking and duplicate marks
+
+The table includes a **global rank** across all scoreable boxes and a **within-target rank** that compares PRIM/CART boxes for the same tradeoff. The held-out score is the harmonic mean of normalized enrichment and target coverage: normalized enrichment = max(0, (precision − baseline prevalence) / (1 − baseline prevalence)); score = 2 × enrichment × coverage / (enrichment + coverage). The score ranges from 0 to 1. Compare ranks alongside target support counts because tradeoffs can have different numbers of held-out examples; training-to-test stability and rule complexity are also shown.
+
+**Unvalidated** means the held-out evaluation is unavailable or contains no target examples, so the rule has no held-out target evidence. A supported rule that selects no held-out rows is evaluated with score 0. Duplicate checks compare boxes for the same target only. Exact duplicates have identical readable conditions, including categories and NaN/not-selected inclusion. Near duplicates require the same constrained parameters and at least 90% condition similarity; when held-out membership can be compared, it must also reach 95% Jaccard similarity. Duplicate boxes are retained and individually marked.
+
+| Global rank | Within-target rank | Target | Box | Status | Test score | Train score | Score Δ (test−train) | Enrichment | Coverage | Hits / targets | Retained / test | Conditions | Duplicate mark |
+|---:|---:|:---|:---|:---|---:|---:|---:|---:|---:|---:|---:|---:|:---|
+| 1 | 1 | L-M | PRIM Box 4 | Evaluated | 0.5760 | 0.5773 | -0.0013 | 1 | 0.4045 | 36 / 89 | 36 / 144 | 6 | — |
+| 2 | 2 | L-M | CART Box 1 | Evaluated | 0.5410 | 0.5474 | -0.0064 | 1 | 0.3708 | 33 / 89 | 33 / 144 | 4 | — |
+| 3 | 1 | L-S | CART Box 2 | Evaluated | 0.5294 | 0.5283 | 0.0011 | 1 | 0.3600 | 18 / 50 | 18 / 144 | 1 | — |
+| 4 | 2 | L-S | PRIM Box 3 | Evaluated | 0.5294 | 0.5283 | 0.0011 | 1 | 0.3600 | 18 / 50 | 18 / 144 | 2 | — |
+| 5 | 1 | M-S | PRIM Box 1 | Evaluated | 0.2435 | 0.3161 | -0.0726 | 0.1489 | 0.6667 | 2 / 3 | 12 / 144 | 3 | — |
+| 6 | 1 | M-M | PRIM Box 2 | Evaluated | 0.1839 | 0.3688 | -0.1849 | 0.1127 | 0.5000 | 1 / 2 | 8 / 144 | 2 | — |
+| 7 | 2 | M-S | CART Box 3 | Evaluated | 0 | 0.3624 | -0.3624 | 0 | 0 | 0 / 3 | 2 / 144 | 5 | — |
+
 ## PRIM
 
 ### Box 1 — M-S (M,S)
@@ -274,10 +290,10 @@ The architectural interpretation traces conditions through declared system-spec 
 
 **Learned box conditions**
 
+- `Client Selector Stress Percentage`: [25.000, 62.505]
 - `delay_percentage`: [12.490, 100.000]
 - `Total Clients`: [5.999, 10.000]
 - `Pattern Instances`: [3.499, 11.000]
-- `Client Selector Stress Percentage`: [25.000, 62.505]
 - **Includes NaN / not-selected values:** No
 
 **Architectural interpretation**
@@ -293,9 +309,9 @@ The architectural interpretation traces conditions through declared system-spec 
   - HDH: OFF (18/33), ON (15/33)
   - Message Compressor: OFF (3/33), ON (30/33)
 - **Operating envelope**:
+  - Client Selector Stress Percentage [25, 62.5] (%)
   - delay percentage [12.5, 100] (%)
   - Pattern Instances [3.5, 11]
-  - Client Selector Stress Percentage [25, 62.5] (%)
 - **Other design conditions**:
   - Total Clients [6, 10]
 
@@ -377,11 +393,11 @@ The architectural interpretation traces conditions through declared system-spec 
 
 **Learned box conditions**
 
-- `Pattern Instances`: [1.499, 2.501]
-- `Client Selector Stress Percentage`: [62.505, 75.000]
 - `Total Clients`: [5.999, 10.000]
-- `delay_percentage`: [12.490, 50.010]
+- `Client Selector Stress Percentage`: [62.505, 75.000]
 - `Alpha Dirichlet Mean`: [0.613, 0.900]
+- `delay_percentage`: [12.490, 50.010]
+- `Pattern Instances`: [1.499, 2.501]
 - **Includes NaN / not-selected values:** No
 
 **Architectural interpretation**
@@ -397,10 +413,10 @@ The architectural interpretation traces conditions through declared system-spec 
   - HDH: ON (2/2)
   - Message Compressor: OFF (2/2)
 - **Operating envelope**:
-  - Pattern Instances [1.5, 2.5]
   - Client Selector Stress Percentage [62.5, 75] (%)
-  - delay percentage [12.5, 50] (%)
   - Alpha Dirichlet Mean [0.613, 0.9]
+  - delay percentage [12.5, 50] (%)
+  - Pattern Instances [1.5, 2.5]
 - **Other design conditions**:
   - Total Clients [6, 10]
 
