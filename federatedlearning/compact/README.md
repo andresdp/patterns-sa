@@ -23,6 +23,10 @@ Both files have the same 160 columns. Together they cover:
 - **3 designed environment factors,** varied in waves: the shares of low-spec clients
   (`low_spec_percentage`), non-IID clients (`non_iid_percentage`) and delayed clients
   (`delay_percentage`). The Dirichlet α is constant (0.5).
+- **Pattern-stress labels:** the raw `pattern_stress` field records semicolon-separated
+  pattern tokens (such as `CS=25%; MC=50%`) or `none`. The shared preprocessor parses these
+  into nullable numeric features; their values are conditional aliases of the environment
+  percentages, not new independent experiment factors. See §5.
 - **10 partition seeds/repeats** (`partition_seed`, `repeat`, values 1–10). Each seed occurs
   once in each executed configuration-condition cell; `run_id` is unique per run. The
   notebooks hold out whole `partition_seed` groups during train/test evaluation.
@@ -38,33 +42,37 @@ maximize) and **total round time** (`avg_total_time`, minimize).
 
 | Spec | Loads | Used by |
 |:---|:---|:---|
-| `FLsystem_compact_all.json` | both CSVs (`source_file` is a list; ADEPT concatenates them) | every notebook (the overview, the pattern and the stress notebooks) |
+| `FLsystem_compact_all.json` | both CSVs (`source_file` is a list; ADEPT concatenates them) | every notebook |
 | `FLsystem_compact_individual.json` | `adept_experiments_all_waves.csv` | not used by the notebooks any more; kept to analyze the baseline and single patterns alone |
 | `FLsystem_compact_combined.json` | `adept_experiments_all_waves_combinedAP.csv` | not used by the notebooks any more; kept to analyze the combinations alone |
 
 All three declare the same parameters, objectives, client aggregations and column renames.
 `FLsystem_compact_all.json` additionally declares:
-- the pattern-stress parameters (§5), which the loader preprocessor derives;
+- the derived pattern measures (§5), which the loader preprocessor calculates from configuration and client columns;
 - the three environment factors, as uncertainties.
 
 It must therefore be loaded through `fl_slices.slice_filter(...)`, as every notebook does.
 
 ## 3. Notebooks and their rationale
 
-The maintained notebooks are organized by task and use **only the all-environment view**. Six
-analyze all pattern configurations at one client count; the baseline and single-pattern notebooks
-below retain all client counts for their selected task and configuration. Each all-configuration
-notebook analyzes one task/client-count slice and retains every available run for it, giving 390
-runs per slice (273 training and 117 held out), including
-the environment point shared by configurations and additional sampled settings. The
-environmental design is not fully crossed: configurations can have different mixes of
-sampled conditions, so observed configuration differences may reflect both pattern choices
-and environment composition.
+The maintained notebooks are organized by task and use **only the all-environment view**. Per
+task there are three all-configuration notebooks at fixed client counts, three focal-pattern
+stress notebooks pooling client counts, one baseline profile and three single-configuration
+profiles. The all-configuration client-count notebooks retain 390 runs each. The focal-pattern
+notebooks require one pattern to be ON, allow the other pattern decisions to vary, and retain
+480 Client Selector runs, 600 Message Compressor runs, or 480 HDH runs per task. The eight
+configuration profiles retain all client counts for one complete configuration. The environmental
+design is not fully crossed, so configuration differences can reflect both pattern choices and
+environment composition.
+
+For a leaf-by-leaf tree of the 20 notebooks, their fixed and varying factors, and their grouped
+train/test split, see [Notebook stratification and scope](NOTEBOOK_STRATIFICATION.md).
 
 **Scope naming:** `c4`, `c8`, and `c10` in notebook filenames refer to `Total Clients` = 4, 8,
-and 10. They are client-count strata, not pattern-stress levels. Pattern stress is represented
-separately by `Pattern Types Active` (number of pattern decisions ON) and `Pattern Instances`
-(estimated deployment instance count; see §5).
+and 10. They are client-count strata, not pattern-stress levels. The loader derives
+`Pattern Types Active` (number of pattern decisions ON) and `Pattern Instances` (estimated
+deployment instance count; see §5). These derived measures are distinct from the source CSV
+column named `pattern_stress`, which contains categorical labels such as `CS=25%` and `none`.
 
 The earlier same-environment view kept only the single point shared by all eight
 configurations (25% low-spec, 25% non-IID, 25% delayed clients; 80 runs per slice). It was
@@ -77,6 +85,8 @@ analyses if needed.
 |:---|:---|:---|
 | `image/analysis-fl-rq-c{4,8,10}-image.ipynb` | CIFAR-10/CNN 16k at 4, 8 or 10 clients | RQ1: observed objective tradeoffs by configuration and pattern count. RQ2: conditions associated with each observed tradeoff and held-out box comparisons. |
 | `text/analysis-fl-rq-c{4,8,10}-text.ipynb` | AG_NEWS/MLP at 4, 8 or 10 clients | Same RQ1 and RQ2 analyses for the text task. |
+| `image/analysis-fl-rq-stress-{client_selector,message_compressor,hdh}-image.ipynb` | CIFAR-10/CNN 16k with the named focal pattern ON; all client counts; other patterns may vary | RQ1: objective and tradeoff distributions by focal pattern stress level. RQ2: joint conditions, including the focal stress feature, and held-out PRIM/CART results. |
+| `text/analysis-fl-rq-stress-{client_selector,message_compressor,hdh}-text.ipynb` | AG_NEWS/MLP with the named focal pattern ON; all client counts; other patterns may vary | Same stress-focused RQ1/RQ2 analysis for text. |
 | `image/analysis-fl-rq-baseline-image.ipynb` | CIFAR-10/CNN 16k, baseline only | Reference profile for `OFF,OFF,OFF`, retaining all client counts and all available environments. |
 | `text/analysis-fl-rq-baseline-text.ipynb` | AG_NEWS/MLP, baseline only | Reference profile for `OFF,OFF,OFF`, retaining all client counts and all available environments. |
 | `image/analysis-fl-rq-{client_selector,message_compressor,hdh}-image.ipynb` | CIFAR-10/CNN 16k, one pattern only | Separate profiles for `ON,OFF,OFF`, `OFF,ON,OFF` and `OFF,OFF,ON`, retaining all client counts and environments. |
@@ -95,6 +105,16 @@ groups together; the grouped splitter searches candidate held-out seed sets and 
 one whose tradeoff distribution most closely matches the full scenario. With only ten seeds,
 small or absent held-out target counts should be reported as limited or unavailable evidence.
 
+The feature-importance and scenario-discovery inputs exclude parameters fixed by the notebook
+scope: `Dataset` and `Model` in every task-specific notebook, plus `Total Clients` in the c4,
+c8 and c10 notebooks. The all-configuration c4/c8/c10 notebooks consider all three parsed
+pattern-stress features. In each focal-pattern notebook, its matching stress feature is a
+candidate and its paired environment percentage is excluded as an exact duplicate. The
+single-configuration profiles exclude all parsed stress features from ranking and discovery
+because each active stress value duplicates its matching environment percentage there; the
+columns remain in the loaded data. Focal-pattern notebooks overlap: a run with multiple patterns
+enabled is included in each corresponding focal-pattern view. See [the stratification guide](NOTEBOOK_STRATIFICATION.md) for the complete scope.
+
 For every discovered box, the notebooks show its rules, specification-aware architecture
 context, support, precision/density, recall/coverage, lift, and test-set baseline versus
 box-restricted target frequency. ADEPT lift is absolute: box precision minus training target
@@ -111,17 +131,21 @@ scope and environment filter.
 After changing or rerunning notebooks, regenerate their plots and box reports first. Then run
 the [`adept-compact-findings` skill](../../.claude/skills/adept-compact-findings/SKILL.md) in a
 fresh analysis context for each task (`image` and `text` separately). The skill assumes notebook
-outputs already exist; it refreshes the evidence manifest and writes seven case findings plus a
-task synthesis under that task's `findings/` folder. A fresh context helps avoid carrying forward
-conclusions from an earlier run. Give it the task and current experiment scope, but not expected
-conclusions.
+outputs already exist. For each run, specify the notebook paths or glob pattern to cover and the
+current stratification/scope guide; the selected notebook set determines how many case findings
+are written. The skill refreshes the evidence manifest and writes those findings plus a task
+synthesis under that task's `findings/` folder. A fresh context helps avoid carrying forward
+conclusions from an earlier run. Give it the task, notebook set and current scope guide, but not
+expected conclusions.
 
 For example, start a fresh Claude Code session and invoke the skill with the task scope:
 
 ```text
-/adept-compact-findings Analyze the current image task from its already-executed notebooks,
-plots, and box reports. Refresh the evidence manifest, write the seven case findings and the
-image RQ1/RQ2 synthesis, and cite the supporting artifacts. Do not rerun the notebooks.
+/adept-compact-findings Analyze the current image task from the already-executed notebooks matching
+`federatedlearning/compact/image/analysis-fl-rq-*-image.ipynb`, with plots and box reports. Use
+`federatedlearning/compact/NOTEBOOK_STRATIFICATION.md` as the stratification/scope input. Refresh
+the evidence manifest, write one case finding per selected notebook and the image RQ1/RQ2
+synthesis, and cite the supporting artifacts. Do not rerun the notebooks.
 ```
 
 Repeat in a separate fresh session for `text`, changing “image” to “text” in the request.
@@ -130,9 +154,11 @@ In a fresh Codex session, invoke the repository skill with `$adept-compact-findi
 task scope, for example:
 
 ```text
-$adept-compact-findings Analyze the current text task from its already-executed notebooks,
-plots, and box reports. Refresh the evidence manifest, write the seven case findings and the
-text RQ1/RQ2 synthesis, and cite the supporting artifacts. Do not rerun the notebooks.
+$adept-compact-findings Analyze the current text task from the already-executed notebooks matching
+`federatedlearning/compact/text/analysis-fl-rq-*-text.ipynb`, with plots and box reports. Use
+`federatedlearning/compact/NOTEBOOK_STRATIFICATION.md` as the stratification/scope input. Refresh
+the evidence manifest, write one case finding per selected notebook and the text RQ1/RQ2
+synthesis, and cite the supporting artifacts. Do not rerun the notebooks.
 ```
 
 For an independent quality check, use another fresh context to review the new findings against
@@ -144,21 +170,24 @@ support, and whether the design/context distinctions and observational limits ar
 Open a notebook from its task folder and run it top to bottom with the `perfmodels` conda
 environment. Each notebook sets `ENVIRONMENT = 'all'`; none runs or reports the same-environment
 analysis. In each task folder, run the three all-configuration notebooks in client-count order,
-then the baseline reference and the three single-pattern notebooks. The baseline and single-pattern
-notebooks use `CLIENTS = None`, so all client counts and available environments are included.
-Each single-pattern notebook keeps exactly one pattern ON and the other two OFF; it excludes
-baseline and combined-pattern runs. These notebooks profile each policy's tradeoffs and operating
-envelopes, but do not by themselves estimate differences against another policy. Each
+then the three focal-pattern stress notebooks, followed by the baseline reference and the three
+single-configuration profiles. The focal-pattern notebooks use `CLIENTS = None` and require their
+named pattern ON while letting the other pattern decisions vary. They overlap when a run enables
+multiple patterns. The baseline and single-pattern profiles also use `CLIENTS = None`; each keeps
+one exact configuration. The single-pattern profiles describe policy-specific tradeoffs and
+operating envelopes but do not by themselves estimate differences against another policy. Each
 objective-space chart and Section 8 feature-importance heatmap are saved as 300 dpi PNGs in the
 task folder's `plots/` directory. Filenames record task, configuration slice, client-count scope,
-environment filter and, for objective-space charts, the objective pair. The findings markdown
-files have not yet been revised to include these notebooks.
+environment filter and, for objective-space charts, the objective pair. The current tree has ten
+notebooks per task, but the findings workflow takes the notebook set and stratification guide as
+inputs and refreshes a case report per selected notebook plus one task synthesis.
 
 ## 4. Filters (`fl_slices.slice_filter`)
 
 | Argument | Keeps |
 |:---|:---|
 | `name` (+ `include_baseline`) | `'all'`, `'baseline'`, or one pattern alone (`'client_selector'`, `'message_compressor'`, `'hdh'`) |
+| `required_patterns` | Require one or more named patterns to be ON while other pattern decisions may vary; used by the focal-pattern stress notebooks |
 | `clients` | runs with that `Total Clients` (4, 8 or 10) |
 | `task` | `'image'` = CIFAR-10 + CNN 16k, `'text'` = AG_NEWS + MLP |
 | `environment` | `'all'`: every available environment run for the selected slice; `'common'`: shared point only (supported by the helper, not used by maintained notebooks) |
@@ -170,7 +199,30 @@ session.load(preprocessor=fl_slices.slice_filter(clients=8, task='image', enviro
 In the notebooks these are the parameters `SLICE`, `INCLUDE_BASELINE`, `CLIENTS`, `TASK`
 and `ENVIRONMENT`.
 
-## 5. Pattern stress (`pattern_stress.py`)
+## 5. Derived pattern measures (`derived_pattern_measures.py`)
+
+The module derives configuration and deployment-size measures; it does not parse the raw
+CSV field named `pattern_stress`. That field is a separate categorical descriptor (for
+example, `CS=25%`, combinations separated by semicolons, or `none`).
+
+### Parsed pattern-stress context (`pattern_stress.py`)
+
+The `fl_slices.slice_filter(...)` preprocessor parses the source label into three nullable
+numeric features: `Client Selector Stress Percentage` (`CS`),
+`Message Compressor Stress Percentage` (`MC`), and `HDH Stress Percentage` (`HDH`). A feature
+has a numeric percentage when that pattern is ON and `NaN` when it is OFF; `MC=0%` is a valid
+zero, distinct from OFF. Parsing validates that each token agrees with `config_id` and that its
+percentage equals the corresponding existing uncertainty: CS with `low_spec_percentage`, MC
+with `delay_percentage`, and HDH with `non_iid_percentage`. Across the current 2,340 campaign
+runs, all three checks hold without mismatches.
+
+These columns are useful as pattern-specific context features in the complete-configuration
+client-count notebooks. They do not add independent input variation: each equals its paired
+environment uncertainty whenever its pattern is active. The c4/c8/c10 analyses include them as
+candidate predictors to assess their explanatory value alongside activation decisions and
+environment factors. The baseline and single-pattern profile notebooks keep the columns in the
+loaded data but exclude them from feature ranking and PRIM/CART for now, avoiding duplicate
+predictors in scopes where the active stress percentage is exactly the same environment value.
 
 - **`Pattern Instances`** (S_inst), the **primary stress measure**: sum of `Client Selector Instances`,
   `Message Compressor Instances` and `HDH Instances`. The same pattern type can have
@@ -201,7 +253,7 @@ The compact CSVs record no pattern instances, so they are derived from per-clien
 | A5 | A client is non-IID iff its `Data Distribution` is `non-IID`. | Verified: the count equals `non_iid_clients` in every run. |
 | A6 | Task = (Dataset, Model): CIFAR-10 + CNN 16k, AG_NEWS + MLP. | Verified: no other pairs occur. |
 
-The rules live in `pattern_stress.INSTANCE_RULES`; changing an assumption is a one-line
+The rules live in `derived_pattern_measures.INSTANCE_RULES`; changing an assumption is a one-line
 change there.
 
 ### Evidence from the per-round data (`detailed/`)

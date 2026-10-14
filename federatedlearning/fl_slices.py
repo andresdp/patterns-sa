@@ -13,10 +13,16 @@ design space next to the analysis of the full dataset. Filters combine:
 * environment: environment='common' keeps the environment points (low-spec, non-IID and
   delay shares) that every configuration in the slice was run at, so configurations are
   compared under identical conditions.
+* required pattern decisions: keep every configuration in which selected patterns are ON,
+  while allowing the other pattern decisions to vary.
 
-The preprocessor also adds the pattern-stress columns (pattern_stress.py) when the data
+The preprocessor also adds derived pattern measures (derived_pattern_measures.py) when the data
 has the columns they are derived from. HDH instances are measured from the per-round data
 in `detailed/` when it is available, and assumed (rule A3) otherwise.
+
+If the source has `pattern_stress`, it is parsed and validated by `pattern_stress.py` before
+filtering. The resulting pattern-specific percentage features are conditional on their pattern
+being ON and match the corresponding environment percentage.
 
 Tradeoff labels must mean the same thing across the notebooks being compared, so those
 notebooks define the tradeoffs with fixed bin edges (create_tradeoffs(..., edges=...))
@@ -30,6 +36,7 @@ from typing import Callable, Dict, Iterable, List, Optional, Tuple
 
 import pandas as pd
 
+import derived_pattern_measures
 import pattern_stress
 
 CONFIG_COLUMN = "config_id"
@@ -48,6 +55,7 @@ TASKS: Dict[str, Tuple[str, str]] = {
 
 # Run-level environment factors of the compact campaign
 ENVIRONMENT_COLUMNS = ("low_spec_percentage", "non_iid_percentage", "delay_percentage")
+PATTERN_STRESS_FEATURES = pattern_stress.FEATURE_COLUMNS
 
 
 def config_id(active: Iterable[str] = ()) -> str:
@@ -91,8 +99,9 @@ def common_environment(df: pd.DataFrame, columns: Iterable[str] = ENVIRONMENT_CO
 
 def slice_filter(name: str = "all", include_baseline: bool = False, clients: Optional[int] = None,
                  task: Optional[str] = None, environment: str = "all",
-                 measured_instances: bool = True) -> Callable:
-    """Loader preprocessor: adds the pattern-stress columns and keeps the runs of a slice.
+                 measured_instances: bool = True,
+                 required_patterns: Optional[Iterable[str]] = None) -> Callable:
+    """Loader preprocessor: adds derived pattern measures and keeps the runs of a slice.
 
     Args:
         name: Configurations: 'all', 'baseline', or one pattern: 'client_selector',
@@ -105,8 +114,18 @@ def slice_filter(name: str = "all", include_baseline: bool = False, clients: Opt
             configuration left after the other filters.
         measured_instances: Count HDH instances from the per-round data in `detailed/`
             when available (False: always use assumption A3).
+        required_patterns: Keep configurations where every named pattern is ON, while
+            allowing other pattern decisions to vary. For example, `['hdh']` keeps all
+            configurations with HDH enabled.
     """
     configs = slice_configs(name, include_baseline)
+    required_patterns = tuple(required_patterns or ())
+    unknown_patterns = set(required_patterns) - set(PATTERNS)
+    if unknown_patterns:
+        raise ValueError(
+            f"Unknown required pattern(s) {sorted(unknown_patterns)}. "
+            f"Available: {list(PATTERNS)}"
+        )
     if task is not None and task not in TASKS:
         raise ValueError(f"Unknown task '{task}'. Available: {list(TASKS)}")
     if environment not in ("all", "common"):
@@ -114,19 +133,27 @@ def slice_filter(name: str = "all", include_baseline: bool = False, clients: Opt
 
     def preprocessor(df: pd.DataFrame, **_) -> pd.DataFrame:
         n_all = len(df)
-        if pattern_stress.can_compute(df):
-            measured = pattern_stress.load_measured_hdh() if measured_instances else None
-            df = pattern_stress.add_pattern_stress(df, measured_hdh=measured)
+        if pattern_stress.SOURCE_COLUMN in df.columns:
+            df = pattern_stress.add_pattern_stress_features(df)
+        if derived_pattern_measures.can_compute(df):
+            measured = derived_pattern_measures.load_measured_hdh() if measured_instances else None
+            df = derived_pattern_measures.add_derived_pattern_measures(df, measured_hdh=measured)
             if measured is None:
                 print("HDH instances: assumed (rule A3, one per participating non-IID client).")
             else:
-                n = int(df[pattern_stress.RUN_COLUMN].isin(measured.index).sum()) if pattern_stress.RUN_COLUMN in df else 0
+                n = int(df[derived_pattern_measures.RUN_COLUMN].isin(measured.index).sum()) if derived_pattern_measures.RUN_COLUMN in df else 0
                 print(f"HDH instances: measured from the per-round data for {n} of {len(df)} runs "
                       f"(HDH Time > 0); rule A3 for the others.")
         steps = []
         if configs is not None:
             df = df[df[CONFIG_COLUMN].astype(str).isin(configs)]
             steps.append(f"configurations {configs}")
+        if required_patterns:
+            config_parts = df[CONFIG_COLUMN].astype(str).str.split(",", expand=True)
+            required_positions = [PATTERNS.index(pattern) for pattern in required_patterns]
+            required_mask = config_parts[required_positions].eq("ON").all(axis=1)
+            df = df.loc[required_mask]
+            steps.append(f"required patterns ON {list(required_patterns)}")
         if clients is not None:
             df = df[df[CLIENTS_COLUMN] == clients]
             steps.append(f"{clients} clients")

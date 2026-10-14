@@ -1,7 +1,6 @@
 """Focused slices of the FL dataset (federatedlearning/fl_slices.py, make_slice_notebooks.py)."""
 import contextlib
 import io
-import json
 import os
 import sys
 import unittest
@@ -14,7 +13,6 @@ SPEC = os.path.join(FL_DIR, "naive", "FLsystem_split.json")
 sys.path.insert(0, FL_DIR)
 
 import fl_slices  # noqa: E402
-import make_slice_notebooks  # noqa: E402
 
 OBJECTIVES = {"final_val_accuracy": ["S", "M", "L"], "avg_total_time": ["S", "M", "L"]}
 
@@ -65,18 +63,6 @@ class TestSliceFilter(unittest.TestCase):
 
 
 class TestFixedEdges(unittest.TestCase):
-    def test_base_notebook_detects_edges_by_default(self):
-        import json
-        with open(make_slice_notebooks.BASE_NOTEBOOK) as f:
-            cells = json.load(f)["cells"]
-        params = "".join(next(c for c in cells if "parameters" in c["metadata"].get("tags", []))["source"])
-        self.assertIn("TRADEOFF_EDGES = None", params)
-
-    def test_generator_edges_reproduce_the_detected_regions(self):
-        edges = make_slice_notebooks.full_dataset_edges(SPEC, OBJECTIVES)
-        detected, fixed = load(), load(edges=edges)
-        self.assertTrue(fixed.discrete_df.astype(str).equals(detected.discrete_df.astype(str)))
-
     def test_edges_need_labels(self):
         session = PatternAnalysis(SPEC)
         with contextlib.redirect_stdout(io.StringIO()):
@@ -103,28 +89,6 @@ class TestFixedEdges(unittest.TestCase):
                     self.assertEqual(label, full_map[key])
         # Detected edges would differ per slice
         self.assertNotEqual(bin_edges(load("hdh")), bin_edges(full))
-
-
-class TestGenerator(unittest.TestCase):
-    def test_generated_notebook(self):
-        nb = make_slice_notebooks.make_notebook("hdh", include_baseline=True)
-        sources = ["".join(c["source"]) for c in nb["cells"]]
-        params = next(s for c, s in zip(nb["cells"], sources) if "parameters" in c["metadata"].get("tags", []))
-        self.assertIn("SLICE = 'hdh'", params)
-        self.assertIn("INCLUDE_BASELINE = True", params)
-        # The base notebook detects the edges; the focused one fixes those of the full dataset
-        self.assertIn("TRADEOFF_EDGES = {", params)
-        ns = {}
-        exec(params, {}, ns)
-        self.assertEqual(ns["TRADEOFF_EDGES"], make_slice_notebooks.full_dataset_edges(ns["SPEC"], ns["TRADEOFF_LABELS"]))
-        self.assertIn("Focused analysis", sources[1])
-        # The base notebook's markdown is generic, so it is kept unchanged
-        with open(make_slice_notebooks.BASE_NOTEBOOK) as f:
-            base = json.load(f)
-        markdown = lambda cells: ["".join(c["source"]) for c in cells if c["cell_type"] == "markdown"]
-        self.assertEqual(markdown(nb["cells"][:1] + nb["cells"][2:]), markdown(base["cells"]))
-        self.assertTrue(all(not c.get("outputs") for c in nb["cells"] if c["cell_type"] == "code"))
-        self.assertEqual(make_slice_notebooks.output_name("hdh", True), "analysis-fl-hdh-vs-baseline.ipynb")
 
 
 if __name__ == "__main__":

@@ -1,5 +1,5 @@
-"""Pattern stress, client-count/task/environment filters and the all-configurations spec
-(federatedlearning/pattern_stress.py, fl_slices.py, compact/FLsystem_compact_all.json)."""
+"""Derived pattern measures, client-count/task/environment filters and the all-configurations spec
+(federatedlearning/derived_pattern_measures.py, fl_slices.py, compact/FLsystem_compact_all.json)."""
 import contextlib
 import io
 import os
@@ -18,8 +18,7 @@ ALL_SPEC = os.path.join(FL_DIR, "compact", "FLsystem_compact_all.json")
 sys.path.insert(0, FL_DIR)
 
 import fl_slices  # noqa: E402
-import make_slice_notebooks  # noqa: E402
-import pattern_stress  # noqa: E402
+import derived_pattern_measures  # noqa: E402
 
 LABELS = {"final_val_accuracy": ["S", "M", "L"], "avg_total_time": ["S", "M", "L"]}
 
@@ -51,7 +50,7 @@ class TestPatternStress(unittest.TestCase):
             # client 4 does not exist in a 3-client run, whatever its columns say
             run("OFF,ON,OFF", 3, [1, 1, 1, 1], ["IID", "IID", "IID", "IID"]),
         ])
-        out = pattern_stress.add_pattern_stress(df)
+        out = derived_pattern_measures.add_derived_pattern_measures(df)
         self.assertEqual(list(out["Pattern Types Active"]), [0, 2, 3, 1])
         self.assertEqual(list(out["Client Selector Instances"]), [0, 0, 1, 0])
         self.assertEqual(list(out["Message Compressor Instances"]), [0, 4, 3, 3])
@@ -85,7 +84,7 @@ class TestMeasuredHdhInstances(unittest.TestCase):
             "HDH Time": [3.0, 2.0, 1.0, 0.0, 0.0, 0.0, 0.0, None],
             "participated": [True, True, False, True, True, False, True, True],
         })
-        self.assertEqual(pattern_stress.measured_hdh_instances(rounds).to_dict(), {"a": 2, "b": 0})
+        self.assertEqual(derived_pattern_measures.measured_hdh_instances(rounds).to_dict(), {"a": 2, "b": 0})
 
     def test_measured_counts_replace_the_rule_for_covered_runs(self):
         df = pd.DataFrame([
@@ -94,17 +93,17 @@ class TestMeasuredHdhInstances(unittest.TestCase):
             run("OFF,OFF,OFF", 4, [1, 1, 1, 1], ["IID", "IID", "non-IID", "non-IID"]),
         ]).assign(run_id=["measured", "not-covered", "off"])
         measured = pd.Series({"measured": 0, "off": 5})
-        out = pattern_stress.add_pattern_stress(df, measured_hdh=measured)
+        out = derived_pattern_measures.add_derived_pattern_measures(df, measured_hdh=measured)
         # measured run: 0 (no HDH work); uncovered run: rule A3 (2 non-IID); HDH OFF: always 0
         self.assertEqual(list(out["HDH Instances"]), [0, 2, 0])
         self.assertEqual(list(out["Pattern Instances"]), [0, 2, 0])
         self.assertEqual(list(out["Pattern Types Active"]), [1, 1, 0])
 
     def test_missing_per_round_data_falls_back_to_the_rule(self):
-        self.assertIsNone(pattern_stress.load_measured_hdh(["/nonexistent/rounds.csv"]))
+        self.assertIsNone(derived_pattern_measures.load_measured_hdh(["/nonexistent/rounds.csv"]))
 
     def test_compact_data(self):
-        measured = pattern_stress.load_measured_hdh()
+        measured = derived_pattern_measures.load_measured_hdh()
         if measured is None:
             self.skipTest("per-round data (federatedlearning/detailed/) not available")
         assumed, observed = load(measured_instances=False).raw_df, load().raw_df
@@ -176,18 +175,6 @@ class TestSourceFileList(unittest.TestCase):
                 raw, _, _ = GenericDataLoader().load_data(spec, validate_integrity=False)
         self.assertEqual(list(raw["policy"]), ["a", "b"])
         self.assertEqual(list(raw["x"]), [1.0, 3.0])
-
-
-class TestStressNotebooks(unittest.TestCase):
-    def test_generated_parameters(self):
-        nb = make_slice_notebooks.make_stress_notebook(8, "image")
-        params = next("".join(c["source"]) for c in nb["cells"] if "parameters" in c["metadata"].get("tags", []))
-        ns = {}
-        exec(params, {}, ns)
-        self.assertEqual((ns["CLIENTS"], ns["TASK"], ns["ENVIRONMENT"], ns["SLICE"]), (8, "image", "common", "all"))
-        self.assertEqual(ns["SPEC"], make_slice_notebooks.STRESS_SPEC)
-        self.assertIsNone(ns["TRADEOFF_EDGES"])  # each stress notebook detects its own edges
-        self.assertEqual(make_slice_notebooks.stress_output_name(8, "image"), "analysis-fl-stress-c8-image.ipynb")
 
 
 if __name__ == "__main__":
