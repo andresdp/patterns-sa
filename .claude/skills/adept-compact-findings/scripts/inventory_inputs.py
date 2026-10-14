@@ -8,15 +8,13 @@ import hashlib
 import json
 import re
 import sys
+import glob
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
 
 TASKS = ("image", "text")
-CASES = ("c4", "c8", "c10", "baseline", "client_selector", "message_compressor", "hdh")
-
-
 def sha256(path: Path) -> str:
     digest = hashlib.sha256()
     with path.open("rb") as stream:
@@ -107,16 +105,36 @@ def inspect_notebook(path: Path, root: Path, issues: list[str]) -> dict[str, Any
     }
 
 
-def inspect_task(root: Path, task: str) -> tuple[dict[str, Any], list[str]]:
+def expand_notebooks(root: Path, patterns: list[str]) -> list[Path]:
+    """Expand explicit notebook paths/globs, relative to the repository root."""
+    paths: set[Path] = set()
+    for pattern in patterns:
+        candidate = Path(pattern)
+        search_pattern = pattern if candidate.is_absolute() else str(root / pattern)
+        matches = [Path(item) for item in glob.glob(search_pattern, recursive=True)]
+        if not matches and candidate.is_file():
+            matches = [candidate if candidate.is_absolute() else root / candidate]
+        paths.update(path.resolve() for path in matches if path.is_file() and path.suffix == ".ipynb")
+    return sorted(paths)
+
+
+def inspect_task(
+    root: Path,
+    task: str,
+    notebook_paths: list[Path],
+    scope_guide: Path,
+) -> tuple[dict[str, Any], list[str]]:
     task_dir = root / "federatedlearning" / "compact" / task
     issues: list[str] = []
     notebooks = []
-    for case in CASES:
-        path = task_dir / f"analysis-fl-rq-{case}-{task}.ipynb"
-        if path.is_file():
-            notebooks.append(inspect_notebook(path, root, issues))
-        else:
-            issues.append(f"Missing expected notebook: {relative(path, root)}")
+    selected = [path for path in notebook_paths if path.parent == task_dir.resolve()]
+    if not selected:
+        issues.append(f"No notebooks supplied for task '{task}'.")
+    for path in selected:
+        notebooks.append(inspect_notebook(path, root, issues))
+
+    if not scope_guide.is_file():
+        issues.append(f"Missing stratification/scope guide: {scope_guide}")
 
     campaign = root / "federatedlearning" / "compact"
     sources = []
@@ -133,12 +151,13 @@ def inspect_task(root: Path, task: str) -> tuple[dict[str, Any], list[str]]:
     manifest = {
         "task": task,
         "generated_at_utc": datetime.now(timezone.utc).isoformat(timespec="seconds"),
-        "status": "ready" if not issues and len(notebooks) == len(CASES) else "blocked",
+        "status": "ready" if not issues and bool(notebooks) else "blocked",
         "research_questions": {
             "RQ1": "Which tradeoffs occur, and how do design choices relate to them?",
             "RQ2": "Which joint conditions identify a target tradeoff, and what changes inside the box?",
         },
         "sources": sources,
+        "scope_guide": file_record(scope_guide, root) if scope_guide.is_file() else None,
         "notebooks": notebooks,
         "issues": issues,
     }
@@ -153,19 +172,30 @@ def inspect_task(root: Path, task: str) -> tuple[dict[str, Any], list[str]]:
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--task", choices=("image", "text", "both"), default="both")
+    parser.add_argument(
+        "--notebook", nargs="+", required=True,
+        help="Notebook paths or glob patterns to include; the selected set defines the case count.",
+    )
+    parser.add_argument(
+        "--scope-guide", required=True,
+        help="Markdown file describing the stratification strategy and each selected notebook's scope.",
+    )
     args = parser.parse_args()
     root = Path(__file__).resolve().parents[4]
     tasks = TASKS if args.task == "both" else (args.task,)
+    notebook_paths = expand_notebooks(root, args.notebook)
+    scope_candidate = Path(args.scope_guide)
+    scope_guide = (scope_candidate if scope_candidate.is_absolute() else root / scope_candidate).resolve()
     failed = False
     for task in tasks:
-        manifest, issues = inspect_task(root, task)
+        manifest, issues = inspect_task(root, task, notebook_paths, scope_guide)
         print(f"{task}: {manifest['status']} — {manifest['manifest_path']}")
         if issues:
             failed = True
             for issue in issues:
                 print(f"  - {issue}")
         else:
-            print(f"  - {len(manifest['notebooks'])} executed notebooks; expected plots and box reports found")
+            print(f"  - {len(manifest['notebooks'])} selected executed notebooks; plots and box reports found")
     return 1 if failed else 0
 
 

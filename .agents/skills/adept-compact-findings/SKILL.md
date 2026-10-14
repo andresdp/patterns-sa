@@ -12,13 +12,20 @@ The detailed, maintained workflow and interpretation rules are shared with the C
 - [Canonical analysis workflow](../../../.claude/skills/adept-compact-findings/SKILL.md)
 - [ADEPT framework and artefact interpretation guidance](../../../.claude/skills/adept-compact-findings/references/adept-framework.md)
 - [Federated Learning campaign context](../../../.claude/skills/adept-compact-findings/references/federated-learning-domain.md)
+- [Notebook stratification and scope tree](../../../federatedlearning/compact/NOTEBOOK_STRATIFICATION.md)
 
-Follow the canonical workflow's evidence checks, scope rules, output contract, and observational interpretation limits. Analyze `image` and `text` independently. Use the current notebooks, box reports, plots, and campaign README as the authority for results.
+Follow the canonical workflow's evidence checks, scope rules, output contract, and observational interpretation limits. At each run, provide the exact notebook paths or glob patterns to cover and the Markdown guide that describes the current stratification and each notebook's scope. The supplied notebook set determines the number of case reports; do not assume a fixed count or strategy. Analyze `image` and `text` independently unless the user requests a different grouping. Use the current notebooks, box reports, plots, and campaign README as the authority for results.
 
 Run Python commands in the `perfmodels` conda environment, for example:
 
 ```sh
-conda run -n perfmodels python .claude/skills/adept-compact-findings/scripts/inventory_inputs.py --task image
+conda run -n perfmodels python .claude/skills/adept-compact-findings/scripts/inventory_inputs.py --task image --scope-guide federatedlearning/compact/NOTEBOOK_STRATIFICATION.md --notebook 'federatedlearning/compact/image/analysis-fl-rq-*-image.ipynb'
 ```
 
-Use `--task text` for the text campaign or `--task both` when refreshing both. If the inventory reports missing, unexecuted, or failed inputs, stop analysis for the affected task and report the issue. Write analysis only to the selected task's `findings/` directory, preserving unrelated files.
+For example, pass the case inventory and scope guide explicitly:
+
+```sh
+conda run -n perfmodels python .claude/skills/adept-compact-findings/scripts/inventory_inputs.py --task image --scope-guide federatedlearning/compact/NOTEBOOK_STRATIFICATION.md --notebook 'federatedlearning/compact/image/analysis-fl-rq-*-image.ipynb'
+```
+
+Use `--task text` for the text campaign or `--task both` when supplied notebook patterns cover both. If the inventory reports missing, unexecuted, or failed inputs, stop analysis for the affected task and report the issue. Write analysis only to the selected task's `findings/` directory, preserving unrelated files.
