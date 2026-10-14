@@ -61,6 +61,11 @@ environmental design is not fully crossed: configurations can have different mix
 sampled conditions, so observed configuration differences may reflect both pattern choices
 and environment composition.
 
+**Scope naming:** `c4`, `c8`, and `c10` in notebook filenames refer to `Total Clients` = 4, 8,
+and 10. They are client-count strata, not pattern-stress levels. Pattern stress is represented
+separately by `Pattern Types Active` (number of pattern decisions ON) and `Pattern Instances`
+(estimated deployment instance count; see §5).
+
 The earlier same-environment view kept only the single point shared by all eight
 configurations (25% low-spec, 25% non-IID, 25% delayed clients; 80 runs per slice). It was
 useful for a like-for-like descriptive comparison, but its limited outcome and condition
@@ -290,9 +295,9 @@ measure:
   effects and environment effects.
 - **The common environment point is (25%, 25%, 25%),** at every client count, where the
   design is a balanced full factorial (10 runs per configuration and task).
-- **Stress levels are mixtures of configurations** (level 1: 3 configurations, level 2: 3,
-  level 3: 1). On the common point every configuration has the same number of runs, so each
-  level weights its configurations equally; on all runs it does not.
+- **Pattern-type levels are mixtures of configurations.** `Pattern Types Active` = 1 has 3
+  configurations, = 2 has 3, and = 3 has 1. On the common point every configuration has the
+  same number of runs, so each level weights its configurations equally; on all runs it does not.
 - **The selector reduces instance stress.** With 10 clients in the text task, `ON,ON,ON`
   carries 9-11 instances against 12-18 for `OFF,ON,ON`, because excluded clients take their
   compressor and HDH instances with them. In the image task the gap is small (9-10 against
