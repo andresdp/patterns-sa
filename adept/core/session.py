@@ -337,20 +337,10 @@ class PatternAnalysis:
                 selections["held-out partition"] = self.experiments_df.iloc[self.test_indices]
 
         results = {}
+        from ..analysis.discovery import BoxEvaluator
         for partition, experiments in selections.items():
             encoded = self._encode_for_boxes(experiments)
-            mask = pd.Series(True, index=encoded.index)
-            for parameter, bounds in box.limits.items():
-                if parameter not in encoded.columns:
-                    return None
-                within_bounds = encoded[parameter].between(bounds["min"], bounds["max"], inclusive="both")
-                # Optional numeric NaNs are represented by a sentinel during discovery.
-                # De-standardizing box bounds and re-encoding raw rows can introduce
-                # tiny sentinel/boundary differences, so honor the semantic inclusion
-                # recorded on the Box directly.
-                if box.includes_na.get(parameter) and parameter in experiments.columns:
-                    within_bounds |= experiments[parameter].isna()
-                mask &= within_bounds
+            mask = BoxEvaluator.membership_mask(encoded, box, raw_X=experiments)
 
             counts = experiments.loc[mask, config_col].dropna().astype(str).value_counts().to_dict()
             results[partition] = {
@@ -468,14 +458,12 @@ class PatternAnalysis:
                 instead of their numeric codes.
             **kwargs: Additional plotting parameters.
         """
-        X, Y, _ = self._get_subset_data(subset)
-        X = self._encode_for_boxes(X)
+        raw_X, Y, _ = self._get_subset_data(subset)
+        X = self._encode_for_boxes(raw_X)
         
         # 1. Create Box Mask
-        mask = pd.Series(True, index=X.index)
-        for param, limits in box.limits.items():
-            if param in X.columns:
-                mask &= (X[param] >= limits['min']) & (X[param] <= limits['max'])
+        from ..analysis.discovery import BoxEvaluator
+        mask = BoxEvaluator.membership_mask(X, box, raw_X=raw_X)
         
         # 2. Prepare Policy Series (Only show colors for points inside the box)
         config_col = self.sys_def.dataspace.configuration_identification.column
@@ -574,9 +562,9 @@ class PatternAnalysis:
                 numeric codes the box limits are expressed in.
             **kwargs: Additional plotting arguments (figsize, s, alpha, bins, etc.)
         """
-        X, _, discrete = self._get_subset_data(subset)
+        raw_X, _, discrete = self._get_subset_data(subset)
         encoder = self._fit_box_encoder()
-        X = encoder.transform(X)
+        X = encoder.transform(raw_X)
         
         policy_series = None
         if show_policies:
@@ -964,8 +952,8 @@ class PatternAnalysis:
         """
         from ..analysis.discovery import BoxEvaluator
 
-        X, Y, discrete = self._get_subset_data(subset)
-        X = self._encode_for_boxes(X)
+        raw_X, Y, discrete = self._get_subset_data(subset)
+        X = self._encode_for_boxes(raw_X)
         labels = self._policy_label_frame(by).loc[X.index]
         tradeoffs = self.get_tradeoffs()
 
@@ -1169,8 +1157,8 @@ class PatternAnalysis:
         from ..analysis.robustness import RobustnessAnalyzer
 
         # 1. Prepare Data
-        X, Y, discrete = self._get_subset_data(subset)
-        X = self._encode_for_boxes(X)
+        raw_X, Y, discrete = self._get_subset_data(subset)
+        X = self._encode_for_boxes(raw_X)
 
         # 2. Identify Policy groups (one label column per grouping dimension)
         labels = self._policy_label_frame(by).loc[X.index]
@@ -1191,10 +1179,8 @@ class PatternAnalysis:
         if not isinstance(limits, dict):
              raise ValueError("Invalid box object provided. Must have 'limits' attribute or be a dict.")
 
-        box_mask = pd.Series(True, index=X.index)
-        for param, bounds in limits.items():
-            if param in X.columns:
-                box_mask &= (X[param] >= bounds['min']) & (X[param] <= bounds['max'])
+        from ..analysis.discovery import BoxEvaluator
+        box_mask = BoxEvaluator.membership_mask(X, box, raw_X=raw_X)
 
         # 5. Prepare Regret Args (if needed)
         boundaries = None
@@ -1454,8 +1440,8 @@ class PatternAnalysis:
             pd.DataFrame: A square-ish matrix of densities.
         """
         # 1. Prepare Data
-        X, _, discrete = self._get_subset_data(subset)
-        X = self._encode_for_boxes(X)
+        raw_X, _, discrete = self._get_subset_data(subset)
+        X = self._encode_for_boxes(raw_X)
 
         # 2. Filter by Policy group (if requested)
         if policy_name:
@@ -1494,10 +1480,8 @@ class PatternAnalysis:
             
             # Apply Box Limits to X
             limits = getattr(box, 'limits', box)
-            box_mask = pd.Series(True, index=X.index)
-            for param, bounds in limits.items():
-                if param in X.columns:
-                    box_mask &= (X[param] >= bounds['min']) & (X[param] <= bounds['max'])
+            from ..analysis.discovery import BoxEvaluator
+            box_mask = BoxEvaluator.membership_mask(X, box, raw_X=raw_X)
             
             # 5. Compute Boxed Density for ALL Tradeoffs (Cols)
             row_values = {}
@@ -1541,8 +1525,8 @@ class PatternAnalysis:
             pd.DataFrame: A square-ish matrix of coverages (0.0 - 1.0).
         """
         # 1. Prepare Data
-        X, _, discrete = self._get_subset_data(subset)
-        X = self._encode_for_boxes(X)
+        raw_X, _, discrete = self._get_subset_data(subset)
+        X = self._encode_for_boxes(raw_X)
         
         # 2. Precompute Tradeoff Masks & Totals (Denominators)
         all_tradeoffs = self.get_tradeoffs()
@@ -1570,11 +1554,8 @@ class PatternAnalysis:
             row_indices.append(target_name)
             
             # Apply Box Limits to X
-            limits = getattr(box, 'limits', box)
-            box_mask = pd.Series(True, index=X.index)
-            for param, bounds in limits.items():
-                if param in X.columns:
-                    box_mask &= (X[param] >= bounds['min']) & (X[param] <= bounds['max'])
+            from ..analysis.discovery import BoxEvaluator
+            box_mask = BoxEvaluator.membership_mask(X, box, raw_X=raw_X)
             
             # 4. Compute Coverage for ALL Tradeoffs (Cols)
             row_values = {}
@@ -1639,8 +1620,8 @@ class PatternAnalysis:
             Dict[str, float]: Dictionary of average scores (and std devs if requested).
         """
         # 1. Prepare Data
-        X, _, discrete = self._get_subset_data(subset)
-        X = self._encode_for_boxes(X)
+        raw_X, _, discrete = self._get_subset_data(subset)
+        X = self._encode_for_boxes(raw_X)
         
         # 2. Map Boxes to Tradeoffs
         # If multiple boxes target the same tradeoff, we take the first one
@@ -1714,11 +1695,8 @@ class PatternAnalysis:
                 
                 # Calculate Metrics
                 # Box Mask
-                b_mask = pd.Series(True, index=X.index)
-                if isinstance(limits, dict):
-                    for param, bounds in limits.items():
-                        if param in X.columns:
-                            b_mask &= (X[param] >= bounds['min']) & (X[param] <= bounds['max'])
+                from ..analysis.discovery import BoxEvaluator
+                b_mask = BoxEvaluator.membership_mask(X, box, raw_X=raw_X)
                 
                 box_count = b_mask.sum()
                 
@@ -2065,6 +2043,29 @@ class PatternAnalysis:
         experiments must be encoded the same way before being compared against them.
         """
         return self._fit_box_encoder().transform(X)
+
+    def evaluate_box(self, box: Any, subset: str = "test") -> Dict[str, float]:
+        """Evaluate a discovered box on a session partition using shared semantics."""
+        from ..analysis.discovery import BoxEvaluator
+
+        raw_X, _, discrete = self._get_subset_data(subset)
+        encoded_X = self._encode_for_boxes(raw_X)
+        tradeoff = self.get_tradeoff(box.target_tradeoff)
+        if tradeoff is None:
+            raise ValueError(f"Tradeoff {box.target_tradeoff!r} not found.")
+        target = pd.Series(True, index=discrete.index)
+        for objective, label in tradeoff.elements.items():
+            if objective not in discrete.columns:
+                raise KeyError(f"Tradeoff objective {objective!r} is missing from outcomes.")
+            target &= discrete[objective].astype(str).eq(str(label))
+        return BoxEvaluator.evaluate(
+            box.limits,
+            encoded_X,
+            target,
+            population_prevalence=float(target.mean()) if len(target) else 0.0,
+            includes_na=box.includes_na,
+            raw_X=raw_X,
+        )
 
     def _annotate_box(self, box: Any, encoder: 'FeatureEncoder') -> None:
         """Records how to read a box's encoded limits: category sets and "not selected" coverage."""
@@ -2882,7 +2883,9 @@ class PatternAnalysis:
         standardize: bool = False,
         remove_outliers: bool = False,
         z_threshold: float = 3.0,
-        subset: str = 'train'
+        subset: str = 'train',
+        exclude_parameters: Optional[List[str]] = None,
+        exclude_constant_parameters: bool = False
     ) -> pd.DataFrame:
         """
         Computes feature importance for all quality objectives.
@@ -2896,6 +2899,11 @@ class PatternAnalysis:
             remove_outliers: Whether to remove outliers (Z-score > threshold) before scoring.
             z_threshold: Threshold for outlier detection.
             subset: 'train' (default for scoring), 'test', or 'all'.
+            exclude_parameters: Declared parameters to omit from scoring, such as factors
+                fixed by a filtered scenario.
+            exclude_constant_parameters: If True, also omit parameters with only one
+                distinct value in the selected subset. Missing values count as a value,
+                so a mix of missing and non-missing observations remains variable.
             
         Returns:
             pd.DataFrame: Rows=Features, Columns=Outcomes, Values=Importance Score.
@@ -2919,6 +2927,15 @@ class PatternAnalysis:
             include_uncertainties=include_uncertainties,
             include_constraints=include_constraints
         )
+        excluded = set(exclude_parameters or [])
+        if exclude_constant_parameters:
+            constant_cols = [
+                name for name in feature_cols
+                if X_full[name].nunique(dropna=False) <= 1
+            ]
+            excluded.update(constant_cols)
+            print(f"Excluded constant parameters from feature scoring ({subset}): {constant_cols}")
+        feature_cols = [name for name in feature_cols if name not in excluded]
         if not feature_cols:
             raise ValueError("No matching parameter columns found for scoring.")
             

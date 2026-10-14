@@ -1,45 +1,77 @@
-# Findings — ADEPT compact FL analysis: CIFAR-10/CNN 16k, 4 clients
+# Findings: ADEPT compact FL analysis: CIFAR-10/CNN 16k, 4 clients
 
-## Scope and data support
+## Scope and support
 
-- **Task/configuration/client scope:** image classification (CIFAR-10 + CNN 16k); all eight configurations, 4 clients; 4 clients; all sampled environments.
-- **Rows:** 390 total; 273 train and 117 held out. The split is a grouped holdout by partition_seed (3/10 seeds), distribution-matched grouped stratification. Whole `partition_seed` groups remain together; target rates below are partition-specific.
-- **Training regions (all nine, counts):** S-S: 8, S-M: 10, S-L: 0, M-S: 68, M-M: 187, M-L: 0, L-S: 0, L-M: 0, L-L: 0.
-- **Held-out regions (all nine, counts):** S-S: 4, S-M: 4, S-L: 0, M-S: 30, M-M: 79, M-L: 0, L-S: 0, L-M: 0, L-L: 0.
-- **RQ1 outcome allocation:** The shared outcome grid uses accuracy S/M/L (low/medium/high; maximize) and average total round time S/M/L (minimize); thus `L-S` is highest accuracy with fastest time and `S-L` lowest accuracy with slowest time. These symbols are value bins, not preference labels. The splits show the complete region support below; omitted areas are explicitly zero. Empty areas mean unobserved in this sampled slice, not infeasible. The all-configuration cases can compare complete configurations within one client count; one-pattern and baseline cases profile that single configuration over all client counts and do not estimate policy effects. The populated areas are S,S, S,M, M,S, M,M in training and S,S, S,M, M,S, M,M in held out. The current split and pattern-stress summaries should be read with the notebook contingency/robustness tables: complete configuration is the design grouping; `Pattern Types Active` counts pattern types, while `Pattern Instances` also varies with run context and is only a stress descriptor. Pattern Types Active varies among 0, 1, 2, 3. No deterministic configuration is reported in the contingency diagnostics.
+- **Task:** image, CIFAR-10 with CNN 16k. **Case:** All eight observed configurations; 4 clients, all environments.
+- **Rows:** 390 total; 273 training and 117 held out. The unit is a run; the split groups by `partition_seed` (10 groups, 7/3 train/test). Grouped holdout by partition_seed: 3 of 10 groups held out; stratification score=0.000088..
+- **Tradeoff counts (fixed accuracy × round-time grid):** training: S,S 8, S,M 10, M,S 68, M,M 187; held out: S,S 4, S,M 4, M,S 30, M,M 79. Regions absent from each list have zero rows in that partition; empty regions indicate no sampled runs, not infeasibility.
+- Accuracy and time are discretized into S/M/L using the campaign's shared cut points; S/M/L mean value bands, not preference. Regions include low/medium accuracy × low/medium round time in these observed cases; see notebook Section 3 for exact edges and Section 4 for the split.
 
-## RQ1 — Tradeoffs and design relationships
+## RQ1 — Which tradeoffs occur, and how do design choices relate to them?
 
-The shared outcome grid uses accuracy S/M/L (low/medium/high; maximize) and average total round time S/M/L (minimize); thus `L-S` is highest accuracy with fastest time and `S-L` lowest accuracy with slowest time. These symbols are value bins, not preference labels. The splits show the complete region support below; omitted areas are explicitly zero. Empty areas mean unobserved in this sampled slice, not infeasible. The all-configuration cases can compare complete configurations within one client count; one-pattern and baseline cases profile that single configuration over all client counts and do not estimate policy effects. The populated areas are S,S, S,M, M,S, M,M in training and S,S, S,M, M,S, M,M in held out. The current split and pattern-stress summaries should be read with the notebook contingency/robustness tables: complete configuration is the design grouping; `Pattern Types Active` counts pattern types, while `Pattern Instances` also varies with run context and is only a stress descriptor. Pattern Types Active varies among 0, 1, 2, 3. No deterministic configuration is reported in the contingency diagnostics. Complete configuration and marginal pattern-count summaries are not interchangeable. Where the notebook reports pattern-stress groups, their denominators and normalized distributions are in Section 7; instance count mixes deployment configuration with run context and cannot be read as an assigned policy.
+The observed occupancy is concentrated in the regions shown above. Outcome-space allocation and the configuration contingency tables in notebook Sections 4–5 describe complete pattern configurations and their denominators; marginal ON/OFF summaries pool multiple configurations. This case fixes client count or one complete policy, as stated in the scope; conclusions apply to this slice.
 
-## RQ2 — Joint conditions and held-out what-if
+Robustness/contingency outputs in Sections 5–6 show within-group region shares. They are descriptive allocations across sampled run conditions. No empty region should be read as impossible, and observed differences do not isolate a pattern effect. The Section 7 pattern-stress summaries are run-level aggregations; instance count and number of active pattern types are not interchangeable with a complete policy configuration.
 
-Train feature scoring ranks (weighted): ['Alpha Dirichlet Mean', 'delay_percentage', 'Client Selector Criteria', 'CPU Mean', 'JSD Mean', 'Pattern Instances', 'Pattern Types Active', 'HDH Instances']. These are model-relative predictive credits, not directions or effects. PRIM and CART boxes are conjunctions; the detailed report below lists the exact joint rule, specification context, discovery support, and held-out policy-specific matrices. Repeated target labels below correspond to distinct PRIM and CART rules in the order shown in the linked report.
+## RQ2 — Which joint conditions identify a target tradeoff, and what changes inside the box?
 
-- **S-S (S,S):** - `Client Selector Criteria`: {CPU} - `Alpha Dirichlet Mean`: [0.625, 0.688] - **Includes NaN / not-selected values:** No. Discovery: 6 target rows in 14 retained, from 8 target rows / 273 train rows. Held out: unrestricted target rate 4/117; retained 6/117 (5.1%); target-in-box 4; precision 0.6667, coverage 1, absolute lift 0.6325 (+63.25 pp).
-- **S-M (S,M):** - `Client Selector Criteria`: {(not selected)} - `CPU Mean`: [8.250, 9.500] - `Alpha Dirichlet Mean`: [0.625, 0.688] - **Includes NaN / not-selected values:** `Client Selector Criteria`. Discovery: 3 target rows in 14 retained, from 10 target rows / 273 train rows. Held out: unrestricted target rate 4/117; retained 6/117 (5.1%); target-in-box 1; precision 0.1667, coverage 0.2500, absolute lift 0.1325 (+13.25 pp).
-- **M-S (M,S):** - `JSD Mean`: (not selected) or <= 0.019 - `delay_percentage`: [0.000, 12.500] - **Includes NaN / not-selected values:** `JSD Mean`. Discovery: 35 target rows in 35 retained, from 68 target rows / 273 train rows. Held out: unrestricted target rate 30/117; retained 15/117 (12.8%); target-in-box 15; precision 1, coverage 0.5000, absolute lift 0.7436 (+74.36 pp).
-- **M-M (M,M):** - `Client Selector Criteria`: {(not selected)} - `Alpha Dirichlet Mean`: [0.688, 0.875] - `JSD Mean`: (not selected) or <= 0.025 - `delay_percentage`: [37.500, 100.000] - **Includes NaN / not-selected values:** `Client Selector Criteria`, `JSD Mean`. Discovery: 56 target rows in 56 retained, from 187 target rows / 273 train rows. Held out: unrestricted target rate 79/117; retained 24/117 (20.5%); target-in-box 24; precision 1, coverage 0.3038, absolute lift 0.3248 (+32.48 pp).
-- **M-M (M,M):** - `Client Selector Criteria`: {(not selected)} - `JSD Mean`: (not selected) or <= 0.047 - `delay_percentage`: [37.485, 100.000] - `Alpha Dirichlet Mean`: [0.688, 0.875] - **Includes NaN / not-selected values:** `Client Selector Criteria`, `JSD Mean`. Discovery: 56 target rows in 56 retained, from 187 target rows / 273 train rows. Held out: unrestricted target rate 79/117; retained 24/117 (20.5%); target-in-box 24; precision 1, coverage 0.3038, absolute lift 0.3248 (+32.48 pp).
-- **M-S (M,S):** - `delay_percentage`: [0.000, 12.500] - **Includes NaN / not-selected values:** No. Discovery: 35 target rows in 35 retained, from 68 target rows / 273 train rows. Held out: unrestricted target rate 30/117; retained 15/117 (12.8%); target-in-box 15; precision 1, coverage 0.5000, absolute lift 0.7436 (+74.36 pp).
-- **S-S (S,S):** - `Client Selector Criteria`: {(not selected)} - `JSD Mean`: [0.047, 0.060] - `delay_percentage`: [12.500, 50.010] - **Includes NaN / not-selected values:** `Client Selector Criteria`. Discovery: 2 target rows in 2 retained, from 8 target rows / 273 train rows. Held out: unrestricted target rate 4/117; retained 2/117 (1.7%); target-in-box 0; precision 0, coverage 0, absolute lift -0.0342 (-3.42 pp).
-- **S-M (S,M):** - `Client Selector Criteria`: {(not selected)} - `JSD Mean`: [0.047, 0.060] - `delay_percentage`: [50.010, 100.000] - **Includes NaN / not-selected values:** `Client Selector Criteria`. Discovery: 2 target rows in 2 retained, from 10 target rows / 273 train rows. Held out: unrestricted target rate 4/117; retained 2/117 (1.7%); target-in-box 0; precision 0, coverage 0, absolute lift -0.0342 (-3.42 pp).
+Feature rankings and exclusions are reported in Sections 8–10 and the feature-importance plot. Importance is relative predictive credit in this fitted slice; it is not a direction or causal effect. PRIM/CART rules are joint conditions, with design and context mixed according to the available features. See the linked box report for the full rule limits, architectural interpretation, discovery support, and not-selected/NaN coverage.
 
-Targets populated in training but absent from both reported box sets (no discovery box): none. Targets with zero held-out target rows remain unevaluable on test even when a box was discovered.
+**PRIM held-out evaluation** (test baseline = target prevalence; Δ rate = box precision minus baseline; train lift is retained from the notebook's output):
 
-For each box, the unrestricted test prevalence is `target runs before box / test runs`; precision is target rows among retained runs; coverage is target rows retained divided by target rows in test; absolute lift is precision minus test prevalence and is shown in both proportion and percentage points. No reported `not available` value should be read as zero. A target with 0 held-out target rows has no test-evaluable recall even if the rule retains non-target rows. The full Section 11 policy-specific before/boxed/gain and target-coverage matrices are preserved in the notebook output. RQ2 all-target support and exact rule conditions: [box report](../boxes/boxes__task-image__all-configurations__clients-4__environment-all.md); scoring, PRIM/CART and what-if outputs: [notebook Sections 8–12](../analysis-fl-rq-c4-image.ipynb#research-question-2).
+```text
+method target  test_n  baseline_target_n  box_n  target_in_box  \
+0   PRIM    S-S     117                  4      6              4   
+1   PRIM    S-M     117                  4      3              1   
+2   PRIM    M-S     117                 30     15             15   
+3   PRIM    M-M     117                 79     22             22   
 
-## Implications
+   baseline_rate  box_precision  test_delta_rate  train_lift_absolute  \
+0          0.034          0.667            0.632                0.399   
+1          0.034          0.333            0.299                0.199   
+2          0.256          1.000            0.744                0.751   
+3          0.675          1.000            0.325                0.315   
 
-- **Practitioners:** Treat any high-precision rule as a candidate operating envelope for this image task and stated client/configuration scope. Validate it with additional partition seeds before deployment; do not use the box as evidence of an intervention effect.
-- **Researchers:** The ten-seed grouped holdout and sparse target counts limit stability claims. The compact run-level client averages can hide client imbalance and round variation. Pattern activation/context allocation is observational, with uneven environment coverage; pattern-stress instance assumptions require the campaign README caveats.
+   test_recall_coverage  
+0                 1.000  
+1                 0.250  
+2                 0.500  
+3                 0.278
+```
 
-## Limitations and evidence
+**CART held-out evaluation:**
 
-# ADEPT compact FL analysis: CIFAR-10/CNN 16k, 4 clients reports only the selected scope; results do not transfer automatically across client counts or single-pattern profiles. Shared bins mean empty regions are sample gaps. The image HDH instance proxy is particularly uncertain: the campaign README notes measured HDH activity on few CIFAR-10 clients, so configured HDH must not be equated with applied work.
+```text
+method target  test_n  baseline_target_n  box_n  target_in_box  \
+0   CART    M-M     117                 79     24             24   
+1   CART    M-S     117                 30     15             15   
+2   CART    S-M     117                  4      0              0   
+3   CART    S-S     117                  4      0              0   
 
-- Notebook: [analysis-fl-rq-c4-image.ipynb](../analysis-fl-rq-c4-image.ipynb) (split cell 18; RQ1 Sections 4–7; RQ2 Sections 8–12).
-- Box report: [boxes__task-image__all-configurations__clients-4__environment-all.md](../boxes/boxes__task-image__all-configurations__clients-4__environment-all.md).
-- Objective space: [quality-space plot](../plots/quality-space__task-image__all-configurations__clients-4__environment-all__final_val_accuracy-vs-avg_total_time.png).
-- Feature ranking: [feature-importance plot](../plots/feature-importance__task-image__all-configurations__clients-4__environment-all.png).
-- Shared definitions and scope: [compact campaign README](../../README.md).
+   baseline_rate  box_precision  test_delta_rate  train_lift_absolute  \
+0          0.675            1.0            0.325                0.315   
+1          0.256            1.0            0.744                0.751   
+2          0.034            NaN              NaN                0.963   
+3          0.034            NaN              NaN                0.971   
+
+   test_recall_coverage  
+0                 0.304  
+1                 0.500  
+2                 0.000  
+3                 0.000
+```
+
+Metrics are read as held-out precision among retained test runs and target coverage among all held-out target runs. A target with zero held-out rows is not test-evaluable; NaN precision/coverage is undefined. Sparse targets warrant caution. Policy-specific before/boxed/gain and target-coverage matrices are in notebook Section 11 and must be read alongside retained counts; they describe policy-filtered cells, distinct from the all-run held-out summary above.
+
+## Implications and limitations
+
+- **For practitioners:** use a discovered conjunction as a candidate operating envelope for further runs in this exact case scope. Prefer rules with both useful coverage and adequate retained support; validate sparse or low-coverage boxes before treating them as an operating recommendation.
+- **For researchers:** the grouped seed holdout provides out-of-sample evidence within this slice, but not independent replication across workloads or sampling regimes. The design and context conditions are observational; client attributes are run-level aggregates and can conceal within-run client imbalance.
+- **Limitations:** available configurations and environment coverage are bounded by the campaign data; fixed discretization can leave empty cells; pooled or overlapping scopes limit cross-case attribution; predictive rankings and boxes do not establish causal effects.
+
+## Supporting artifacts
+
+- Notebook sections 3–11: [analysis-fl-rq-c4-image.ipynb](../analysis-fl-rq-c4-image.ipynb#section-4-data-splitting)
+- Box report: [boxes__task-image__all-configurations__clients-4__environment-all.md](../boxes/boxes__task-image__all-configurations__clients-4__environment-all.md)
+- Objective-space plot: [quality-space__task-image__all-configurations__clients-4__environment-all__final_val_accuracy-vs-avg_total_time.png](../plots/quality-space__task-image__all-configurations__clients-4__environment-all__final_val_accuracy-vs-avg_total_time.png)
+- Feature-importance plot: [feature-importance__task-image__all-configurations__clients-4__environment-all.png](../plots/feature-importance__task-image__all-configurations__clients-4__environment-all.png)

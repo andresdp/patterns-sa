@@ -276,8 +276,8 @@ The architectural interpretation traces conditions through declared system-spec 
 
 **Learned box conditions**
 
-- `Total Clients`: [5.999, 10.000]
 - `JSD Mean`: [0.018, 0.081]
+- `Total Clients`: [5.999, 10.000]
 - **Includes NaN / not-selected values:** No
 
 **Architectural interpretation**
@@ -375,8 +375,8 @@ The architectural interpretation traces conditions through declared system-spec 
 
 **Learned box conditions**
 
-- `Total Clients`: [4.000, 5.999]
 - `JSD Mean`: [0.051, 0.066]
+- `Total Clients`: [4.000, 5.999]
 - **Includes NaN / not-selected values:** No
 
 **Architectural interpretation**

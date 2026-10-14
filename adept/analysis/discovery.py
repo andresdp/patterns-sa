@@ -4,6 +4,7 @@ import pandas as pd
 import numpy as np
 from collections import Counter
 from operator import itemgetter
+from types import SimpleNamespace
 
 # EMA Workbench and Sklearn imports
 try:
@@ -36,9 +37,44 @@ except ImportError:
 
 class BoxEvaluator:
     """Computes performance metrics for discovered boxes on independent datasets."""
+
+    @staticmethod
+    def membership_mask(
+        X: pd.DataFrame,
+        box: Any,
+        *,
+        raw_X: Optional[pd.DataFrame] = None,
+        atol: float = 1e-9,
+    ) -> pd.Series:
+        """Return rows satisfying a box, honoring semantic NaN inclusion.
+
+        Box bounds can pass through encode/decode transformations. A small absolute
+        tolerance prevents round-trip noise from excluding values on a boundary.
+        ``raw_X`` supplies original missingness when ``X`` is encoded for discovery.
+        """
+        limits = getattr(box, "limits", box)
+        includes_na = getattr(box, "includes_na", {}) or {}
+        mask = pd.Series(True, index=X.index)
+        if raw_X is not None:
+            raw_X = raw_X.reindex(X.index)
+        for param, bounds in limits.items():
+            if param not in X.columns:
+                raise KeyError(f"Box parameter {param!r} is missing from evaluation data.")
+            values = pd.to_numeric(X[param], errors="coerce")
+            low, high = float(bounds["min"]), float(bounds["max"])
+            scale = max(1.0, abs(low), abs(high))
+            tolerance = atol * scale
+            within = values.ge(low - tolerance) & values.le(high + tolerance)
+            if includes_na.get(param):
+                if raw_X is not None and param in raw_X.columns:
+                    within |= raw_X[param].isna()
+                else:
+                    within |= values.isna()
+            mask &= within.fillna(False)
+        return mask
     
     @staticmethod
-    def evaluate(box_limits: Dict[str, Dict[str, float]], X: pd.DataFrame, y: pd.Series, population_prevalence: float = 0.0) -> Dict[str, float]:
+    def evaluate(box_limits: Dict[str, Dict[str, float]], X: pd.DataFrame, y: pd.Series, population_prevalence: float = 0.0, *, includes_na: Optional[Dict[str, bool]] = None, raw_X: Optional[pd.DataFrame] = None) -> Dict[str, float]:
         """
         Evaluates a box against a target mask y.
         
@@ -66,10 +102,8 @@ class BoxEvaluator:
             }
             
         # 1. Identify rows in X that satisfy all box_limits
-        mask = pd.Series(True, index=X.index)
-        for param, limits in box_limits.items():
-            if param in X.columns:
-                mask &= (X[param] >= limits['min']) & (X[param] <= limits['max'])
+        box_view = SimpleNamespace(limits=box_limits, includes_na=includes_na or {})
+        mask = BoxEvaluator.membership_mask(X, box_view, raw_X=raw_X)
         
         # 2. Compute metrics
         points_in_box = mask.sum()
@@ -173,10 +207,7 @@ class BoxEvaluator:
                 succ_pol = is_success_overall[policy_mask]
                 
                 # 2. Apply Box Constraints
-                box_mask = pd.Series(True, index=exp_pol.index)
-                for param, limits in box.limits.items():
-                    if param in exp_pol.columns:
-                        box_mask &= (exp_pol[param] >= limits['min']) & (exp_pol[param] <= limits['max'])
+                box_mask = BoxEvaluator.membership_mask(exp_pol, box)
                 
                 n_samples = box_mask.sum()
                 

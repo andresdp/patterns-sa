@@ -25,8 +25,8 @@ The architectural interpretation traces conditions through declared system-spec 
 **Learned box conditions**
 
 - `Client Selector Criteria`: {CPU}
-- `CPU Mean`: [8.250, 10.125]
-- `JSD Mean`: [0.003, 0.090]
+- `CPU Mean`: [8.250, 8.875]
+- `Alpha Dirichlet Mean`: [0.625, 0.812]
 - **Includes NaN / not-selected values:** No
 
 **Architectural interpretation**
@@ -35,15 +35,15 @@ The architectural interpretation traces conditions through declared system-spec 
   - Client Selector = ON (Strategy = Resource-Based; Criteria = CPU; Value = 2.0)
 - **Observed pattern activation — training partition (rows matching this box)**:
   - Client Selector: ON (14/14)
-  - HDH: ON (14/14)
+  - HDH: OFF (7/14), ON (7/14)
   - Message Compressor: OFF (14/14)
 - **Observed pattern activation — held-out partition (rows matching this box)**:
-  - Client Selector: ON (4/4)
-  - HDH: ON (4/4)
-  - Message Compressor: OFF (4/4)
+  - Client Selector: ON (6/6)
+  - HDH: OFF (3/6), ON (3/6)
+  - Message Compressor: OFF (6/6)
 - **Operating envelope**:
-  - CPU Mean [8.25, 10.1]
-  - JSD Mean [0.00267, 0.09]
+  - CPU Mean [8.25, 8.88]
+  - Alpha Dirichlet Mean [0.625, 0.812]
 
 **Discovery metrics (training partition)**
 
@@ -73,12 +73,12 @@ The architectural interpretation traces conditions through declared system-spec 
 |:---|---:|
 | Test runs | 117 |
 | Target runs before box | 6 |
-| Runs retained by box | 4 |
-| Target runs inside box | 2 |
+| Runs retained by box | 6 |
+| Target runs inside box | 4 |
 | Target prevalence before box | 0.0513 |
-| Precision inside box | 0.5000 |
-| Recall / target coverage | 0.3333 |
-| Absolute lift over held-out prevalence | 0.4487 |
+| Precision inside box | 0.6667 |
+| Recall / target coverage | 0.6667 |
+| Absolute lift over held-out prevalence | 0.6154 |
 
 ### Box 2 — S-M (S,M)
 
@@ -271,8 +271,8 @@ The architectural interpretation traces conditions through declared system-spec 
 **Learned box conditions**
 
 - `Alpha Dirichlet Mean`: [0.813, 0.875]
-- `delay_percentage`: [12.500, 100.000]
 - `Client Selector Criteria`: {(not selected)}
+- `delay_percentage`: [12.500, 100.000]
 - **Includes NaN / not-selected values:** `Client Selector Criteria`
 
 **Architectural interpretation**
@@ -374,40 +374,41 @@ The architectural interpretation traces conditions through declared system-spec 
 
 **Learned box conditions**
 
-- `JSD Mean`: (not selected) or <= 0.006
 - `Alpha Dirichlet Mean`: [0.813, 0.875]
+- `Client Selector Criteria`: {(not selected)}
 - `delay_percentage`: [0.000, 12.500]
-- **Includes NaN / not-selected values:** `JSD Mean`
+- **Includes NaN / not-selected values:** `Client Selector Criteria`
 
 **Architectural interpretation**
 
 - **Design prescription**:
-  - No pattern policy is required by the box conditions
+  - Client Selector = OFF
 - **Observed pattern activation — training partition (rows matching this box)**:
-  - Client Selector: OFF (19/30), ON (11/30)
-  - HDH: OFF (21/30), ON (9/30)
-  - Message Compressor: OFF (7/30), ON (23/30)
+  - Client Selector: OFF (21/21)
+  - HDH: OFF (14/21), ON (7/21)
+  - Message Compressor: OFF (7/21), ON (14/21)
 - **Observed pattern activation — held-out partition (rows matching this box)**:
-  - Client Selector: OFF (8/13), ON (5/13)
-  - HDH: OFF (9/13), ON (4/13)
-  - Message Compressor: OFF (3/13), ON (10/13)
+  - Client Selector: OFF (9/9)
+  - HDH: OFF (6/9), ON (3/9)
+  - Message Compressor: OFF (3/9), ON (6/9)
 - **Operating envelope**:
-  - JSD Mean [-0.00717, 0.00584]
   - Alpha Dirichlet Mean [0.813, 0.875]
   - delay percentage [0, 12.5] (%)
+- **Other parameter conditions**:
+  - Criteria {(not selected)}
 
 **Discovery metrics (training partition)**
 
 | Metric | Value |
 |:---|---:|
 | Train precision / density | 1 |
-| Train recall / coverage | 0.7143 |
+| Train recall / coverage | 0.5000 |
 | Train target prevalence | 0.1538 |
 | Train absolute lift | 0.8462 |
 | Train observations | 273 |
 | Train target observations | 42 |
-| Train samples in box | 30 |
-| Train targets in box | 30 |
+| Train samples in box | 21 |
+| Train targets in box | 21 |
 
 **Held-out metrics (test partition)**
 
@@ -415,20 +416,20 @@ The architectural interpretation traces conditions through declared system-spec 
 |:---|---:|
 | Test runs | 117 |
 | Target runs before box | 18 |
-| Runs retained by box | 13 |
-| Target runs inside box | 13 |
+| Runs retained by box | 9 |
+| Target runs inside box | 9 |
 | Target prevalence before box | 0.1538 |
 | Precision inside box | 1 |
-| Recall / target coverage | 0.7222 |
+| Recall / target coverage | 0.5000 |
 | Absolute lift over held-out prevalence | 0.8462 |
 
 ### Box 4 — S-S (S,S)
 
 **Learned box conditions**
 
-- `JSD Mean`: [0.014, 0.090]
-- `Alpha Dirichlet Mean`: [0.625, 0.688]
+- `Alpha Dirichlet Mean`: [0.625, 0.813]
 - `Client Selector Criteria`: {CPU}
+- `CPU Mean`: [8.250, 8.875]
 - **Includes NaN / not-selected values:** No
 
 **Architectural interpretation**
@@ -436,29 +437,29 @@ The architectural interpretation traces conditions through declared system-spec 
 - **Design prescription**:
   - Client Selector = ON (Strategy = Resource-Based; Criteria = CPU; Value = 2.0)
 - **Observed pattern activation — training partition (rows matching this box)**:
-  - Client Selector: ON (7/7)
-  - HDH: ON (7/7)
-  - Message Compressor: OFF (7/7)
+  - Client Selector: ON (14/14)
+  - HDH: OFF (7/14), ON (7/14)
+  - Message Compressor: OFF (14/14)
 - **Observed pattern activation — held-out partition (rows matching this box)**:
-  - Client Selector: ON (1/1)
-  - HDH: ON (1/1)
-  - Message Compressor: OFF (1/1)
+  - Client Selector: ON (6/6)
+  - HDH: OFF (3/6), ON (3/6)
+  - Message Compressor: OFF (6/6)
 - **Operating envelope**:
-  - JSD Mean [0.0137, 0.09]
-  - Alpha Dirichlet Mean [0.625, 0.688]
+  - Alpha Dirichlet Mean [0.625, 0.813]
+  - CPU Mean [8.25, 8.88]
 
 **Discovery metrics (training partition)**
 
 | Metric | Value |
 |:---|---:|
-| Train precision / density | 1 |
-| Train recall / coverage | 0.5385 |
+| Train precision / density | 0.6429 |
+| Train recall / coverage | 0.6923 |
 | Train target prevalence | 0.0476 |
-| Train absolute lift | 0.9524 |
+| Train absolute lift | 0.5952 |
 | Train observations | 273 |
 | Train target observations | 13 |
-| Train samples in box | 7 |
-| Train targets in box | 7 |
+| Train samples in box | 14 |
+| Train targets in box | 9 |
 
 **Held-out metrics (test partition)**
 
@@ -466,9 +467,9 @@ The architectural interpretation traces conditions through declared system-spec 
 |:---|---:|
 | Test runs | 117 |
 | Target runs before box | 6 |
-| Runs retained by box | 1 |
-| Target runs inside box | 1 |
+| Runs retained by box | 6 |
+| Target runs inside box | 4 |
 | Target prevalence before box | 0.0513 |
-| Precision inside box | 1 |
-| Recall / target coverage | 0.1667 |
-| Absolute lift over held-out prevalence | 0.9487 |
+| Precision inside box | 0.6667 |
+| Recall / target coverage | 0.6667 |
+| Absolute lift over held-out prevalence | 0.6154 |

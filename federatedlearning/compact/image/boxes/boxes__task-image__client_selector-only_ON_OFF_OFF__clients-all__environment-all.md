@@ -375,8 +375,8 @@ The architectural interpretation traces conditions through declared system-spec 
 
 **Learned box conditions**
 
-- `Alpha Dirichlet Mean`: [0.750, 0.900]
 - `CPU Mean`: [8.000, 8.874]
+- `Alpha Dirichlet Mean`: [0.750, 0.900]
 - `delay_percentage`: [25.000, 50.000]
 - `Total Clients`: [9.000, 10.000]
 - **Includes NaN / not-selected values:** No
@@ -394,8 +394,8 @@ The architectural interpretation traces conditions through declared system-spec 
   - HDH: OFF (3/3)
   - Message Compressor: OFF (3/3)
 - **Operating envelope**:
-  - Alpha Dirichlet Mean [0.75, 0.9]
   - CPU Mean [8, 8.87]
+  - Alpha Dirichlet Mean [0.75, 0.9]
   - delay percentage [25, 50] (%)
 - **Other design conditions**:
   - Total Clients [9, 10]
@@ -430,8 +430,8 @@ The architectural interpretation traces conditions through declared system-spec 
 
 **Learned box conditions**
 
-- `Alpha Dirichlet Mean`: [0.600, 0.612]
 - `CPU Mean`: [8.000, 8.874]
+- `Alpha Dirichlet Mean`: [0.600, 0.612]
 - `delay_percentage`: [25.000, 50.000]
 - `Total Clients`: [5.999, 10.000]
 - **Includes NaN / not-selected values:** No
@@ -449,8 +449,8 @@ The architectural interpretation traces conditions through declared system-spec 
   - HDH: OFF (3/3)
   - Message Compressor: OFF (3/3)
 - **Operating envelope**:
-  - Alpha Dirichlet Mean [0.6, 0.612]
   - CPU Mean [8, 8.87]
+  - Alpha Dirichlet Mean [0.6, 0.612]
   - delay percentage [25, 50] (%)
 - **Other design conditions**:
   - Total Clients [6, 10]

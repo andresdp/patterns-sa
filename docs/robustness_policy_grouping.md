@@ -43,7 +43,7 @@ Every robustness method now maps a policy label to experiment rows through one h
 Decision keys may be written as `'Component:Decision'` or just `'Decision'` when unambiguous.
 A name that is both a decision key and a column is read as the decision. Column groups are
 meant for attributes that summarize or condition configurations, such as the derived
-pattern-stress level of FL (`federatedlearning/pattern_stress.py`); a group then mixes the
+pattern-stress level of FL (`federatedlearning/derived_pattern_measures.py`); a group then mixes the
 configurations that share the value, so read it next to the per-configuration rows.
 
 ### Resolving a label without `by`

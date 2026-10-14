@@ -133,23 +133,11 @@ def write_box_report(
                 )
 
             lines.extend(["", "**Held-out metrics (test partition)**", "", "| Metric | Value |", "|:---|---:|"])
-            heldout = box.heldout_metrics
             test = by_target.get(str(box.target_tradeoff))
-            if heldout:
-                heldout_items = [
-                    ("Test runs", heldout.get("population_size")),
-                    ("Target runs before box", heldout.get("total_targets")),
-                    ("Runs retained by box", heldout.get("samples_in_box")),
-                    ("Target runs inside box", heldout.get("targets_in_box")),
-                    ("Target prevalence before box", heldout.get("population_prevalence")),
-                    ("Precision inside box", heldout.get("density")),
-                    ("Recall / target coverage", heldout.get("coverage")),
-                    ("Absolute lift over held-out prevalence", heldout.get("lift")),
-                ]
-                lines.extend(f"| {label} | {_format_value(value)} |" for label, value in heldout_items)
-            elif test is None:
-                lines.append("| Held-out evaluation | Not available |")
-            else:
+            # The caller's partition evaluation is authoritative. Box metrics may
+            # have been attached earlier in another feature representation.
+            heldout = box.heldout_metrics
+            if test is not None:
                 heldout_items = [
                     ("Test runs", test.get("test_n")),
                     ("Target runs before box", test.get("baseline_target_n")),
@@ -161,6 +149,20 @@ def write_box_report(
                     ("Absolute lift over held-out prevalence", test.get("test_delta_rate")),
                 ]
                 lines.extend(f"| {label} | {_format_value(value)} |" for label, value in heldout_items)
+            elif heldout:
+                heldout_items = [
+                    ("Test runs", heldout.get("population_size")),
+                    ("Target runs before box", heldout.get("total_targets")),
+                    ("Runs retained by box", heldout.get("samples_in_box")),
+                    ("Target runs inside box", heldout.get("targets_in_box")),
+                    ("Target prevalence before box", heldout.get("population_prevalence")),
+                    ("Precision inside box", heldout.get("density")),
+                    ("Recall / target coverage", heldout.get("coverage")),
+                    ("Absolute lift over held-out prevalence", heldout.get("lift")),
+                ]
+                lines.extend(f"| {label} | {_format_value(value)} |" for label, value in heldout_items)
+            else:
+                lines.append("| Held-out evaluation | Not available |")
             lines.append("")
 
     path.write_text("\n".join(lines).rstrip() + "\n", encoding="utf-8")

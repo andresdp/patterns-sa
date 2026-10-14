@@ -24,15 +24,14 @@ The architectural interpretation traces conditions through declared system-spec 
 
 **Learned box conditions**
 
-- `Client Selector Criteria`: {CPU}
-- `CPU Mean`: [8.000, 8.750]
-- `Alpha Dirichlet Mean`: [0.600, 0.825]
+- `Alpha Dirichlet Mean`: [0.600, 0.675]
+- `Client Selector Stress Percentage`: [35.000, 75.000]
 - **Includes NaN / not-selected values:** No
 
 **Architectural interpretation**
 
 - **Design prescription**:
-  - Client Selector = ON (Strategy = Resource-Based; Criteria = CPU; Value = 2.0)
+  - No pattern policy is required by the box conditions
 - **Observed pattern activation — training partition (rows matching this box)**:
   - Client Selector: ON (14/14)
   - HDH: OFF (7/14), ON (7/14)
@@ -42,8 +41,8 @@ The architectural interpretation traces conditions through declared system-spec 
   - HDH: OFF (3/6), ON (3/6)
   - Message Compressor: OFF (6/6)
 - **Operating envelope**:
-  - CPU Mean [8, 8.75]
-  - Alpha Dirichlet Mean [0.6, 0.825]
+  - Alpha Dirichlet Mean [0.6, 0.675]
+  - Client Selector Stress Percentage [35, 75] (%)
 
 **Discovery metrics (training partition)**
 
@@ -84,8 +83,8 @@ The architectural interpretation traces conditions through declared system-spec 
 
 **Learned box conditions**
 
-- `CPU Mean`: [8.000, 10.250]
-- `HDH Instances`: [0.500, 8.000]
+- `Alpha Dirichlet Mean`: [0.600, 0.825]
+- `Client Selector Stress Percentage`: [35.000, 75.000]
 - **Includes NaN / not-selected values:** No
 
 **Architectural interpretation**
@@ -93,38 +92,38 @@ The architectural interpretation traces conditions through declared system-spec 
 - **Design prescription**:
   - No pattern policy is required by the box conditions
 - **Observed pattern activation — training partition (rows matching this box)**:
-  - Client Selector: OFF (7/20), ON (13/20)
-  - HDH: ON (20/20)
-  - Message Compressor: OFF (20/20)
+  - Client Selector: ON (21/21)
+  - HDH: OFF (7/21), ON (14/21)
+  - Message Compressor: OFF (21/21)
 - **Observed pattern activation — held-out partition (rows matching this box)**:
-  - Client Selector: OFF (3/9), ON (6/9)
-  - HDH: ON (9/9)
+  - Client Selector: ON (9/9)
+  - HDH: OFF (3/9), ON (6/9)
   - Message Compressor: OFF (9/9)
 - **Operating envelope**:
-  - CPU Mean [8, 10.2]
-  - HDH Instances [0.5, 8]
+  - Alpha Dirichlet Mean [0.6, 0.825]
+  - Client Selector Stress Percentage [35, 75] (%)
 
 **Discovery metrics (training partition)**
 
 | Metric | Value |
 |:---|---:|
-| Train precision / density | 0.1000 |
+| Train precision / density | 0.0952 |
 | Train recall / coverage | 1 |
 | Train target prevalence | 0.0073 |
-| Train absolute lift | 0.0927 |
+| Train absolute lift | 0.0879 |
 | Train observations | 273 |
 | Train target observations | 2 |
-| Train samples in box | 20 |
+| Train samples in box | 21 |
 | Train targets in box | 2 |
 
 **Algorithm fit diagnostics**
 
 | Diagnostic | Value |
 |:---|---:|
-| Density | 0.1000 |
+| Density | 0.0952 |
 | Coverage | 1 |
-| Mean | 0.1000 |
-| Mass | 0.0733 |
+| Mean | 0.0952 |
+| Mass | 0.0769 |
 
 **Held-out metrics (test partition)**
 
@@ -202,47 +201,47 @@ The architectural interpretation traces conditions through declared system-spec 
 
 **Learned box conditions**
 
-- `CPU Mean`: [10.250, 11.000]
 - `delay_percentage`: [12.500, 100.000]
-- **Includes NaN / not-selected values:** No
+- `Client Selector Stress Percentage`: (not selected) or <= 37.500
+- **Includes NaN / not-selected values:** `Client Selector Stress Percentage`
 
 **Architectural interpretation**
 
 - **Design prescription**:
   - No pattern policy is required by the box conditions
 - **Observed pattern activation — training partition (rows matching this box)**:
-  - Client Selector: OFF (112/154), ON (42/154)
-  - HDH: OFF (77/154), ON (77/154)
-  - Message Compressor: OFF (63/154), ON (91/154)
+  - Client Selector: OFF (140/182), ON (42/182)
+  - HDH: OFF (98/182), ON (84/182)
+  - Message Compressor: OFF (84/182), ON (98/182)
 - **Observed pattern activation — held-out partition (rows matching this box)**:
-  - Client Selector: OFF (48/66), ON (18/66)
-  - HDH: OFF (33/66), ON (33/66)
-  - Message Compressor: OFF (27/66), ON (39/66)
+  - Client Selector: OFF (60/78), ON (18/78)
+  - HDH: OFF (42/78), ON (36/78)
+  - Message Compressor: OFF (36/78), ON (42/78)
 - **Operating envelope**:
-  - CPU Mean [10.2, 11]
   - delay percentage [12.5, 100] (%)
+  - Client Selector Stress Percentage [20, 37.5] (%)
 
 **Discovery metrics (training partition)**
 
 | Metric | Value |
 |:---|---:|
 | Train precision / density | 1 |
-| Train recall / coverage | 0.7230 |
+| Train recall / coverage | 0.8545 |
 | Train target prevalence | 0.7802 |
 | Train absolute lift | 0.2198 |
 | Train observations | 273 |
 | Train target observations | 213 |
-| Train samples in box | 154 |
-| Train targets in box | 154 |
+| Train samples in box | 182 |
+| Train targets in box | 182 |
 
 **Algorithm fit diagnostics**
 
 | Diagnostic | Value |
 |:---|---:|
 | Density | 1 |
-| Coverage | 0.7230 |
+| Coverage | 0.8545 |
 | Mean | 1 |
-| Mass | 0.5641 |
+| Mass | 0.6667 |
 
 **Held-out metrics (test partition)**
 
@@ -250,11 +249,11 @@ The architectural interpretation traces conditions through declared system-spec 
 |:---|---:|
 | Test runs | 117 |
 | Target runs before box | 92 |
-| Runs retained by box | 66 |
-| Target runs inside box | 66 |
+| Runs retained by box | 78 |
+| Target runs inside box | 78 |
 | Target prevalence before box | 0.7863 |
 | Precision inside box | 1 |
-| Recall / target coverage | 0.7174 |
+| Recall / target coverage | 0.8478 |
 | Absolute lift over held-out prevalence | 0.2137 |
 
 ## CART
@@ -263,24 +262,24 @@ The architectural interpretation traces conditions through declared system-spec 
 
 **Learned box conditions**
 
-- `CPU Mean`: [10.250, 11.000]
+- `Client Selector Stress Percentage`: (not selected) or <= 37.500
 - `delay_percentage`: [12.500, 100.000]
-- **Includes NaN / not-selected values:** No
+- **Includes NaN / not-selected values:** `Client Selector Stress Percentage`
 
 **Architectural interpretation**
 
 - **Design prescription**:
   - No pattern policy is required by the box conditions
 - **Observed pattern activation — training partition (rows matching this box)**:
-  - Client Selector: OFF (112/154), ON (42/154)
-  - HDH: OFF (77/154), ON (77/154)
-  - Message Compressor: OFF (63/154), ON (91/154)
+  - Client Selector: OFF (140/182), ON (42/182)
+  - HDH: OFF (98/182), ON (84/182)
+  - Message Compressor: OFF (84/182), ON (98/182)
 - **Observed pattern activation — held-out partition (rows matching this box)**:
-  - Client Selector: OFF (48/66), ON (18/66)
-  - HDH: OFF (33/66), ON (33/66)
-  - Message Compressor: OFF (27/66), ON (39/66)
+  - Client Selector: OFF (60/78), ON (18/78)
+  - HDH: OFF (42/78), ON (36/78)
+  - Message Compressor: OFF (36/78), ON (42/78)
 - **Operating envelope**:
-  - CPU Mean [10.3, 11]
+  - Client Selector Stress Percentage [20, 37.5] (%)
   - delay percentage [12.5, 100] (%)
 
 **Discovery metrics (training partition)**
@@ -288,13 +287,13 @@ The architectural interpretation traces conditions through declared system-spec 
 | Metric | Value |
 |:---|---:|
 | Train precision / density | 1 |
-| Train recall / coverage | 0.7230 |
+| Train recall / coverage | 0.8545 |
 | Train target prevalence | 0.7802 |
 | Train absolute lift | 0.2198 |
 | Train observations | 273 |
 | Train target observations | 213 |
-| Train samples in box | 154 |
-| Train targets in box | 154 |
+| Train samples in box | 182 |
+| Train targets in box | 182 |
 
 **Held-out metrics (test partition)**
 
@@ -302,11 +301,11 @@ The architectural interpretation traces conditions through declared system-spec 
 |:---|---:|
 | Test runs | 117 |
 | Target runs before box | 92 |
-| Runs retained by box | 66 |
-| Target runs inside box | 66 |
+| Runs retained by box | 78 |
+| Target runs inside box | 78 |
 | Target prevalence before box | 0.7863 |
 | Precision inside box | 1 |
-| Recall / target coverage | 0.7174 |
+| Recall / target coverage | 0.8478 |
 | Absolute lift over held-out prevalence | 0.2137 |
 
 ### Box 2 — L-S (L,S)

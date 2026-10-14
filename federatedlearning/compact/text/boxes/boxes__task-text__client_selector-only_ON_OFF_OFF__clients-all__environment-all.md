@@ -207,8 +207,8 @@ The architectural interpretation traces conditions through declared system-spec 
 
 **Learned box conditions**
 
+- `CPU Mean`: [10.125, 11.000]
 - `Total Clients`: [5.999, 10.000]
-- `low_spec_percentage`: [25.000, 37.500]
 - **Includes NaN / not-selected values:** No
 
 **Architectural interpretation**
@@ -224,7 +224,7 @@ The architectural interpretation traces conditions through declared system-spec 
   - HDH: OFF (6/6)
   - Message Compressor: OFF (6/6)
 - **Operating envelope**:
-  - low-spec percentage [25, 37.5] (%)
+  - CPU Mean [10.1, 11]
 - **Other design conditions**:
   - Total Clients [6, 10]
 
@@ -258,11 +258,10 @@ The architectural interpretation traces conditions through declared system-spec 
 
 **Learned box conditions**
 
-- `low_spec_percentage`: [62.500, 75.000]
-- `Alpha Dirichlet Mean`: [0.612, 0.900]
+- `CPU Mean`: [8.000, 8.874]
 - `delay_percentage`: [25.000, 50.000]
-- `Total Clients`: [5.999, 10.000]
 - `non_iid_percentage`: [50.000, 75.000]
+- `Total Clients`: [9.000, 10.000]
 - **Includes NaN / not-selected values:** No
 
 **Architectural interpretation**
@@ -278,25 +277,24 @@ The architectural interpretation traces conditions through declared system-spec 
   - HDH: OFF (3/3)
   - Message Compressor: OFF (3/3)
 - **Operating envelope**:
-  - low-spec percentage [62.5, 75] (%)
-  - Alpha Dirichlet Mean [0.612, 0.9]
+  - CPU Mean [8, 8.87]
   - delay percentage [25, 50] (%)
   - non-IID percentage [50, 75] (%)
 - **Other design conditions**:
-  - Total Clients [6, 10]
+  - Total Clients [9, 10]
 
 **Discovery metrics (training partition)**
 
 | Metric | Value |
 |:---|---:|
-| Train precision / density | 0.5714 |
-| Train recall / coverage | 0.0833 |
+| Train precision / density | 0.8571 |
+| Train recall / coverage | 0.1250 |
 | Train target prevalence | 0.4571 |
-| Train absolute lift | 0.1143 |
+| Train absolute lift | 0.4000 |
 | Train observations | 105 |
 | Train target observations | 48 |
 | Train samples in box | 7 |
-| Train targets in box | 4 |
+| Train targets in box | 6 |
 
 **Held-out metrics (test partition)**
 
@@ -305,8 +303,8 @@ The architectural interpretation traces conditions through declared system-spec 
 | Test runs | 45 |
 | Target runs before box | 20 |
 | Runs retained by box | 3 |
-| Target runs inside box | 3 |
+| Target runs inside box | 1 |
 | Target prevalence before box | 0.4444 |
-| Precision inside box | 1 |
-| Recall / target coverage | 0.1500 |
-| Absolute lift over held-out prevalence | 0.5556 |
+| Precision inside box | 0.3333 |
+| Recall / target coverage | 0.0500 |
+| Absolute lift over held-out prevalence | -0.1111 |

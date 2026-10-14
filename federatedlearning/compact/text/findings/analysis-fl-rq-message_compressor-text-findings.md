@@ -1,27 +1,90 @@
-# Text case findings: MESSAGE COMPRESSOR
+# Findings — ADEPT compact FL Message Compressor-only analysis: AG_NEWS/MLP, all client counts
 
 ## Scope and support
 
-- **Task/configuration/client/environment:** Message Compressor only (OFF,ON,OFF); all client counts (4, 8, 10); all sampled environments.
-- **Rows:** 210 total; 147 training; 63 held out. Split: Grouped holdout: 3/10 partition_seed groups; stratification score 0.000000. Seeds were kept wholly in one partition.
-- **Tradeoff definitions:** final validation accuracy is maximized and average total round time minimized. The shared 3×3 grid uses accuracy edges 0.2075/0.4774/0.7473/1.0172 and time edges 1.5625/9.5065/17.4505/25.3945.
-- **Training region counts (all nine regions):** L-S 21 (14.3%); L-M 126 (85.7%); all other cells among S-S, S-M, S-L, M-S, M-M, M-L, L-S, L-M, L-L are zero.
-- **Held-out region counts (all nine regions):** L-S 9 (14.3%); L-M 54 (85.7%); all other cells among S-S, S-M, S-L, M-S, M-M, M-L, L-S, L-M, L-L are zero.
-- **Occupancy:** Only two regions populated; seven empty. L-M is the majority. See notebook Section 4 / cell 18 and Section 3 / cell 14 for exact partition counts and thresholds.
+This case is AG_NEWS/MLP, all sampled environment settings, with Message Compressor-only policy OFF,ON,OFF; client counts 4, 8, and 10 pooled. The filtered population contains 210 run rows; 147 are used for training and 63 for held-out evaluation. The splitter keeps `partition_seed` groups intact (3 of 10 held out); grouped holdout by partition_seed; no fallback warning. It reports these region counts (the fixed grid uses accuracy × average total round time, and only observed regions appear):
 
-## RQ1 — Which tradeoffs occur, and how do design choices relate to them?
+- Train (147): S,S: 0 (0.00%); S,M: 0 (0.00%); S,L: 0 (0.00%); M,S: 0 (0.00%); M,M: 0 (0.00%); M,L: 0 (0.00%); L,S: 21 (14.29%); L,M: 126 (85.71%); L,L: 0 (0.00%)
+- Held out (63): S,S: 0 (0.00%); S,M: 0 (0.00%); S,L: 0 (0.00%); M,S: 0 (0.00%); M,M: 0 (0.00%); M,L: 0 (0.00%); L,S: 9 (14.29%); L,M: 54 (85.71%); L,L: 0 (0.00%)
 
-The profile is 85.7% L-M and 14.3% L-S in both partitions. This describes Message Compressor ON across the sampled client counts and contexts; no OFF comparison is present, so it is not a pattern effect estimate. Pattern Types Active is one throughout; Message Compressor Instances varies across client counts and context and should not be treated as assigned pattern dose. Compare configurations only within the stated client scope; `Pattern Types Active` counts decisions, whereas `Pattern Instances` is a context-dependent deployment/stress descriptor. The accuracy–time plot corroborates occupancy: [quality-space plot](../plots/quality-space__task-text__message_compressor-only_OFF_ON_OFF__clients-all__environment-all__final_val_accuracy-vs-avg_total_time.png). Notebook contingency and robustness outputs: [analysis notebook](../analysis-fl-rq-message_compressor-text.ipynb) (Sections 5–7; cells 30–44).
+The shared grid bins accuracy as S 0.21–0.48, M 0.48–0.75, L 0.75–1.02 and average total time as S 1.56–9.51, M 9.51–17.45, L 17.45–25.39. Empty regions in this slice are unobserved, not ruled out. [Notebook, split and discretization outputs](federatedlearning/compact/text/analysis-fl-rq-message_compressor-text.ipynb#data-splitting).
 
-## RQ2 — Which joint conditions identify a target tradeoff, and what changes inside the box?
+## RQ1 — Tradeoffs and design associations
 
-Delay is the main differentiator for these regions; Alpha Dirichlet Mean and client/resource descriptors also appear in feature ranking. Compressor policy and algorithm are fixed, so their scores cannot establish effects. PRIM and CART partition on delay: L-S at 0–12.5% delay and L-M at 12.5–100%. Each held-out box is pure and complete: L-S 9/9 precision, baseline 9/63 (14.3%), +85.7 pp, 9/9 coverage; L-M 54/54, baseline 54/63 (85.7%), +14.3 pp, 54/54 coverage. Agreement is strong within this slice but the held-out set repeats the same broad split and covers only the observed seed groups. No box should be read as requiring compression: it is fixed ON by sample selection; architecture explanation reports no policy inference from the environmental rule. For target coverage and held-out policy matrices, see notebook Section 11 (cells 66–73) and [box report](../boxes/boxes__task-text__message_compressor-only_OFF_ON_OFF__clients-all__environment-all.md). The feature ranking plot is [feature-importance plot](../plots/feature-importance__task-text__message_compressor-only_OFF_ON_OFF__clients-all__environment-all.png). A box is a joint observational rule, and filtering is a what-if over already observed held-out rows.
+Observed runs occupy the regions listed above; the other cells in the nine-region grid have zero observed support in this slice. RQ1 compares complete pattern configurations where decisions vary; the notebook's contingency output uses configurations before marginal pattern summaries. For a single-configuration profile, the pattern decision is fixed and cannot be compared within that case. Client-count leaves hold count fixed; profile and focal-pattern leaves pool 4, 8, and 10 clients. The three focal-pattern views overlap because combinations with multiple patterns ON recur across branches. Pattern-count and instance-count summaries are derived run descriptors, not complete configurations or randomized pattern doses.
+
+The region allocation and STARR-style membership stability are reported in the notebook's contingency and robustness sections. Interpret these as observed allocations under mixed sampled environment conditions, not isolated pattern effects. Accuracy and time are both minimized in the campaign, so L-S is the high-accuracy/short-time region and L-M is high-accuracy/medium-time. [Notebook, contingency and robustness outputs](federatedlearning/compact/text/analysis-fl-rq-message_compressor-text.ipynb#contingency-analysis), [quality-space plot](federatedlearning/compact/text/plots/quality-space__task-text__message_compressor-only_OFF_ON_OFF__clients-all__environment-all__final_val_accuracy-vs-avg_total_time.png).
+
+## RQ2 — Joint conditions and held-out what-if
+
+The notebook's weighted feature ranking is relative predictive credit in this fitted slice; it is not a direction or effect estimate. Weighted feature ranking: ['delay_percentage', 'Alpha Dirichlet Mean', 'non_iid_percentage', 'Message Compressor Instances', 'CPU Mean', 'low_spec_percentage']
+Excluded fixed-scope features: ['Dataset', 'Model']
+Excluded pattern-stress aliases for profile analysis: ['Client Selector Stress Percentage', 'Message Compressor Stress Percentage', 'HDH Stress Percentage']
+Key parameters (for scenario discovery): ['delay_percentage', 'Alpha Dirichlet Mean', 'non_iid_percentage', 'Message Compressor Instances']
+
+PRIM discovery rules (training partition):
+
+```text
+Summary of PRIM boxes:
+ 1. For tradeoff L-S (L,S): lift=0.86
+	Alpha Dirichlet Mean: [0.750, 0.900]
+	delay_percentage: [0.000, 12.500]
+ 2. For tradeoff L-M (L,M): lift=0.14
+	delay_percentage: [12.500, 100.000]
+```
+
+CART rules (global partition fit):
+
+```text
+Running CART global discovery for all tradeoff combinations ...
+ 1. For tradeoff L-M (L,M): lift=0.14
+	delay_percentage: [12.485, 100.000]
+ 2. For tradeoff L-S (L,S): lift=0.86
+	delay_percentage: [0.000, 12.485]
+
+2 non-empty CART box(es) discovered.
+```
+
+Architectural interpretation groups the rule conditions into policy choices and observed operating context; most rules are conjunctions of sampled context and derived run summaries, and a condition on a stress feature is applicable only when that pattern is selected. Where the box report marks NaN/not-selected inclusion, the rule also spans runs where that optional pattern was OFF. See the report for exact activation counts and complete condition interpretation: [box report](federatedlearning/compact/text/boxes/boxes__task-text__message_compressor-only_OFF_ON_OFF__clients-all__environment-all.md).
+
+Held-out evaluation of each fixed box (target prevalence before filtering, retained rows, precision, absolute percentage-point rate change, and target coverage) is shown below. An absent held-out target has undefined coverage, not zero coverage. Sparse targets remain weakly validated even when precision is high.
+
+```text
+PRIM: held-out support, precision, lift and target coverage
+
+  method target  test_n  baseline_target_n  box_n  target_in_box  \
+0   PRIM    L-S      63                  9      9              9   
+1   PRIM    L-M      63                 54     54             54   
+
+   baseline_rate  box_precision  test_delta_rate  train_lift_absolute  \
+0          0.143            1.0            0.857                0.857   
+1          0.857            1.0            0.143                0.143   
+
+   test_recall_coverage  
+0                   1.0  
+1                   1.0  
+CART: held-out support, precision, lift and target coverage
+
+  method target  test_n  baseline_target_n  box_n  target_in_box  \
+0   CART    L-M      63                 54     54             54   
+1   CART    L-S      63                  9      9              9   
+
+   baseline_rate  box_precision  test_delta_rate  train_lift_absolute  \
+0          0.857            1.0            0.143                0.143   
+1          0.143            1.0            0.857                0.857   
+
+   test_recall_coverage  
+0                   1.0  
+1                   1.0
+```
+
+The policy-specific before/boxed/gain and target-coverage matrices are in Section 11 of the notebook. Their zero cells can mean no retained support; the all-patterns-OFF profile is a distinct policy from the unrestricted test baseline. Filtering is a what-if over already observed held-out rows, not an intervention. [Notebook, feature/discovery/held-out results](federatedlearning/compact/text/analysis-fl-rq-message_compressor-text.ipynb#feature-importance-key-parameter-selection), [feature-importance plot](federatedlearning/compact/text/plots/feature-importance__task-text__message_compressor-only_OFF_ON_OFF__clients-all__environment-all.png).
 
 ## Implications
 
-- **Practitioners:** Treat the reported rule as a candidate monitoring/selection envelope within this exact task and configuration/client scope. Validate on additional seeds before operational use; sparse targets and retained subsets limit confidence.
-- **Researchers:** The fixed-grid occupancy and grouped seed holdout support descriptive within-slice comparisons. Policy attribution is limited by observational coverage, uneven environment composition, run-level aggregates, and rare/empty regions. Importance ranks are model-relative predictive credit, not slopes or causal effects.
+- **Practitioners:** Treat the displayed rule as a candidate operating envelope for this AG_NEWS/MLP scope. Check retained support and coverage before using it to screen configurations; validate any rare-region rule on additional seeds and client conditions.
+- **Researchers:** The evidence supports within-slice association and out-of-sample rule evaluation only. Client summaries are run-level aggregates; environment composition and grouped seeds limit transfer and causal interpretation.
 
 ## Case limitations and evidence
 
-The compact client/resource/non-IID summaries aggregate at run level and hide client- and round-level variation. Empty grid cells mean unobserved in this sample, not infeasible. All conclusions are conditional on the sampled environments and seeds. Evidence: [analysis notebook](../analysis-fl-rq-message_compressor-text.ipynb); [box report](../boxes/boxes__task-text__message_compressor-only_OFF_ON_OFF__clients-all__environment-all.md); [quality-space plot](../plots/quality-space__task-text__message_compressor-only_OFF_ON_OFF__clients-all__environment-all__final_val_accuracy-vs-avg_total_time.png); [feature-importance plot](../plots/feature-importance__task-text__message_compressor-only_OFF_ON_OFF__clients-all__environment-all.png).
+The case covers one task/model, ten seed groups, and compact run-level client summaries. Some region targets are rare or absent in test, and configuration/environment mixes are observational. Stress notebooks pool client counts and vary other pattern decisions; profile notebooks pool client counts but fix the pattern configuration. Source evidence: [executed notebook](federatedlearning/compact/text/analysis-fl-rq-message_compressor-text.ipynb), [box report](federatedlearning/compact/text/boxes/boxes__task-text__message_compressor-only_OFF_ON_OFF__clients-all__environment-all.md), [quality-space plot](federatedlearning/compact/text/plots/quality-space__task-text__message_compressor-only_OFF_ON_OFF__clients-all__environment-all__final_val_accuracy-vs-avg_total_time.png), and [feature-importance plot](federatedlearning/compact/text/plots/feature-importance__task-text__message_compressor-only_OFF_ON_OFF__clients-all__environment-all.png).

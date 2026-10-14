@@ -257,8 +257,8 @@ The architectural interpretation traces conditions through declared system-spec 
 
 **Learned box conditions**
 
-- `Total Clients`: [4.000, 5.999]
 - `JSD Mean`: [0.000, 0.018]
+- `Total Clients`: [4.000, 5.999]
 - `delay_percentage`: [50.000, 75.000]
 - **Includes NaN / not-selected values:** No
 
