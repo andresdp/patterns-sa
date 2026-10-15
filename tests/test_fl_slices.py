@@ -5,6 +5,8 @@ import os
 import sys
 import unittest
 
+import pandas as pd
+
 from adept import PatternAnalysis
 
 REPO_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
@@ -60,6 +62,40 @@ class TestSliceFilter(unittest.TestCase):
     def test_unknown_slice(self):
         with self.assertRaises(ValueError):
             fl_slices.slice_filter("nope")
+
+    def test_target_stress_keeps_every_enabled_pattern_at_requested_level(self):
+        rows = pd.DataFrame([
+            {"config_id": "ON,OFF,OFF", "pattern_stress": "CS=50%", "low_spec_percentage": 50, "partition_seed": 1},
+            {"config_id": "OFF,ON,OFF", "pattern_stress": "MC=50%", "delay_percentage": 50, "partition_seed": 1},
+            {"config_id": "OFF,OFF,ON", "pattern_stress": "HDH=50%", "non_iid_percentage": 50, "partition_seed": 1},
+            {"config_id": "ON,ON,OFF", "pattern_stress": "CS=50%; MC=50%", "low_spec_percentage": 50, "delay_percentage": 50, "partition_seed": 1},
+            {"config_id": "ON,OFF,ON", "pattern_stress": "CS=50%; HDH=25%", "low_spec_percentage": 50, "non_iid_percentage": 25, "partition_seed": 1},
+            {"config_id": "OFF,OFF,OFF", "pattern_stress": "none", "partition_seed": 1},
+        ])
+
+        with contextlib.redirect_stdout(io.StringIO()):
+            selected = fl_slices.slice_filter(target_stress=50)(rows)
+        self.assertEqual(
+            set(selected["config_id"]),
+            {"ON,OFF,OFF", "OFF,ON,OFF", "OFF,OFF,ON", "ON,ON,OFF"},
+        )
+
+    def test_target_stress_validates_range_and_parsed_fields(self):
+        with self.assertRaisesRegex(ValueError, "between 0 and 100"):
+            fl_slices.slice_filter(target_stress=101)
+        rows = pd.DataFrame({"config_id": ["ON,OFF,OFF"]})
+        with self.assertRaisesRegex(ValueError, "parsed feature"):
+            fl_slices.slice_filter(target_stress=50)(rows)
+
+    def test_pattern_combination_support_includes_absent_combinations(self):
+        rows = pd.DataFrame({
+            "config_id": ["ON,OFF,OFF", "ON,ON,OFF", "ON,ON,OFF"],
+            "partition_seed": [1, 1, 2],
+        })
+        support = fl_slices.pattern_combination_support(rows)
+        self.assertEqual(len(support), 7)
+        self.assertEqual(support.loc[support["config_id"].eq("ON,ON,OFF"), "Rows"].item(), 2)
+        self.assertEqual(support.loc[support["config_id"].eq("ON,ON,ON"), "Rows"].item(), 0)
 
 
 class TestFixedEdges(unittest.TestCase):

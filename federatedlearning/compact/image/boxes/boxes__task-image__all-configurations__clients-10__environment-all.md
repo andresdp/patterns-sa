@@ -283,9 +283,9 @@ The table includes a **global rank** across all scoreable boxes and a **within-t
 
 **Learned box conditions**
 
+- `Client Selector Stress Percentage`: (not selected) or <= 37.500
 - `delay_percentage`: [12.500, 100.000]
 - `Alpha Dirichlet Mean`: [0.825, 0.900]
-- `Client Selector Stress Percentage`: (not selected) or <= 37.500
 - **Includes NaN / not-selected values:** `Client Selector Stress Percentage`
 
 **Architectural interpretation**
@@ -301,9 +301,9 @@ The table includes a **global rank** across all scoreable boxes and a **within-t
   - HDH: OFF (33/51), ON (18/51)
   - Message Compressor: OFF (18/51), ON (33/51)
 - **Operating envelope**:
+  - Client Selector Stress Percentage [20, 37.5] (%)
   - delay percentage [12.5, 100] (%)
   - Alpha Dirichlet Mean [0.825, 0.9]
-  - Client Selector Stress Percentage [20, 37.5] (%)
 
 **Discovery metrics (training partition)**
 
@@ -335,8 +335,8 @@ The table includes a **global rank** across all scoreable boxes and a **within-t
 
 **Learned box conditions**
 
-- `Alpha Dirichlet Mean`: [0.600, 0.825]
 - `Client Selector Stress Percentage`: (not selected) or <= 34.996
+- `Alpha Dirichlet Mean`: [0.600, 0.825]
 - **Includes NaN / not-selected values:** `Client Selector Stress Percentage`
 
 **Architectural interpretation**
@@ -352,8 +352,8 @@ The table includes a **global rank** across all scoreable boxes and a **within-t
   - HDH: OFF (9/27), ON (18/27)
   - Message Compressor: OFF (18/27), ON (9/27)
 - **Operating envelope**:
-  - Alpha Dirichlet Mean [0.6, 0.825]
   - Client Selector Stress Percentage [20, 35] (%)
+  - Alpha Dirichlet Mean [0.6, 0.825]
 
 **Discovery metrics (training partition)**
 
@@ -435,9 +435,9 @@ The table includes a **global rank** across all scoreable boxes and a **within-t
 
 **Learned box conditions**
 
-- `JSD Mean`: (not selected) or <= 0.010
-- `Alpha Dirichlet Mean`: [0.600, 0.825]
 - `Client Selector Stress Percentage`: [62.498, 75.000]
+- `Alpha Dirichlet Mean`: [0.600, 0.825]
+- `JSD Mean`: (not selected) or <= 0.010
 - **Includes NaN / not-selected values:** `JSD Mean`
 
 **Architectural interpretation**
@@ -453,9 +453,9 @@ The table includes a **global rank** across all scoreable boxes and a **within-t
   - HDH: OFF (3/3)
   - Message Compressor: OFF (3/3)
 - **Operating envelope**:
-  - JSD Mean [-0.01, 0.01]
-  - Alpha Dirichlet Mean [0.6, 0.825]
   - Client Selector Stress Percentage [62.5, 75] (%)
+  - Alpha Dirichlet Mean [0.6, 0.825]
+  - JSD Mean [-0.01, 0.01]
 
 **Discovery metrics (training partition)**
 

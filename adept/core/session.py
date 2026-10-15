@@ -378,7 +378,7 @@ class PatternAnalysis:
             self.outcomes_df, self.schemes, tradeoff=tradeoff, highlight_indices=highlight_indices, **kwargs
         )
 
-    def show_quality_objective_space(self, x_metric: str, y_metric: str, highlight_tradeoffs: Optional[List[Tradeoff]] = None, highlight_policies: Optional[List[str]] = None, show_overall: bool = True, color_points: bool = True, draw_rectangles: bool = False, subset: str = 'all', eps: float = 0.01, background_alpha: float = 0.6, overall_color: str = 'gray', **kwargs) -> plt.Figure:
+    def show_quality_objective_space(self, x_metric: str, y_metric: str, highlight_tradeoffs: Optional[List[Tradeoff]] = None, highlight_policies: Optional[List[str]] = None, show_overall: bool = True, color_points: bool = True, draw_rectangles: bool = False, subset: str = 'all', eps: float = 0.01, background_alpha: float = 0.6, overall_color: str = 'gray', color_by: Optional[str] = None, color_order: Optional[List[Any]] = None, color_labels: Optional[Dict[Any, str]] = None, color_palette: Optional[Dict[str, str]] = None, color_legend_title: Optional[str] = None, color_legend_ncol: Optional[int] = None, **kwargs) -> plt.Figure:
         """Plots a 2D scatter of outcomes with tradeoff overlays and highlighting.
         
         Args:
@@ -393,9 +393,23 @@ class PatternAnalysis:
             eps: Epsilon factor to enlarge tradeoff rectangles.
             background_alpha: Alpha for gray background points.
             overall_color: Color for the overall/background points (default: 'gray').
+            color_by: Optional experiment feature used to group and color outcome points.
+            color_order: Optional order of values for the categorical color legend.
+            color_labels: Optional mapping from feature values to legend labels.
+            color_palette: Optional mapping from legend labels to colors.
+            color_legend_title: Optional title for the categorical color legend.
+            color_legend_ncol: Optional number of columns for the categorical color legend.
             palette: Optional policy-to-color mapping used when highlighting policies.
         """
+        if color_by is not None and highlight_policies is not None:
+            raise ValueError("color_by cannot be combined with highlight_policies.")
         X, Y, _ = self._get_subset_data(subset)
+
+        color_series = None
+        if color_by is not None:
+            if color_by not in X.columns:
+                raise ValueError(f"Coloring feature {color_by!r} not found in the {subset!r} experiment subset.")
+            color_series = X[color_by].copy()
         
         highlight_indices_map = {}
         if highlight_tradeoffs:
@@ -420,6 +434,12 @@ class PatternAnalysis:
             Y, x_metric, y_metric, self.schemes, 
             highlight_indices_map=highlight_indices_map, 
             policy_series=policy_series,
+            hue_series=color_series,
+            hue_order=color_order,
+            hue_labels=color_labels,
+            hue_palette=color_palette,
+            hue_legend_title=color_legend_title,
+            hue_legend_ncol=color_legend_ncol,
             show_overall=show_overall, 
             color_points=color_points, draw_rectangles=draw_rectangles, 
             eps=eps, background_alpha=background_alpha,
