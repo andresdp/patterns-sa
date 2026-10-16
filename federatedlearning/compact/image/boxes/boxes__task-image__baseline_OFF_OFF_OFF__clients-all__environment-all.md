@@ -267,8 +267,8 @@ The table includes a **global rank** across all scoreable boxes and a **within-t
 
 **Learned box conditions**
 
-- `Total Clients`: [5.999, 10.000]
 - `delay_percentage`: [12.488, 100.000]
+- `Total Clients`: [5.999, 10.000]
 - `Alpha Dirichlet Mean`: [0.600, 0.750]
 - **Includes NaN / not-selected values:** No
 

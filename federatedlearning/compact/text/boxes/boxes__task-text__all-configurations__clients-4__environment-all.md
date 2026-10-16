@@ -344,10 +344,10 @@ The table includes a **global rank** across all scoreable boxes and a **within-t
 
 **Learned box conditions**
 
-- `HDH Stress Percentage`: (not selected) or <= 62.498
-- `Pattern Instances`: [0.000, 5.499]
-- `delay_percentage`: [12.500, 100.000]
 - `Client Selector Stress Percentage`: (not selected) or <= 22.497
+- `delay_percentage`: [12.500, 100.000]
+- `Pattern Instances`: [0.000, 5.499]
+- `HDH Stress Percentage`: (not selected) or <= 62.498
 - **Includes NaN / not-selected values:** `Client Selector Stress Percentage`, `HDH Stress Percentage`
 
 **Architectural interpretation**
@@ -363,10 +363,10 @@ The table includes a **global rank** across all scoreable boxes and a **within-t
   - HDH: OFF (33/45), ON (12/45)
   - Message Compressor: OFF (21/45), ON (24/45)
 - **Operating envelope**:
-  - HDH Stress Percentage [20, 62.5] (%)
-  - Pattern Instances [0, 5.5]
-  - delay percentage [12.5, 100] (%)
   - Client Selector Stress Percentage [20, 22.5] (%)
+  - delay percentage [12.5, 100] (%)
+  - Pattern Instances [0, 5.5]
+  - HDH Stress Percentage [20, 62.5] (%)
 
 **Discovery metrics (training partition)**
 
@@ -446,10 +446,10 @@ The table includes a **global rank** across all scoreable boxes and a **within-t
 
 **Learned box conditions**
 
-- `HDH Stress Percentage`: [62.498, 75.000]
-- `Pattern Instances`: [0.000, 5.000]
-- `delay_percentage`: [50.010, 100.000]
 - `Client Selector Stress Percentage`: (not selected) or <= 62.498
+- `delay_percentage`: [50.010, 100.000]
+- `Pattern Instances`: [0.000, 5.000]
+- `HDH Stress Percentage`: [62.498, 75.000]
 - **Includes NaN / not-selected values:** `Client Selector Stress Percentage`
 
 **Architectural interpretation**
@@ -465,10 +465,10 @@ The table includes a **global rank** across all scoreable boxes and a **within-t
   - HDH: ON (3/3)
   - Message Compressor: OFF (3/3)
 - **Operating envelope**:
-  - HDH Stress Percentage [62.5, 75] (%)
-  - Pattern Instances [0, 5]
-  - delay percentage [50, 100] (%)
   - Client Selector Stress Percentage [20, 62.5] (%)
+  - delay percentage [50, 100] (%)
+  - Pattern Instances [0, 5]
+  - HDH Stress Percentage [62.5, 75] (%)
 
 **Discovery metrics (training partition)**
 

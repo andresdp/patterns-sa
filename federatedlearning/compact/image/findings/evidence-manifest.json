@@ -1,6 +1,6 @@
 {
   "task": "image",
-  "generated_at_utc": "2026-10-14T16:17:03+00:00",
+  "generated_at_utc": "2026-10-16T02:29:29+00:00",
   "status": "ready",
   "research_questions": {
     "RQ1": "Which tradeoffs occur, and how do design choices relate to them?",
@@ -25,13 +25,13 @@
   ],
   "scope_guide": {
     "path": "federatedlearning/compact/NOTEBOOK_STRATIFICATION.md",
-    "size_bytes": 20039,
-    "sha256": "03e7b767b8bca27b6cb61b6a48ece08a66bec61f4bc3b626947494b040cf664e"
+    "size_bytes": 16501,
+    "sha256": "7dea356744c267635595fd6e4a5ae9fdfb5ea5b95b3b79a8f5aa4705dcba7512"
   },
   "notebooks": [
     {
       "path": "federatedlearning/compact/image/analysis-fl-rq-baseline-image.ipynb",
-      "sha256": "cc654d47cbc21eb7710a06b684abcba048677656b121d6f77a93abbcf84280f9",
+      "sha256": "5537da97b8cd61e895909468ca48b54f2461d03b10efe99222b4d37b3b65ec80",
       "status": "ready",
       "code_cells": 51,
       "output_cells": 46,
@@ -74,8 +74,8 @@
       ],
       "box_report": {
         "path": "federatedlearning/compact/image/boxes/boxes__task-image__baseline_OFF_OFF_OFF__clients-all__environment-all.md",
-        "size_bytes": 10319,
-        "sha256": "e4a52239db6fb0fec32cd367ff847dc95f01b87847cdee055ab415552a49d02d"
+        "size_bytes": 12964,
+        "sha256": "ad7432d8ec0cbe7a64ed2a36bfa275e31529b9a1e5c69af6a2684b3dbe9bcbb9"
       },
       "plots": [
         {
@@ -92,7 +92,7 @@
     },
     {
       "path": "federatedlearning/compact/image/analysis-fl-rq-c10-image.ipynb",
-      "sha256": "476cf1f08c0206a9b49e6667ee0c8be138effebb1b70411138fe5c953e6ac963",
+      "sha256": "6a6b9052f2b0b539fd7aff7e60605a90c64090387d66e5f7978e830f7a576f6f",
       "status": "ready",
       "code_cells": 51,
       "output_cells": 46,
@@ -135,8 +135,8 @@
       ],
       "box_report": {
         "path": "federatedlearning/compact/image/boxes/boxes__task-image__all-configurations__clients-10__environment-all.md",
-        "size_bytes": 14487,
-        "sha256": "3f67d3dac3bcad35c0e38ecd2d96a44c66ed89f728d0bfb88e173de39a58283f"
+        "size_bytes": 17414,
+        "sha256": "02c01e62d48236f2dd2e83868ce47a3f1eca5b6adb0ce6090f905c22689c3647"
       },
       "plots": [
         {
@@ -153,7 +153,7 @@
     },
     {
       "path": "federatedlearning/compact/image/analysis-fl-rq-c4-image.ipynb",
-      "sha256": "578e9209ac38adc7b723e3d0b6d489a82b84c5728bb6fb247b50ecc9d8c42882",
+      "sha256": "e1b9d3af4c89a2f71256268f9150a96ea0bfb9c72089d7b7021d3a2fc2830701",
       "status": "ready",
       "code_cells": 51,
       "output_cells": 46,
@@ -196,8 +196,8 @@
       ],
       "box_report": {
         "path": "federatedlearning/compact/image/boxes/boxes__task-image__all-configurations__clients-4__environment-all.md",
-        "size_bytes": 14715,
-        "sha256": "360872040dbc92fc8d39350fe78d2a567546e24509731ff95a24e695fcccc28f"
+        "size_bytes": 17182,
+        "sha256": "b029ce5a2c7340e4a8c92c62a9ab648f688f89a0b720869d945f035efd25de35"
       },
       "plots": [
         {
@@ -214,7 +214,7 @@
     },
     {
       "path": "federatedlearning/compact/image/analysis-fl-rq-c8-image.ipynb",
-      "sha256": "4810e665e71ea29453650fb67e253d7b410a0d2fe224a2544ec658061853286d",
+      "sha256": "7f46c40867c6e3eb4700e1539f93206b7e5f885fcdc30b3b9e61ce7d387792b1",
       "status": "ready",
       "code_cells": 51,
       "output_cells": 46,
@@ -257,8 +257,8 @@
       ],
       "box_report": {
         "path": "federatedlearning/compact/image/boxes/boxes__task-image__all-configurations__clients-8__environment-all.md",
-        "size_bytes": 14268,
-        "sha256": "4baaf65366a679270190ddd8875e15bc33bc0679762e09ff91eab00fe5adca9c"
+        "size_bytes": 17659,
+        "sha256": "c0c63a4d9b991733aed12274d019642a327368ebfe906cf7877f8bd3d0ae1a09"
       },
       "plots": [
         {
@@ -275,7 +275,7 @@
     },
     {
       "path": "federatedlearning/compact/image/analysis-fl-rq-client_selector-image.ipynb",
-      "sha256": "6e05226b79adef31d37d7192dad341fbffff9ed0e3f68522242a825d0c2de1d5",
+      "sha256": "e4deffee2ff0a318f59773efcc69253450a22600501bb0807a5ed9b72f68f10f",
       "status": "ready",
       "code_cells": 51,
       "output_cells": 46,
@@ -318,8 +318,8 @@
       ],
       "box_report": {
         "path": "federatedlearning/compact/image/boxes/boxes__task-image__client_selector-only_ON_OFF_OFF__clients-all__environment-all.md",
-        "size_bytes": 13894,
-        "sha256": "16302059394815f38f5d07b8ce057a3b6b298c47c59faf34dca662656d768802"
+        "size_bytes": 16308,
+        "sha256": "ed1e79dee562aff87003de028dd10421892d5b756c57c8781185de0f013b56d1"
       },
       "plots": [
         {
@@ -335,8 +335,69 @@
       ]
     },
     {
+      "path": "federatedlearning/compact/image/analysis-fl-rq-combined-patterns-c8-stress-50-image.ipynb",
+      "sha256": "846968c95f0f325e857900d895f33eed26c1fc1eb056890e0abc6dc4c354a85a",
+      "status": "ready",
+      "code_cells": 51,
+      "output_cells": 46,
+      "errors": [],
+      "unexecuted_cells": [],
+      "sections": [
+        "# ADEPT compact FL combined-pattern analysis: CIFAR-10/CNN 16k — c8, 50% pattern stress by default",
+        "## Analysis population: supported pattern combinations at one client/stress setting",
+        "## 1. Load System & Model Summary",
+        "### The design space",
+        "### Reading the model summary",
+        "## 2. Linter Sanity Check",
+        "### Reading the linter warnings",
+        "## 3. Define Tradeoffs",
+        "### Reading the tradeoffs",
+        "## 4. Data Splitting",
+        "## Research Question 1 — Which tradeoffs occur across pattern combinations at a common setting?",
+        "### Reading the split",
+        "### How to read `S`, `M` and `L`",
+        "### Decisions, policies and configurations",
+        "#### What else the model contains",
+        "### Reading the objective space",
+        "## 5. Contingency Analysis: Composite and Marginal Decisions",
+        "### Reading the contingency results",
+        "## 6. Robustness Analysis (Quantifying Stability)",
+        "### How robustness relates to contingency",
+        "## 7. Pattern Stress",
+        "### How to read the pattern-instance charts and tables",
+        "## Research Question 2 — Which joint conditions identify a target tradeoff at this setting?",
+        "## 8. Feature Importance & Key-Parameter Selection",
+        "### Pattern-parameter presence check",
+        "## 9. Scenario Discovery: PRIM",
+        "### Reading the PRIM boxes",
+        "## 10. Global Discovery: CART",
+        "## 10.1 Architectural interpretation of the discovered boxes",
+        "### Reading the CART boxes",
+        "## 11. What-if analysis: robustness after applying box rules",
+        "## 12. Box Diagnostics and \"Not Selected\" Hatching",
+        "## 13. Performance Metrics"
+      ],
+      "box_report": {
+        "path": "federatedlearning/compact/image/boxes/boxes__task-image__combined-patterns__clients-8__stress-50__environment-all.md",
+        "size_bytes": 15878,
+        "sha256": "f23d1d50f37adc2a5fc13b584cc76f0f080e30e7491a05f59e02103910dae987"
+      },
+      "plots": [
+        {
+          "path": "federatedlearning/compact/image/plots/quality-space__task-image__combined-patterns__clients-8__stress-50__environment-all__final_val_accuracy-vs-avg_total_time.png",
+          "size_bytes": 129902,
+          "sha256": "f16747f78410019802fb5ac82b9c9793e88ad65bbace60199d3159b71552e35f"
+        },
+        {
+          "path": "federatedlearning/compact/image/plots/feature-importance__task-image__combined-patterns__clients-8__stress-50__environment-all.png",
+          "size_bytes": 507723,
+          "sha256": "b4ecb0cc2c7b46151afb5442fa57a20804284c0cc873cb552ab6d4087346f089"
+        }
+      ]
+    },
+    {
       "path": "federatedlearning/compact/image/analysis-fl-rq-hdh-image.ipynb",
-      "sha256": "8d6c4b5584bd29628aa2cbc3bf103e4fa83f7a850ea20592438999cd05beb00b",
+      "sha256": "c3c1f309ab76ae65408b31072577f9da961cf8a1c0d92d2efe300e51a0478953",
       "status": "ready",
       "code_cells": 51,
       "output_cells": 46,
@@ -379,8 +440,8 @@
       ],
       "box_report": {
         "path": "federatedlearning/compact/image/boxes/boxes__task-image__hdh-only_OFF_OFF_ON__clients-all__environment-all.md",
-        "size_bytes": 12203,
-        "sha256": "e4a001c2ee3ea24566d15508bf41b3a563941447becafa71ca66ddebe70cea81"
+        "size_bytes": 14864,
+        "sha256": "470e9eba0e7912b59cdff803881f9c3d3158248475d808149b721af237b96aa3"
       },
       "plots": [
         {
@@ -397,7 +458,7 @@
     },
     {
       "path": "federatedlearning/compact/image/analysis-fl-rq-message_compressor-image.ipynb",
-      "sha256": "bf985db49e834c4f4791095e0068f82a3042e1685a8526e21c6445fede1721a9",
+      "sha256": "a10d79fd7dc1adb9da9516707f94ce040e1362ff8af6687e5e7f5f9e23db105d",
       "status": "ready",
       "code_cells": 51,
       "output_cells": 46,
@@ -440,8 +501,8 @@
       ],
       "box_report": {
         "path": "federatedlearning/compact/image/boxes/boxes__task-image__message_compressor-only_OFF_ON_OFF__clients-all__environment-all.md",
-        "size_bytes": 10402,
-        "sha256": "bb1abb85db2621c54225b163f5eaa605b6439801af9a5a5f8815aa9a93737f00"
+        "size_bytes": 12799,
+        "sha256": "c0ca57627b7255780ba8e48462a01aac028f8b68af264c8ed638ea4dc91849b7"
       },
       "plots": [
         {
@@ -457,16 +518,16 @@
       ]
     },
     {
-      "path": "federatedlearning/compact/image/analysis-fl-rq-stress-client_selector-image.ipynb",
-      "sha256": "fe787c120a66d028038e841c3c8200c787332085c4538fe15fb7fb9e9a79f643",
+      "path": "federatedlearning/compact/image/analysis-fl-rq-stress-only-client_selector-image.ipynb",
+      "sha256": "4ed9ed5b4ba36706a787d1a8cafc97a56bf11c970fe370b54164ba3b9c91c86d",
       "status": "ready",
       "code_cells": 51,
       "output_cells": 46,
       "errors": [],
       "unexecuted_cells": [],
       "sections": [
-        "# ADEPT compact FL Client Selector stress analysis: CIFAR-10/CNN 16k, all client counts",
-        "## Analysis population: Client Selector enabled, all stress levels and client counts",
+        "# ADEPT compact FL Client Selector stress-only analysis: CIFAR-10/CNN 16k, all client counts",
+        "## Analysis population: Client Selector only, all stress levels and client counts",
         "## 1. Load System & Model Summary",
         "### The design space",
         "### Reading the model summary",
@@ -487,7 +548,7 @@
         "### How robustness relates to contingency",
         "## 7. Pattern deployment measures and Client Selector stress",
         "### How to read the pattern-instance charts and tables",
-        "## Research Question 2 — Which joint conditions identify each tradeoff with Client Selector enabled?",
+        "## Research Question 2 — Which joint conditions identify each tradeoff with Client Selector ON with other patterns OFF?",
         "## 8. Feature Importance & Key-Parameter Selection",
         "### Pattern-parameter presence check",
         "## 9. Scenario Discovery: PRIM",
@@ -500,34 +561,34 @@
         "## 13. Performance Metrics"
       ],
       "box_report": {
-        "path": "federatedlearning/compact/image/boxes/boxes__task-image__focal-pattern-client_selector__clients-all__environment-all.md",
-        "size_bytes": 14953,
-        "sha256": "8f8161310bffe349ebca570d4acb1c3fbcb9a431bd458cbd2518031305b46ad3"
+        "path": "federatedlearning/compact/image/boxes/boxes__task-image__stress-ONLY-client_selector__clients-all__environment-all.md",
+        "size_bytes": 16344,
+        "sha256": "6161ed934a3936f98ddfa12289e966a6a64fa287e75282167f9a4fbd84d76000"
       },
       "plots": [
         {
-          "path": "federatedlearning/compact/image/plots/quality-space__task-image__focal-pattern-client_selector__clients-all__environment-all__final_val_accuracy-vs-avg_total_time.png",
-          "size_bytes": 235589,
-          "sha256": "b2b35ceb9e7e1bbf8476094c4ed78e4aeab4b3cb4de507456c18091c2b2a8208"
+          "path": "federatedlearning/compact/image/plots/quality-space__task-image__stress-ONLY-client_selector__clients-all__environment-all__final_val_accuracy-vs-avg_total_time.png",
+          "size_bytes": 166027,
+          "sha256": "6c64614880f41b9d1db81d3c0eff99d7c0fd477d02e950e0e43dafd9817808cb"
         },
         {
-          "path": "federatedlearning/compact/image/plots/feature-importance__task-image__focal-pattern-client_selector__clients-all__environment-all.png",
-          "size_bytes": 570344,
-          "sha256": "e61018063e10f65dfb1027c0b0e957a9725cbe81de299cd664317cc54e533101"
+          "path": "federatedlearning/compact/image/plots/feature-importance__task-image__stress-ONLY-client_selector__clients-all__environment-all.png",
+          "size_bytes": 555749,
+          "sha256": "10c044837f018ea5b126a491b1b9617a01403db2ed2388b322b62e0f13d745b1"
         }
       ]
     },
     {
-      "path": "federatedlearning/compact/image/analysis-fl-rq-stress-hdh-image.ipynb",
-      "sha256": "110f7ecf441e8b83051d310ebc0ec8893d72d98895b015cd64042167580c2492",
+      "path": "federatedlearning/compact/image/analysis-fl-rq-stress-only-hdh-image.ipynb",
+      "sha256": "f0b47f72877ec78b399258e556e6baaeedb2268f3b6bd2443ffd557da37d5932",
       "status": "ready",
       "code_cells": 51,
       "output_cells": 46,
       "errors": [],
       "unexecuted_cells": [],
       "sections": [
-        "# ADEPT compact FL HDH stress analysis: CIFAR-10/CNN 16k, all client counts",
-        "## Analysis population: HDH enabled, all stress levels and client counts",
+        "# ADEPT compact FL HDH stress-only analysis: CIFAR-10/CNN 16k, all client counts",
+        "## Analysis population: HDH only, all stress levels and client counts",
         "## 1. Load System & Model Summary",
         "### The design space",
         "### Reading the model summary",
@@ -548,7 +609,7 @@
         "### How robustness relates to contingency",
         "## 7. Pattern deployment measures and HDH stress",
         "### How to read the pattern-instance charts and tables",
-        "## Research Question 2 — Which joint conditions identify each tradeoff with HDH enabled?",
+        "## Research Question 2 — Which joint conditions identify each tradeoff with HDH ON with other patterns OFF?",
         "## 8. Feature Importance & Key-Parameter Selection",
         "### Pattern-parameter presence check",
         "## 9. Scenario Discovery: PRIM",
@@ -561,34 +622,34 @@
         "## 13. Performance Metrics"
       ],
       "box_report": {
-        "path": "federatedlearning/compact/image/boxes/boxes__task-image__focal-pattern-hdh__clients-all__environment-all.md",
-        "size_bytes": 14328,
-        "sha256": "fe2d897793c364c0f3e5d19bd4f221f5af40bc2325d9556b53fe4ce5d4344a67"
+        "path": "federatedlearning/compact/image/boxes/boxes__task-image__stress-ONLY-hdh__clients-all__environment-all.md",
+        "size_bytes": 14900,
+        "sha256": "d2166a42e406bb292680680da82051afeee1349984eb91d05cfabf3e2c4c6737"
       },
       "plots": [
         {
-          "path": "federatedlearning/compact/image/plots/quality-space__task-image__focal-pattern-hdh__clients-all__environment-all__final_val_accuracy-vs-avg_total_time.png",
-          "size_bytes": 252713,
-          "sha256": "99d23ead88cde54c84dea52cdbb5c699254a2448f6b31fc36ecd9ed2f8790857"
+          "path": "federatedlearning/compact/image/plots/quality-space__task-image__stress-ONLY-hdh__clients-all__environment-all__final_val_accuracy-vs-avg_total_time.png",
+          "size_bytes": 159805,
+          "sha256": "77a77e953e5f8dc601738c7e782bca820548b225ee3f2229cd6f129ff0af9744"
         },
         {
-          "path": "federatedlearning/compact/image/plots/feature-importance__task-image__focal-pattern-hdh__clients-all__environment-all.png",
-          "size_bytes": 565312,
-          "sha256": "b47663ab6c9b8773a92846c37aa63b474e208b2fd53271c325de9afa802857af"
+          "path": "federatedlearning/compact/image/plots/feature-importance__task-image__stress-ONLY-hdh__clients-all__environment-all.png",
+          "size_bytes": 567965,
+          "sha256": "86eb01820091577b32c45c500afed1d9b9866fe44b5f93f63a42f42deb259cd7"
         }
       ]
     },
     {
-      "path": "federatedlearning/compact/image/analysis-fl-rq-stress-message_compressor-image.ipynb",
-      "sha256": "5c4230650f55ccbb27f47ed2ba7ff464c003c57663e09a4c1bb0478b3ee23cf2",
+      "path": "federatedlearning/compact/image/analysis-fl-rq-stress-only-message_compressor-image.ipynb",
+      "sha256": "f311b6325a468155763eef39f3d2386966c2d50356252e1d8865f94a220516d3",
       "status": "ready",
       "code_cells": 51,
       "output_cells": 46,
       "errors": [],
       "unexecuted_cells": [],
       "sections": [
-        "# ADEPT compact FL Message Compressor stress analysis: CIFAR-10/CNN 16k, all client counts",
-        "## Analysis population: Message Compressor enabled, all stress levels and client counts",
+        "# ADEPT compact FL Message Compressor stress-only analysis: CIFAR-10/CNN 16k, all client counts",
+        "## Analysis population: Message Compressor only, all stress levels and client counts",
         "## 1. Load System & Model Summary",
         "### The design space",
         "### Reading the model summary",
@@ -609,7 +670,7 @@
         "### How robustness relates to contingency",
         "## 7. Pattern deployment measures and Message Compressor stress",
         "### How to read the pattern-instance charts and tables",
-        "## Research Question 2 — Which joint conditions identify each tradeoff with Message Compressor enabled?",
+        "## Research Question 2 — Which joint conditions identify each tradeoff with Message Compressor ON with other patterns OFF?",
         "## 8. Feature Importance & Key-Parameter Selection",
         "### Pattern-parameter presence check",
         "## 9. Scenario Discovery: PRIM",
@@ -622,20 +683,20 @@
         "## 13. Performance Metrics"
       ],
       "box_report": {
-        "path": "federatedlearning/compact/image/boxes/boxes__task-image__focal-pattern-message_compressor__clients-all__environment-all.md",
-        "size_bytes": 13076,
-        "sha256": "2ed852adbb25295ca4bb78a5608351dc3139c7637a307ae2f36d2b4b6eb597a1"
+        "path": "federatedlearning/compact/image/boxes/boxes__task-image__stress-ONLY-message_compressor__clients-all__environment-all.md",
+        "size_bytes": 13035,
+        "sha256": "70ccd337aa8933884c08f0bcf4f1990770fed01135895431f4d207043f512bc5"
       },
       "plots": [
         {
-          "path": "federatedlearning/compact/image/plots/quality-space__task-image__focal-pattern-message_compressor__clients-all__environment-all__final_val_accuracy-vs-avg_total_time.png",
-          "size_bytes": 233518,
-          "sha256": "a8c6754aa7eeb47d91255ae0ce478eaf26b3bba3c5cd05fb31f8906f2daa89ca"
+          "path": "federatedlearning/compact/image/plots/quality-space__task-image__stress-ONLY-message_compressor__clients-all__environment-all__final_val_accuracy-vs-avg_total_time.png",
+          "size_bytes": 166628,
+          "sha256": "17e6838179d589b280e8b88c8e4bd5764c36b51cc96732b3d6e1d697896603fb"
         },
         {
-          "path": "federatedlearning/compact/image/plots/feature-importance__task-image__focal-pattern-message_compressor__clients-all__environment-all.png",
-          "size_bytes": 571816,
-          "sha256": "3a09894951c878d10e221b928a2a267d2e15393cf8768f50b02a8996c942dbdc"
+          "path": "federatedlearning/compact/image/plots/feature-importance__task-image__stress-ONLY-message_compressor__clients-all__environment-all.png",
+          "size_bytes": 554641,
+          "sha256": "7b357fc3d2a1424455c4beeba4853a761bc4a4a4663d024afe0a2380d31e4d5d"
         }
       ]
     }

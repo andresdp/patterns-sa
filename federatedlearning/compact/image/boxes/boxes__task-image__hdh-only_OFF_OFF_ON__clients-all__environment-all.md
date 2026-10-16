@@ -292,8 +292,8 @@ The table includes a **global rank** across all scoreable boxes and a **within-t
 
 **Learned box conditions**
 
-- `JSD Mean`: [0.018, 0.081]
 - `Total Clients`: [5.999, 10.000]
+- `JSD Mean`: [0.018, 0.081]
 - **Includes NaN / not-selected values:** No
 
 **Architectural interpretation**
@@ -391,8 +391,8 @@ The table includes a **global rank** across all scoreable boxes and a **within-t
 
 **Learned box conditions**
 
-- `JSD Mean`: [0.051, 0.066]
 - `Total Clients`: [4.000, 5.999]
+- `JSD Mean`: [0.051, 0.066]
 - **Includes NaN / not-selected values:** No
 
 **Architectural interpretation**

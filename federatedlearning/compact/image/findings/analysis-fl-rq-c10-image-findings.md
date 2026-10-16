@@ -1,77 +1,60 @@
-# Findings: ADEPT compact FL analysis: CIFAR-10/CNN 16k, 10 clients
+# Findings — ADEPT compact FL analysis: CIFAR-10/CNN 16k, 10 clients
 
-## Scope and support
+## Scope and evidence
 
-- **Task:** image, CIFAR-10 with CNN 16k. **Case:** All eight observed configurations; 10 clients, all environments.
-- **Rows:** 390 total; 273 training and 117 held out. The unit is a run; the split groups by `partition_seed` (10 groups, 7/3 train/test). Grouped holdout by partition_seed: 3 of 10 groups held out; stratification score=0.000028..
-- **Tradeoff counts (fixed accuracy × round-time grid):** training: S,S 13, S,M 76, M,S 38, M,M 146; held out: S,S 6, S,M 33, M,S 16, M,M 62. Regions absent from each list have zero rows in that partition; empty regions indicate no sampled runs, not infeasibility.
-- Accuracy and time are discretized into S/M/L using the campaign's shared cut points; S/M/L mean value bands, not preference. Regions include low/medium accuracy × low/medium round time in these observed cases; see notebook Section 3 for exact edges and Section 4 for the split.
+- **Case:** ADEPT compact FL analysis: CIFAR-10/CNN 16k, 10 clients (client-count configuration comparison); 390 of 2340 compact campaign rows retained; all-environment view.
+- **Split:** Grouped split by partition_seed: 3 of 10 groups held out; stratification score=0.000028. 273 training rows, 117 held-out rows; no rare-class fallback reported. Grouping by `partition_seed` keeps seed groups intact.
+- **Training tradeoff counts:** S-S: 13 (4.76%); S-M: 76 (27.84%); M-S: 38 (13.92%); M-M: 146 (53.48%).
+- **Held-out tradeoff counts:** S-S: 6 (5.13%); S-M: 33 (28.21%); M-S: 16 (13.68%); M-M: 62 (52.99%).
+- **Evidence:** [executed notebook](../analysis-fl-rq-c10-image.ipynb); [regenerated PRIM/CART report](../boxes/boxes__task-image__all-configurations__clients-10__environment-all.md); plots: [feature-importance__task-image__all-configurations__clients-10__environment-all.png](../plots/feature-importance__task-image__all-configurations__clients-10__environment-all.png); [quality-space__task-image__all-configurations__clients-10__environment-all__final_val_accuracy-vs-avg_total_time.png](../plots/quality-space__task-image__all-configurations__clients-10__environment-all__final_val_accuracy-vs-avg_total_time.png).
 
-## RQ1 — Which tradeoffs occur, and how do design choices relate to them?
+## RQ1 — Observed tradeoffs and design alternatives
 
-The observed occupancy is concentrated in the regions shown above. Outcome-space allocation and the configuration contingency tables in notebook Sections 4–5 describe complete pattern configurations and their denominators; marginal ON/OFF summaries pool multiple configurations. This case fixes client count or one complete policy, as stated in the scope; conclusions apply to this slice.
-
-Robustness/contingency outputs in Sections 5–6 show within-group region shares. They are descriptive allocations across sampled run conditions. No empty region should be read as impossible, and observed differences do not isolate a pattern effect. The Section 7 pattern-stress summaries are run-level aggregations; instance count and number of active pattern types are not interchangeable with a complete policy configuration.
-
-## RQ2 — Which joint conditions identify a target tradeoff, and what changes inside the box?
-
-Feature rankings and exclusions are reported in Sections 8–10 and the feature-importance plot. Importance is relative predictive credit in this fitted slice; it is not a direction or causal effect. PRIM/CART rules are joint conditions, with design and context mixed according to the available features. See the linked box report for the full rule limits, architectural interpretation, discovery support, and not-selected/NaN coverage.
-
-**PRIM held-out evaluation** (test baseline = target prevalence; Δ rate = box precision minus baseline; train lift is retained from the notebook's output):
+All eight complete configurations are compared within this fixed client-count stratum. The rows below show the share of each policy group in each outcome region; marginal active-pattern counts combine multiple configurations and should not be read as policy effects.
 
 ```text
-method target  test_n  baseline_target_n  box_n  target_in_box  \
-0   PRIM    S-S     117                  6      6              3   
-1   PRIM    S-M     117                 33     27             27   
-2   PRIM    M-S     117                 16     15             15   
-3   PRIM    M-M     117                 62     51             51   
-
-   baseline_rate  box_precision  test_delta_rate  train_lift_absolute  \
-0          0.051            0.5            0.449                0.667   
-1          0.282            1.0            0.718                0.722   
-2          0.137            1.0            0.863                0.861   
-3          0.530            1.0            0.470                0.465   
-
-   test_recall_coverage  
-0                 0.500  
-1                 0.818  
-2                 0.938  
-3                 0.823
+S-S       S-M  S-L       M-S       M-M  M-L  L-S  L-M  L-L
+policy
+OFF,OFF,OFF  0.000000  0.333333  0.0  0.166667  0.500000  0.0  0.0  0.0  0.0
+OFF,OFF,ON   0.000000  0.800000  0.0  0.000000  0.200000  0.0  0.0  0.0  0.0
+OFF,ON,OFF   0.000000  0.142857  0.0  0.142857  0.714286  0.0  0.0  0.0  0.0
+OFF,ON,ON    0.000000  0.400000  0.0  0.200000  0.400000  0.0  0.0  0.0  0.0
+ON,OFF,OFF   0.133333  0.200000  0.0  0.066667  0.600000  0.0  0.0  0.0  0.0
+ON,OFF,ON    0.444444  0.222222  0.0  0.000000  0.333333  0.0  0.0  0.0  0.0
+ON,ON,OFF    0.000000  0.066667  0.0  0.200000  0.733333  0.0  0.0  0.0  0.0
+ON,ON,ON     0.000000  0.000000  0.0  0.333333  0.666667  0.0  0.0  0.0  0.0
 ```
 
-**CART held-out evaluation:**
+In the held-out partition, **M-M** is the most common region (62/117, 52.99%). The next largest is S-M (33 rows, 28.21%).
 
-```text
-method target  test_n  baseline_target_n  box_n  target_in_box  \
-0   CART    M-M     117                 62     51             51   
-1   CART    S-M     117                 33     27             27   
-2   CART    M-S     117                 16     15             15   
-3   CART    S-S     117                  6      3              1   
+The occupied regions and shares above describe this filtered run-level sample. Empty regions mean no observed runs in this scope, not infeasibility. In cases pooling client counts or environments, treat those dimensions as mixed context; in stress-only cases, the stress feature is tied to its paired environment percentage. The analysis is observational.
 
-   baseline_rate  box_precision  test_delta_rate  train_lift_absolute  \
-0          0.530          1.000            0.470                0.465   
-1          0.282          1.000            0.718                0.722   
-2          0.137          1.000            0.863                0.861   
-3          0.051          0.333            0.282                0.452   
+## RQ2 — Joint conditions, feature roles, and held-out what-if evidence
 
-   test_recall_coverage  
-0                 0.823  
-1                 0.818  
-2                 0.938  
-3                 0.167
-```
+**Feature-ranking trend in this case.** The leading ADEPT weighted ranks are `Alpha Dirichlet Mean`, `delay_percentage`, `Client Selector Stress Percentage`, `JSD Mean`, `Pattern Types Active`. Scenario-discovery candidates are [`Alpha Dirichlet Mean`, `delay_percentage`, `Client Selector Stress Percentage`, `JSD Mean`]. These are model-relative predictive credits, not directions or effects. See [Section 8](../analysis-fl-rq-c10-image.ipynb#8-Feature-Importance--Key-Parameter-Selection).
 
-Metrics are read as held-out precision among retained test runs and target coverage among all held-out target runs. A target with zero held-out rows is not test-evaluable; NaN precision/coverage is undefined. Sparse targets warrant caution. Policy-specific before/boxed/gain and target-coverage matrices are in notebook Section 11 and must be read alongside retained counts; they describe policy-filtered cells, distinct from the all-run held-out summary above.
+**Highest-ranked architectural boxes in the regenerated report:**
 
-## Implications and limitations
+No non-empty, scoreable box is documented for this case; consult the report for unvalidated/empty target outcomes.
 
-- **For practitioners:** use a discovered conjunction as a candidate operating envelope for further runs in this exact case scope. Prefer rules with both useful coverage and adequate retained support; validate sparse or low-coverage boxes before treating them as an operating recommendation.
-- **For researchers:** the grouped seed holdout provides out-of-sample evidence within this slice, but not independent replication across workloads or sampling regimes. The design and context conditions are observational; client attributes are run-level aggregates and can conceal within-run client imbalance.
-- **Limitations:** available configurations and environment coverage are bounded by the campaign data; fixed discretization can leave empty cells; pooled or overlapping scopes limit cross-case attribution; predictive rankings and boxes do not establish causal effects.
+The report's global ranking is reproduced here for the leading boxes; retain its full target-by-target table for the remaining boxes, duplicate marks, NaN/not-selected flags, and discovery metrics.
 
-## Supporting artifacts
+| Global rank | Target | Box | Held-out status | Test score | Coverage | Hits / targets | Retained / test | Conditions | Duplicate mark |
+|---:|:---|:---|:---|---:|---:|---:|---:|---:|:---|
+| 1 | M-S | CART Box 3 | Evaluated | 0.9677 | 0.9375 | 15 / 16 | 15 / 117 | 2 | Near duplicate of PRIM Box 3 (condition similarity 100%; held-out membership Jaccard 100%) |
+| 2 | M-S | PRIM Box 3 | Evaluated | 0.9677 | 0.9375 | 15 / 16 | 15 / 117 | 2 | Representative for CART Box 3 |
+| 3 | M-M | CART Box 1 | Evaluated | 0.9027 | 0.8226 | 51 / 62 | 51 / 117 | 3 | — |
+| 4 | M-M | PRIM Box 4 | Evaluated | 0.9027 | 0.8226 | 51 / 62 | 51 / 117 | 4 | — |
+| 5 | S-M | CART Box 2 | Evaluated | 0.9000 | 0.8182 | 27 / 33 | 27 / 117 | 2 | Near duplicate of PRIM Box 2 (condition similarity 100%; held-out membership Jaccard 100%) |
+| 6 | S-M | PRIM Box 2 | Evaluated | 0.9000 | 0.8182 | 27 / 33 | 27 / 117 | 2 | Representative for CART Box 2 |
 
-- Notebook sections 3–11: [analysis-fl-rq-c10-image.ipynb](../analysis-fl-rq-c10-image.ipynb#section-4-data-splitting)
-- Box report: [boxes__task-image__all-configurations__clients-10__environment-all.md](../boxes/boxes__task-image__all-configurations__clients-10__environment-all.md)
-- Objective-space plot: [quality-space__task-image__all-configurations__clients-10__environment-all__final_val_accuracy-vs-avg_total_time.png](../plots/quality-space__task-image__all-configurations__clients-10__environment-all__final_val_accuracy-vs-avg_total_time.png)
-- Feature-importance plot: [feature-importance__task-image__all-configurations__clients-10__environment-all.png](../plots/feature-importance__task-image__all-configurations__clients-10__environment-all.png)
+A boxed held-out what-if is a restriction of existing test runs. It can enrich a discrete target region within this sample; it does not change the FL design or establish future robustness. Check held-out support and coverage before treating a rule as actionable. See [Section 11 and policy matrices](../analysis-fl-rq-c10-image.ipynb#11-What-if-analysis-robustness-after-applying-box-rules) and the complete [box report](../boxes/boxes__task-image__all-configurations__clients-10__environment-all.md).
+
+## Practical and research implications
+
+- **For practitioners:** Use the best-supported joint box as a candidate operating envelope to monitor or validate; make only the policy decisions explicitly constrained by its architectural prescription. Avoid adopting rules with sparse retained support, zero held-out target support, or low target coverage as general guidance.
+- **For researchers:** The feature ordering and box boundaries are specific to this filtered case and grouped holdout. Confirm the same pattern in another relevant stratum or a controlled follow-up; do not interpret feature importance, stress aliases, or box rules causally.
+
+## Case limitations
+
+Compact client characteristics are aggregated run-level values; they can hide client-level imbalance and round behavior. The ten-seed grouped holdout leaves limited support for rare regions. The box report and notebook provide the full feature set, all box conditions, and metrics.

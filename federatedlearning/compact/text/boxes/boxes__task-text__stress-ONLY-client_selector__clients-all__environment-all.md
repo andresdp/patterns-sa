@@ -221,8 +221,8 @@ The table includes a **global rank** across all scoreable boxes and a **within-t
 
 **Learned box conditions**
 
-- `Total Clients`: [5.999, 10.000]
 - `Client Selector Stress Percentage`: [25.000, 37.500]
+- `Total Clients`: [5.999, 10.000]
 - **Includes NaN / not-selected values:** No
 
 **Architectural interpretation**
@@ -272,11 +272,11 @@ The table includes a **global rank** across all scoreable boxes and a **within-t
 
 **Learned box conditions**
 
-- `delay_percentage`: [25.000, 50.000]
-- `Total Clients`: [5.999, 10.000]
-- `non_iid_percentage`: [50.000, 75.000]
 - `Client Selector Stress Percentage`: [62.500, 75.000]
+- `delay_percentage`: [25.000, 50.000]
+- `non_iid_percentage`: [50.000, 75.000]
 - `Alpha Dirichlet Mean`: [0.612, 0.900]
+- `Total Clients`: [5.999, 10.000]
 - **Includes NaN / not-selected values:** No
 
 **Architectural interpretation**
@@ -292,9 +292,9 @@ The table includes a **global rank** across all scoreable boxes and a **within-t
   - HDH: OFF (3/3)
   - Message Compressor: OFF (3/3)
 - **Operating envelope**:
+  - Client Selector Stress Percentage [62.5, 75] (%)
   - delay percentage [25, 50] (%)
   - non-IID percentage [50, 75] (%)
-  - Client Selector Stress Percentage [62.5, 75] (%)
   - Alpha Dirichlet Mean [0.612, 0.9]
 - **Other design conditions**:
   - Total Clients [6, 10]
