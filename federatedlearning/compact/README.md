@@ -56,14 +56,16 @@ It must therefore be loaded through `fl_slices.slice_filter(...)`, as every note
 ## 3. Notebooks and their rationale
 
 The maintained notebooks are organized by task and use **only the all-environment view**. There
-are fourteen text notebooks and eleven image notebooks. Both tasks have three all-configuration
-notebooks at fixed client counts, three stress-ONLY notebooks that isolate one active pattern, one
+are eleven notebooks for each task. Both tasks have three all-configuration
+notebooks at fixed client counts, three stress-only notebooks that isolate one active pattern, one
 combined-pattern notebook at a configurable client count and stress percentage, one baseline
-profile and three single-configuration profiles. Text also retains three broader focal-pattern
-notebooks in which other patterns may be co-enabled. The environmental design is not fully crossed,
+profile and three single-configuration profiles. The environmental design is not fully crossed,
 so configuration differences can reflect both pattern choices and environment composition.
+The three former broad-scope text stress notebooks have been retired to keep the task sets
+corresponding; their already-generated findings and reports remain historical and are not part of
+the maintained 11-notebook analysis set.
 
-For a leaf-by-leaf tree of the 25 notebooks, their fixed and varying factors, and their grouped
+For a leaf-by-leaf tree of the 22 notebooks, their fixed and varying factors, and their grouped
 train/test split, see [Notebook stratification and scope](NOTEBOOK_STRATIFICATION.md).
 
 **Scope naming:** `c4`, `c8`, and `c10` in notebook filenames refer to `Total Clients` = 4, 8,
@@ -84,7 +86,6 @@ analyses if needed.
 | `image/analysis-fl-rq-c{4,8,10}-image.ipynb` | CIFAR-10/CNN 16k at 4, 8 or 10 clients | RQ1: observed objective tradeoffs by configuration and pattern count. RQ2: conditions associated with each observed tradeoff and held-out box comparisons. |
 | `text/analysis-fl-rq-c{4,8,10}-text.ipynb` | AG_NEWS/MLP at 4, 8 or 10 clients | Same RQ1 and RQ2 analyses for the text task. |
 | `image/analysis-fl-rq-stress-only-{client_selector,message_compressor,hdh}-image.ipynb` | CIFAR-10/CNN 16k with exactly the named pattern ON and the other two OFF; all client counts | RQ1: objective and tradeoff distributions by the isolated pattern's stress level, with severity-coded colors. RQ2: joint conditions, including the focal stress feature, and held-out PRIM/CART results. |
-| `text/analysis-fl-rq-stress-{client_selector,message_compressor,hdh}-text.ipynb` | AG_NEWS/MLP with the named focal pattern ON; all client counts; other patterns may vary | Same stress-focused RQ1/RQ2 analysis for text. |
 | `text/analysis-fl-rq-stress-only-{client_selector,message_compressor,hdh}-text.ipynb` | AG_NEWS/MLP with exactly the named pattern ON and the other two OFF; all client counts | Isolate each pattern's stress-level tradeoffs, with severity-coded colors; discover stress-aware operating envelopes. The Message Compressor legend uses one horizontal row for its five levels. |
 | `image/analysis-fl-rq-combined-patterns-c8-stress-50-image.ipynb` | CIFAR-10/CNN 16k; default `Total Clients=8` and 50% stress, both configurable; each enabled pattern must use the target stress | RQ1: compare all supported one-, two- and three-pattern configurations at a shared setting. RQ2: discover joint conditions within the available subset. The support table includes absent combinations; at c8/50%, six combinations have ten rows each and the all-three combination has none. |
 | `text/analysis-fl-rq-combined-patterns-c8-stress-50-text.ipynb` | AG_NEWS/MLP; default `Total Clients=8` and 50% stress, both configurable; each enabled pattern must use the target stress | Same shared-setting comparison for text. At c8/50%, six single- and two-pattern combinations have ten rows each; the all-three combination has none. |
@@ -99,8 +100,8 @@ having no observations and are not sent to PRIM/CART. Dataset and model are trea
 scenario context because they do not vary independently in this campaign.
 
 RQ1 is descriptive: it reports objective-space distributions and within-group tradeoff
-frequencies for complete configurations, isolated stress levels (with and without
-co-activation), the combined-pattern setting, and for 0, 1, and 2–3 active pattern types. RQ2 uses
+frequencies for complete configurations, isolated stress levels without co-activation, the
+combined-pattern setting, and for 0, 1, and 2–3 active pattern types. RQ2 uses
 the existing ADEPT train-set feature-ranking technique to prioritize predictors, then runs
 PRIM and CART on the training partition. The held-out partition keeps whole `partition_seed`
 groups together; the grouped splitter searches candidate held-out seed sets and selects the
@@ -110,10 +111,9 @@ small or absent held-out target counts should be reported as limited or unavaila
 The feature-importance and scenario-discovery inputs exclude parameters fixed by the notebook
 scope: `Dataset` and `Model` in every task-specific notebook, plus `Total Clients` in the c4,
 c8 and c10 notebooks. The all-configuration c4/c8/c10 notebooks consider all three parsed
-pattern-stress features. In each stress-ONLY notebook, exactly one pattern is active; its
+pattern-stress features. In each stress-only notebook, exactly one pattern is active; its
 stress feature is a candidate and its paired environment percentage is excluded as an exact
-duplicate. The broader text focal-pattern notebooks retain their overlapping scope, where other
-patterns may be co-enabled. The combined-pattern notebooks exclude all three stress features from
+duplicate. The combined-pattern notebooks exclude all three stress features from
 ranking and discovery because the active values are fixed at the target percentage and missingness
 would duplicate configuration activation; `config_id` remains the design alternative. The
 single-configuration profiles exclude all parsed stress features because they duplicate their
@@ -174,19 +174,15 @@ support, and whether the design/context distinctions and observational limits ar
 
 Open a notebook from its task folder and run it top to bottom with the `perfmodels` conda
 environment. Each notebook sets `ENVIRONMENT = 'all'`; none runs or reports the same-environment
-analysis. For image, run the three all-configuration notebooks in client-count order, the three
-stress-ONLY notebooks (Client Selector, HDH, Message Compressor), the combined-pattern notebook,
-then baseline and the three single-configuration profiles. The stress-ONLY notebooks pool client
+analysis. For either task, run the three all-configuration notebooks in client-count order, the three
+stress-only notebooks (Client Selector, HDH, Message Compressor), the combined-pattern notebook,
+then baseline and the three single-configuration profiles. The stress-only notebooks pool client
 counts and require exactly their named pattern ON; the other pattern decisions are OFF. Their
 colors consistently map increasing stress to green/orange/red, with Message Compressor using five
 steps from light green to dark red; its five-level legend is displayed horizontally. The
 combined-pattern notebook defaults to `CLIENTS = 8` and
 `TARGET_STRESS = 50`; change either parameter to explore another supported slice. It lists support
-for all seven non-empty pattern combinations before analyzing those with rows. For text, run the
-three client-count notebooks, the three stress-ONLY notebooks, the combined-pattern notebook, the
-three broader focal-pattern stress notebooks, baseline, and three single-configuration profiles.
-The stress-ONLY notebooks isolate one enabled pattern; the broader text focal-pattern notebooks
-allow other patterns to vary.
+for all seven non-empty pattern combinations before analyzing those with rows.
 The baseline and single-pattern profiles keep one exact configuration. Each objective-space chart
 and Section 8 feature-importance heatmap is saved as a 300 dpi PNG in its task folder's `plots/`
 directory. Filenames record the scope and filters. The findings workflow takes the selected
@@ -198,7 +194,7 @@ one task synthesis.
 | Argument | Keeps |
 |:---|:---|
 | `name` (+ `include_baseline`) | `'all'`, `'baseline'`, or one pattern alone (`'client_selector'`, `'message_compressor'`, `'hdh'`) |
-| `required_patterns` | Require one or more named patterns to be ON while other pattern decisions may vary; used by the focal-pattern stress notebooks |
+| `required_patterns` | Require one or more named patterns to be ON while other pattern decisions may vary; supported by the helper but not used by maintained notebooks |
 | `target_stress` | Keep non-baseline configurations only when every enabled pattern's parsed stress percentage equals the requested value; used by both combined-pattern notebooks |
 | `clients` | runs with that `Total Clients` (4, 8 or 10) |
 | `task` | `'image'` = CIFAR-10 + CNN 16k, `'text'` = AG_NEWS + MLP |
