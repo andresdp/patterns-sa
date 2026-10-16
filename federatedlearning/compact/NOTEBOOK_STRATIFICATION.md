@@ -1,6 +1,6 @@
 # Compact notebook stratification and scope
 
-This guide maps each maintained notebook to the subset of the compact campaign it analyzes and explains why that slice exists. A **leaf is one notebook**. Each leaf applies its task, configuration, client-count, pattern-stress, and environment filters before computing outcomes, ranking features, discovering PRIM/CART boxes, and evaluating those boxes. All maintained notebooks use the all-environment view.
+This guide maps each maintained notebook to the subset of the compact campaign it analyzes and explains why that slice exists. It currently covers **25 notebooks: 11 image and 14 text**. A **leaf is one notebook**. Each leaf applies its task, configuration, client-count, pattern-stress, and environment filters before computing outcomes, ranking features, discovering PRIM/CART boxes, and evaluating those boxes. All maintained notebooks use the all-environment view.
 
 ## Notebook tree
 
