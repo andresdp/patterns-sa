@@ -6,7 +6,7 @@ This document records a reusable way to analyze design alternatives and discover
 
 The analysis serves software architecture researchers and practitioners. It should help them understand which quality tradeoffs appear in the observed design space, how complete architectural configurations are distributed across those tradeoffs, and whether a joint rule over decisions and operating conditions identifies a useful subset of runs for a target tradeoff.
 
-The analysis is observational. Feature importance ranks, objective-space allocations, and PRIM/CART boxes describe associations in the analyzed data. They do not by themselves estimate causal effects or guarantee future behavior.
+The analysis is observational, but scenario discovery is predictive: PRIM/CART search for joint constraints associated with a target tradeoff, then the held-out partition checks whether those constraints continue to identify it within the campaign. The resulting architectural rules can guide decisions and motivate causal hypotheses. They do not by themselves identify causal effects or guarantee behavior beyond the studied data.
 
 ## Two complementary knowledge layers
 
@@ -71,7 +71,7 @@ A concise RQ1 conclusion should state:
 
 ## RQ2 — Assess boxes for a selected target tradeoff
 
-RQ2 asks which joint conditions identify a target tradeoff and what happens to the observed data when those conditions are used as a filter. RQ2 follows the target selection made for RQ1. It must not silently switch targets because another region has more examples.
+RQ2 asks which joint constraints on architectural decisions and operating conditions predict membership in a target tradeoff, and how well those rules identify the target on held-out campaign observations. RQ2 follows the target selection made for RQ1. It must not silently switch targets because another region has more examples.
 
 ### 1. Confirm that the target is observable in the slice
 
@@ -101,7 +101,7 @@ For each relevant PRIM/CART box:
 
 Crosscheck candidate conditions against domain knowledge. A rule may be consistent with a plausible mechanism, inconsistent with an expectation, or not informative about it. Record that comparison as interpretation, not causal validation.
 
-### 4. Evaluate box restriction against the unrestricted baseline
+### 4. Evaluate each rule's target identification and design-space coverage
 
 For discovery and held-out partitions separately, report where available:
 
@@ -112,13 +112,13 @@ For discovery and held-out partitions separately, report where available:
 - retained count and fraction; and
 - the target count available for evaluation.
 
-Read these together. A high target share can come with low retention or low coverage. A rule that performs well in discovery but weakly on held-out data has limited out-of-sample support. A high held-out target share with very few retained rows is narrow evidence.
+Read these together as measures of predictive usefulness and design-space coverage. Precision describes how often the rule's selected runs belong to the target; recall/coverage describes how much of the target population the rule identifies. A rule with reasonably strong precision and recall offers both target concentration and broad target capture within the evaluated sample. High precision with low coverage identifies a narrow candidate prescription; high recall with low precision admits many non-target runs. A rule that performs well in discovery but weakly on held-out data has limited predictive stability. A high held-out precision based on very few retained rows is narrow evidence.
 
-### 5. Describe the what-if and robustness claim carefully
+### 5. Interpret the rule as predictive architectural guidance
 
-Filtering held-out observations by a box is an observational what-if over existing rows. It can show whether the retained subset has higher observed membership in a discrete target tradeoff than the unrestricted held-out baseline, and how much of the sample and target population the rule retains.
+Applying a box rule to held-out observations tests whether the joint decision/context constraints continue to identify the target tradeoff among runs not used to discover the rule. This supports a predictive interpretation within the campaign: an architect can inspect the rule as a candidate prescription and operating envelope associated with the target, together with its precision, recall, and coverage cost. The held-out comparison is stronger evidence than a discovery-only fit, while remaining internal validation on the same campaign.
 
-Describe this as **held-out target concentration under the rule** or **stability of discrete tradeoff membership**, with the comparison metrics and support. Do not claim that applying the box changed the FL system, reduced variance in continuous accuracy/time, or guarantees behavior in future deployments. Those claims require different experiments and evidence.
+Describe what the rule predicts and how well it identifies the target, rather than presenting the exercise as a generic data-filtering result. This can inform robustness-oriented architecture decisions: the rule identifies combinations of decisions and operating conditions under which the target tradeoff is repeatedly observed in the available evidence. If the notebook also measures dispersion or variance of continuous outcomes inside and outside the rule, report that comparison with its sample support; discrete precision/recall alone do not establish reduced continuous-outcome variance. The rule can suggest a causal explanation or intervention to test, but does not prove that imposing its conditions causes the target or guarantees future behavior.
 
 ### RQ2 conclusion format
 
@@ -127,8 +127,8 @@ A concise RQ2 conclusion should state:
 - whether a box was discovered and whether the target had enough held-out support to evaluate it;
 - the joint architectural prescription and operating envelope;
 - how feature-ranking evidence and domain expectations relate to the rule;
-- how held-out target concentration compares with the unrestricted baseline, including retention and target coverage; and
-- what a practitioner could test next, with the scope and evidence limits attached.
+- how reliably the rule predicts the target on held-out data, including precision, recall, baseline prevalence, and retained support; and
+- the candidate architectural guidance or causal hypothesis it motivates, plus the next validation needed and its evidence limits.
 
 ## Federated Learning domain reference for this campaign
 
