@@ -12,9 +12,10 @@ The detailed, maintained workflow and interpretation rules are shared with the C
 - [Canonical analysis workflow](../../../.claude/skills/adept-compact-findings/SKILL.md)
 - [ADEPT framework and artefact interpretation guidance](../../../.claude/skills/adept-compact-findings/references/adept-framework.md)
 - [Federated Learning campaign context](../../../.claude/skills/adept-compact-findings/references/federated-learning-domain.md)
+- [Recorded RQ1/RQ2 analysis guidelines](../../../docs/adept_analysis_guidelines.md)
 - [Notebook stratification and scope tree](../../../federatedlearning/compact/NOTEBOOK_STRATIFICATION.md)
 
-Follow the canonical workflow's evidence checks, scope rules, output contract, and observational interpretation limits. At each run, provide the exact notebook paths or glob patterns to cover and the Markdown guide that describes the current stratification and each notebook's scope. The supplied notebook set determines the number of case reports; do not assume a fixed count or strategy. Analyze `image` and `text` independently unless the user requests a different grouping. Use the current notebooks, box reports, plots, and campaign README as the authority for results.
+Follow the canonical workflow's evidence checks, scope rules, output contract, and interpretation limits. For RQ1, set preferred regions from metric semantics before checking each notebook's occupied cells. For RQ2, carry those targets forward and treat boxes as predictive architectural rules evaluated with held-out support, crosschecked against FL knowledge. These rules can motivate causal hypotheses but do not prove causation. At each run, provide the exact notebook paths or glob patterns to cover and the Markdown guide that describes the current stratification and each notebook's scope. The supplied notebook set determines the number of case reports; do not assume a fixed count or strategy. Analyze `image` and `text` independently unless the user requests a different grouping. Use the current notebooks, box reports, plots, and campaign README as the authority for results.
 
 Run Python commands in the `perfmodels` conda environment, for example:
 
