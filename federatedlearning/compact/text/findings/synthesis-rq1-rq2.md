@@ -1,21 +1,61 @@
-# Cross-case synthesis — Text task
+# Text compact FL findings synthesis
+
+This synthesis covers the 13 currently selected executed notebooks, as defined by [NOTEBOOK_STRATIFICATION.md](../NOTEBOOK_STRATIFICATION.md). It was derived from their current notebook outputs, matched box reports, and plots. The cases are related scope views, not a disjoint partition of the source dataset; do not add their row counts to estimate campaign totals.
 
 ## RQ1 — Which tradeoffs occur, and how do design choices relate to them?
 
-**Observed objective-space structure.** Across c4, c8 and c10, text runs cluster in high accuracy (`L`) and either short (`L-S`) or medium (`L-M`) time. `L-M` is the largest region in every client-count case; `L-S` is the consistent alternative. Several other regions are empty or have only one to a few runs, so their apparent differences are fragile. At c10, for example, held-out support for M-S is zero and M-M is one. Complete-configuration allocation shows the client-selector-only configuration leaning more toward L-S than the baseline in c4/c8/c10, while compressor/HDH-only profiles remain mostly L-M. This gives a practical lead for testing selection when round time matters, but differences are observational and environment compositions vary.
+All cases use the shared accuracy × average total round-time S/M/L grid. In the combined-pattern stress family, the objective-space plots place observed runs primarily in lower/middle accuracy bins and lower/middle time bins; regions outside the observed cloud remain unobserved in that sampled slice. At 50% stress, the inspected image plot shows points in S-M, M-S, and M-M, with no sampled points in L accuracy or L time regions. The six stress leaves compare supported complete configurations at common stress, pooling client counts. The triple-pattern configuration is present only at 25%; the 50% and 75% scopes have six alternatives. Therefore differences across these leaves are not randomized pattern-dose estimates, and the client-count mix is pooled.
 
-**Stress and shared-setting results.** In the selector-only stress case, moving from 25% to 75% coincides with lower mean time (about 10.5 to 6.7) and lower mean accuracy (.901 to .842); the region mix shifts from mostly L-M toward L-S, while 75% contains all four M-S rows. HDH-only results remain mostly L-M at 25% and 50%; at 75%, nine of 90 rows enter L-L, but mean accuracy declines and time rises. Message Compressor stress is especially non-linear: the active 0% group is entirely L-S with mean time about 4.5, while all positive levels are entirely L-M in the observed discretization; mean time rises from about 12.1 at 25% to 13.8 at 100%, with similar mean accuracy around .89–.91. This discontinuity should be checked against compressor semantics and experimental timing. Because stress levels alias environment percentages and level supports are unequal (30 versus 90 at 75%), these are not independent pattern-dose effects.
+Stress-only leaves hold two pattern decisions OFF and vary only the named pattern stress setting, pooling clients. Profile leaves fix a single complete configuration and characterize its objective space; they cannot directly compare that policy against another profile. The client-count leaves retain all eight complete configurations within a fixed count. Pattern-instance and active-pattern-type counts are marginal descriptors and should not be treated as complete policy assignments. Across every family, environment conditions remain sampled and can co-vary with policy allocations.
 
-The c8/50% combined-pattern case has six supported single- and two-pattern alternatives and no triple-pattern observations. Nearly all supported runs land in L-M; the Client Selector-only alternative has a one-third L-S share. This is a narrow, small-support contrast, not evidence about all combinations. The baseline and exact single-pattern profiles clarify the observed policy envelopes but do not supply matched or randomized effect estimates.
+The executed notebooks give these row supports (training/held-out counts are specific to each grouped partition):
 
-**Practitioner action:** If fast rounds are the priority for the text task, Client Selector-only and its lower-stress operating envelope merit controlled re-evaluation. Treat the Message Compressor 0% result as a diagnostic lead because its round-time discontinuity is unusually large; verify what 0% means operationally and repeat it under the same environment before making a design choice. For HDH, avoid generalizing the sparse 75% L-L observations.
+- `analysis-fl-rq-baseline-text`: 180 total (126 train, 54 held out).
+- `analysis-fl-rq-c10-text`: 390 total (273 train, 117 held out).
+- `analysis-fl-rq-c4-text`: 390 total (273 train, 117 held out).
+- `analysis-fl-rq-c8-text`: 390 total (273 train, 117 held out).
+- `analysis-fl-rq-client_selector-text`: 150 total (105 train, 45 held out).
+- `analysis-fl-rq-combined-patterns-stress-25-text`: 210 total (147 train, 63 held out).
+- `analysis-fl-rq-combined-patterns-stress-50-text`: 180 total (126 train, 54 held out).
+- `analysis-fl-rq-combined-patterns-stress-75-text`: 360 total (252 train, 108 held out).
+- `analysis-fl-rq-hdh-text`: 150 total (105 train, 45 held out).
+- `analysis-fl-rq-message_compressor-text`: 210 total (147 train, 63 held out).
+- `analysis-fl-rq-stress-only-client_selector-text`: 150 total (105 train, 45 held out).
+- `analysis-fl-rq-stress-only-hdh-text`: 150 total (105 train, 45 held out).
+- `analysis-fl-rq-stress-only-message_compressor-text`: 210 total (147 train, 63 held out).
+
+Current objective plots cluster at high accuracy, with both middle-time and fast-time observations. The combined 25%/50%/75% plots retain a dense high-accuracy/middle-time cloud and sparse faster runs. Use each notebook table for exact counts.
+
+No between-case aggregation is warranted because the strata overlap in the original run population (for example, configuration profiles overlap with stress-only leaves and client-count views). The exact per-partition region counts and allocation tables are linked in each case report below.
 
 ## RQ2 — Which joint conditions identify a target tradeoff, and what changes inside the box?
 
-`delay_percentage` and `Alpha Dirichlet Mean` recur in several text-case rankings and boxes; `non_iid_percentage` is prominent for HDH/selector profiles, and focal stress features lead their corresponding stress-only rankings. `Pattern Instances` and `HDH Instances` matter in some configuration comparisons, but they are derived deployment/run descriptors, not interchangeable with a policy decision. The architecture reports show that many rules specify only an operating envelope and permit multiple activation states; observed activation counts provide context, not a causal prescription.
+PRIM/CART feature rankings, rule conditions, and box metrics vary by task and scope; they are not transferable rules across cases. The six replacement combined-pattern cases specifically include client count as a varying predictor/context and exclude parsed stress features fixed or aliased within the selected stress. Elsewhere, the notebook's feature selection may remove fixed, constant, or exact-alias features. Read the listed feature set and box condition together, using the paired report's design prescription and operating envelope.
 
-The strongest held-out results concern L-S and L-M, the two well-supported regions. In c10, both algorithms' L-S boxes retain 15 runs and capture 15 of 24 L-S targets; L-M boxes retain 78 runs and capture 78 of 92 targets. In c4, L-S boxes reach high test precision but capture only 19–48% of target rows depending on algorithm, while the sparse L-L target has only five held-out examples. M-S/M-M boxes are absent or unsupported in held-out data in c8/c10; where a target is absent, its recall is unavailable, not zero evidence of feasibility. HDH-only has zero held-out M-M examples; its rules cannot be validated for that target. Combined-pattern test data has 18 rows, with no M-S or M-M target examples; rules for those outcomes remain unvalidated. For supported outcomes, compare the unrestricted rate and box-restricted rate, retained support and target coverage together.
+A box that concentrates a target in held-out runs still represents a restriction over already observed test rows. Assess precision together with unrestricted test prevalence, target coverage, and retained support. Sparse or absent held-out targets make evaluation weak or unavailable even when discovery found a rule. Policy-specific before/boxed/gain matrices are conditional summaries; a zero may mean no support or no retained runs, and `None` means no discovery box. The complete per-case held-out and policy matrices are in the current notebooks and their case reports.
 
-**Practitioner action:** Treat high-precision L-S rules as candidate monitoring envelopes, not guaranteed ways to accelerate execution. Favor rules with meaningful retained support and coverage; request more seed groups before acting on rare M/S-region prescriptions. Validate the compressor 0% timing result independently before encoding it as a policy recommendation.
+## Scope-specific implications
 
-**Researcher conclusion and limits.** The text campaign shows a stable high-accuracy outcome profile and a potentially useful association between Client Selector-only operation and shorter-round L-S outcomes. The box analyses add joint context but cannot disentangle the pattern decision from environment composition. Follow-up should repeat the key contrasts at fixed client count and environment, particularly selector stress and compressor 0% versus positive compression, and expand samples for the rare non-L regions.
+**Practitioners:** use only a box with adequate held-out retained runs and target coverage as a candidate for further controlled evaluation. Keep policy choices distinct from context and run-level observed descriptors. The current evidence describes task-specific operating envelopes, not guarantees.
+
+**Researchers:** report the evidence at each guide-defined scope, preserve grouped seed holdout, and avoid treating overlapping views, marginal pattern counts, or pooled client counts as independent controlled contrasts. Extend validation across seeds and client-level/round-level data before claiming transfer.
+
+## Case coverage
+
+- [analysis-fl-rq-baseline-text-findings.md](analysis-fl-rq-baseline-text-findings.md): Baseline profile (OFF,OFF,OFF); clients 4/8/10 pooled; all environments.
+- [analysis-fl-rq-c10-text-findings.md](analysis-fl-rq-c10-text-findings.md): All eight configurations; 10 clients; all environments.
+- [analysis-fl-rq-c4-text-findings.md](analysis-fl-rq-c4-text-findings.md): All eight configurations; 4 clients; all environments.
+- [analysis-fl-rq-c8-text-findings.md](analysis-fl-rq-c8-text-findings.md): All eight configurations; 8 clients; all environments.
+- [analysis-fl-rq-client_selector-text-findings.md](analysis-fl-rq-client_selector-text-findings.md): Client Selector profile (ON,OFF,OFF); clients 4/8/10 pooled; all environments.
+- [analysis-fl-rq-combined-patterns-stress-25-text-findings.md](analysis-fl-rq-combined-patterns-stress-25-text-findings.md): All supported non-empty pattern configurations at common 25% stress; clients 4/8/10 pooled; all environments; baseline excluded.
+- [analysis-fl-rq-combined-patterns-stress-50-text-findings.md](analysis-fl-rq-combined-patterns-stress-50-text-findings.md): All supported non-empty pattern configurations at common 50% stress; clients 4/8/10 pooled; all environments; baseline excluded.
+- [analysis-fl-rq-combined-patterns-stress-75-text-findings.md](analysis-fl-rq-combined-patterns-stress-75-text-findings.md): All supported non-empty pattern configurations at common 75% stress; clients 4/8/10 pooled; all environments; baseline excluded.
+- [analysis-fl-rq-hdh-text-findings.md](analysis-fl-rq-hdh-text-findings.md): HDH profile (OFF,OFF,ON); clients 4/8/10 pooled; all environments.
+- [analysis-fl-rq-message_compressor-text-findings.md](analysis-fl-rq-message_compressor-text-findings.md): Message Compressor profile (OFF,ON,OFF); clients 4/8/10 pooled; all environments.
+- [analysis-fl-rq-stress-only-client_selector-text-findings.md](analysis-fl-rq-stress-only-client_selector-text-findings.md): Exactly client selector ON and the other two patterns OFF; stress levels 25/50/75%; clients pooled; all environments.
+- [analysis-fl-rq-stress-only-hdh-text-findings.md](analysis-fl-rq-stress-only-hdh-text-findings.md): Exactly hdh ON and the other two patterns OFF; stress levels 25/50/75%; clients pooled; all environments.
+- [analysis-fl-rq-stress-only-message_compressor-text-findings.md](analysis-fl-rq-stress-only-message_compressor-text-findings.md): Exactly message compressor ON and the other two patterns OFF; stress levels 0/25/50/75/100%; clients pooled; all environments.
+
+## Evidence and limits
+
+All 26 task-local saved plots (two per notebook) and all matched box reports are recorded in the refreshed evidence manifest. Each case report links its notebook outputs, matching report, and plots. Existing historical findings were not used as evidence. Findings are observational and constrained to the current compact campaign's sampled conditions and shared discretization.

@@ -1,23 +1,61 @@
-# Cross-case synthesis — Image task
+# Image compact FL findings synthesis
+
+This synthesis covers the 13 currently selected executed notebooks, as defined by [NOTEBOOK_STRATIFICATION.md](../NOTEBOOK_STRATIFICATION.md). It was derived from their current notebook outputs, matched box reports, and plots. The cases are related scope views, not a disjoint partition of the source dataset; do not add their row counts to estimate campaign totals.
 
 ## RQ1 — Which tradeoffs occur, and how do design choices relate to them?
 
-**Observed objective-space structure.** Across the fixed-client-count cases, accuracy/time occupancy is concentrated in medium accuracy, with medium or short round time; no high-accuracy region is occupied. At c4 the held-out sample is 68% M-M (79/117), while c8 and c10 each have about 53% M-M (62/117) and 26–28% S-M. S-S is present in all three held-out samples but remains a small class (4, 6, and 6 rows, respectively). The allocation tables show that these aggregate shares hide meaningful configuration variation: for example, `ON,OFF,ON` has a larger S-S share than most configurations in each client-count view, while several non-selector combinations concentrate in M-M. These are within-slice associations; environment mixes and per-configuration support differ.
+All cases use the shared accuracy × average total round-time S/M/L grid. In the combined-pattern stress family, the objective-space plots place observed runs primarily in lower/middle accuracy bins and lower/middle time bins; regions outside the observed cloud remain unobserved in that sampled slice. At 50% stress, the inspected image plot shows points in S-M, M-S, and M-M, with no sampled points in L accuracy or L time regions. The six stress leaves compare supported complete configurations at common stress, pooling client counts. The triple-pattern configuration is present only at 25%; the 50% and 75% scopes have six alternatives. Therefore differences across these leaves are not randomized pattern-dose estimates, and the client-count mix is pooled.
 
-**Stress and pattern profile.** Isolated Client Selector stress has a clear descriptive gradient in the pooled sample: from 25% to 75%, mean time falls (about 11.2 to 7.8) while mean accuracy also falls (about .535 to .480), and the higher-stress group spreads into S-S and S-M rather than remaining mostly M-M/M-S. HDH stress similarly shifts its pooled results toward S-M at 50–75%, with mean accuracy declining from about .536 at 25% to .442 at 75%. Message Compressor shows a distinct discontinuity: at 0% all 30 rows are M-S and mean time is about 4.5; at 25%, 50%, and 100%, all rows are M-M, and at 75% the group splits between M-M and S-M. Since each stress percentage is an alias of a designed environment percentage, these patterns identify candidate tradeoffs to investigate, not isolated stress effects.
+Stress-only leaves hold two pattern decisions OFF and vary only the named pattern stress setting, pooling clients. Profile leaves fix a single complete configuration and characterize its objective space; they cannot directly compare that policy against another profile. The client-count leaves retain all eight complete configurations within a fixed count. Pattern-instance and active-pattern-type counts are marginal descriptors and should not be treated as complete policy assignments. Across every family, environment conditions remain sampled and can co-vary with policy allocations.
 
-The c8/50% combined-pattern slice contains six supported one- and two-pattern configurations, ten rows each; the triple-pattern alternative has no observations. Its allocation varies by complete policy, but the 18-run held-out partition and sparse target regions make this a screening comparison. Baseline and single-pattern profiles add useful descriptions but do not provide randomized pattern contrasts.
+The executed notebooks give these row supports (training/held-out counts are specific to each grouped partition):
 
-**Practitioner action:** For image deployments, treat selector/HDH stress and delay/non-IID context as joint tuning dimensions. Prioritize follow-up comparisons at fixed environment settings, especially where the current observed space trades faster round time for lower accuracy. Do not infer a monotone benefit from enabling more pattern types: the all-configuration and pattern-count tables mix distinct policies and instance counts.
+- `analysis-fl-rq-baseline-image`: 180 total (126 train, 54 held out).
+- `analysis-fl-rq-c10-image`: 390 total (273 train, 117 held out).
+- `analysis-fl-rq-c4-image`: 390 total (273 train, 117 held out).
+- `analysis-fl-rq-c8-image`: 390 total (273 train, 117 held out).
+- `analysis-fl-rq-client_selector-image`: 150 total (105 train, 45 held out).
+- `analysis-fl-rq-combined-patterns-stress-25-image`: 210 total (147 train, 63 held out).
+- `analysis-fl-rq-combined-patterns-stress-50-image`: 180 total (126 train, 54 held out).
+- `analysis-fl-rq-combined-patterns-stress-75-image`: 360 total (252 train, 108 held out).
+- `analysis-fl-rq-hdh-image`: 150 total (105 train, 45 held out).
+- `analysis-fl-rq-message_compressor-image`: 210 total (147 train, 63 held out).
+- `analysis-fl-rq-stress-only-client_selector-image`: 150 total (105 train, 45 held out).
+- `analysis-fl-rq-stress-only-hdh-image`: 150 total (105 train, 45 held out).
+- `analysis-fl-rq-stress-only-message_compressor-image`: 210 total (147 train, 63 held out).
+
+Current objective plots show most observations in middle accuracy and middle time, with a recurring faster (S-time) band; L-accuracy and L-time regions appear unoccupied in many filtered image views. Use each notebook table for exact counts.
+
+No between-case aggregation is warranted because the strata overlap in the original run population (for example, configuration profiles overlap with stress-only leaves and client-count views). The exact per-partition region counts and allocation tables are linked in each case report below.
 
 ## RQ2 — Which joint conditions identify a target tradeoff, and what changes inside the box?
 
-Across c4/c8/c10, `Alpha Dirichlet Mean` and `delay_percentage` recur near the top of feature rankings; Client Selector stress or CPU/selector criteria become important in particular strata. This recurrence is useful for choosing monitoring and follow-up variables, but relative feature credit does not show direction. Stress-only notebooks place the focal stress percentage among leading predictors, while selected boxes also combine it with non-IID, delay, CPU or Dirichlet conditions. The architectural reports distinguish the explicit policy prescription from the operating envelope; many boxes do not require a particular pattern policy, so the observed activation counts in matching rows must not be mistaken for a rule.
+PRIM/CART feature rankings, rule conditions, and box metrics vary by task and scope; they are not transferable rules across cases. The six replacement combined-pattern cases specifically include client count as a varying predictor/context and exclude parsed stress features fixed or aliased within the selected stress. Elsewhere, the notebook's feature selection may remove fixed, constant, or exact-alias features. Read the listed feature set and box condition together, using the paired report's design prescription and operating envelope.
 
-Held-out validation is strongest for common M-S/M-M outcomes in the c4/c8/c10 cases, where several boxes retain 9–51 targets with high precision. Coverage is more limited for some rules: c4's M-M rules capture roughly 28–30% of the target, and c8's corresponding coverage is near one half. The rare S-S/S-M boxes vary by client count and algorithm; some c4 CART rules select no held-out rows, while c10 S-S precision is 50% for PRIM and 33% for CART on only three retained runs. Treat the small-target rules as candidates for additional validation.
+A box that concentrates a target in held-out runs still represents a restriction over already observed test rows. Assess precision together with unrestricted test prevalence, target coverage, and retained support. Sparse or absent held-out targets make evaluation weak or unavailable even when discovery found a rule. Policy-specific before/boxed/gain matrices are conditional summaries; a zero may mean no support or no retained runs, and `None` means no discovery box. The complete per-case held-out and policy matrices are in the current notebooks and their case reports.
 
-HDH-only image has no held-out S-S or M-S targets after a grouped split fallback, so recall is unavailable for those regions; the discovered rules cannot be validated there. The combined-pattern case has only 18 held-out runs, and at least one rare target has no hits inside boxes. In stress-only cases, high-precision rules may still retain only a small share of target runs. The case reports link the exact rule, architecture context, test baseline, retained count and coverage for each box.
+## Scope-specific implications
 
-**Practitioner action:** Use a box only as a proposed joint envelope. First reproduce its prescribed policy and context, then validate it with more seed groups and compare the boxed target share with the unrestricted baseline. Rules with no required design prescription are useful for monitoring conditions, but they do not tell an architect which pattern to enable.
+**Practitioners:** use only a box with adequate held-out retained runs and target coverage as a candidate for further controlled evaluation. Keep policy choices distinct from context and run-level observed descriptors. The current evidence describes task-specific operating envelopes, not guarantees.
 
-**Researcher conclusion and limits.** The current image data supports recurring predictive relevance for the heterogeneity and delay context and reveals configuration-specific tradeoff allocations. It does not isolate causal pattern or stress effects: the environment design is not fully crossed, stress columns duplicate paired uncertainties, and compact client averages conceal individual behavior. The strongest next experiment is a controlled comparison that holds environment and client count constant while varying the policy/stress assignment, with more repeats for rare regions.
+**Researchers:** report the evidence at each guide-defined scope, preserve grouped seed holdout, and avoid treating overlapping views, marginal pattern counts, or pooled client counts as independent controlled contrasts. Extend validation across seeds and client-level/round-level data before claiming transfer.
+
+## Case coverage
+
+- [analysis-fl-rq-baseline-image-findings.md](analysis-fl-rq-baseline-image-findings.md): Baseline profile (OFF,OFF,OFF); clients 4/8/10 pooled; all environments.
+- [analysis-fl-rq-c10-image-findings.md](analysis-fl-rq-c10-image-findings.md): All eight configurations; 10 clients; all environments.
+- [analysis-fl-rq-c4-image-findings.md](analysis-fl-rq-c4-image-findings.md): All eight configurations; 4 clients; all environments.
+- [analysis-fl-rq-c8-image-findings.md](analysis-fl-rq-c8-image-findings.md): All eight configurations; 8 clients; all environments.
+- [analysis-fl-rq-client_selector-image-findings.md](analysis-fl-rq-client_selector-image-findings.md): Client Selector profile (ON,OFF,OFF); clients 4/8/10 pooled; all environments.
+- [analysis-fl-rq-combined-patterns-stress-25-image-findings.md](analysis-fl-rq-combined-patterns-stress-25-image-findings.md): All supported non-empty pattern configurations at common 25% stress; clients 4/8/10 pooled; all environments; baseline excluded.
+- [analysis-fl-rq-combined-patterns-stress-50-image-findings.md](analysis-fl-rq-combined-patterns-stress-50-image-findings.md): All supported non-empty pattern configurations at common 50% stress; clients 4/8/10 pooled; all environments; baseline excluded.
+- [analysis-fl-rq-combined-patterns-stress-75-image-findings.md](analysis-fl-rq-combined-patterns-stress-75-image-findings.md): All supported non-empty pattern configurations at common 75% stress; clients 4/8/10 pooled; all environments; baseline excluded.
+- [analysis-fl-rq-hdh-image-findings.md](analysis-fl-rq-hdh-image-findings.md): HDH profile (OFF,OFF,ON); clients 4/8/10 pooled; all environments.
+- [analysis-fl-rq-message_compressor-image-findings.md](analysis-fl-rq-message_compressor-image-findings.md): Message Compressor profile (OFF,ON,OFF); clients 4/8/10 pooled; all environments.
+- [analysis-fl-rq-stress-only-client_selector-image-findings.md](analysis-fl-rq-stress-only-client_selector-image-findings.md): Exactly client selector ON and the other two patterns OFF; stress levels 25/50/75%; clients pooled; all environments.
+- [analysis-fl-rq-stress-only-hdh-image-findings.md](analysis-fl-rq-stress-only-hdh-image-findings.md): Exactly hdh ON and the other two patterns OFF; stress levels 25/50/75%; clients pooled; all environments.
+- [analysis-fl-rq-stress-only-message_compressor-image-findings.md](analysis-fl-rq-stress-only-message_compressor-image-findings.md): Exactly message compressor ON and the other two patterns OFF; stress levels 0/25/50/75/100%; clients pooled; all environments.
+
+## Evidence and limits
+
+All 26 task-local saved plots (two per notebook) and all matched box reports are recorded in the refreshed evidence manifest. Each case report links its notebook outputs, matching report, and plots. Existing historical findings were not used as evidence. Findings are observational and constrained to the current compact campaign's sampled conditions and shared discretization.

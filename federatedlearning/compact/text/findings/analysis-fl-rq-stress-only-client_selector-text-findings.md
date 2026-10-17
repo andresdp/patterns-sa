@@ -1,103 +1,452 @@
-# Findings — ADEPT compact FL Client Selector stress-only analysis: AG_NEWS/MLP, all client counts
+# Findings: `analysis-fl-rq-stress-only-client_selector-text.ipynb`
 
-## Scope and evidence
+## Case scope and support
 
-- **Case:** ADEPT compact FL Client Selector stress-only analysis: AG_NEWS/MLP, all client counts (stress-only); 150 of 2340 compact campaign rows retained; all-environment view.
-- **Split:** Grouped split by partition_seed: 3 of 10 groups held out; stratification score=0.000277. 105 training rows, 45 held-out rows; no rare-class fallback reported. Grouping by `partition_seed` keeps seed groups intact.
-- **Training tradeoff counts:** M-S: 3 (2.86%); L-S: 48 (45.71%); L-M: 54 (51.43%).
-- **Held-out tradeoff counts:** M-S: 1 (2.22%); L-S: 20 (44.44%); L-M: 24 (53.33%).
-- **Evidence:** [executed notebook](../analysis-fl-rq-stress-only-client_selector-text.ipynb); [regenerated PRIM/CART report](../boxes/boxes__task-text__stress-ONLY-client_selector__clients-all__environment-all.md); plots: [quality-space__task-text__stress-ONLY-client_selector__clients-all__environment-all__final_val_accuracy-vs-avg_total_time.png](../plots/quality-space__task-text__stress-ONLY-client_selector__clients-all__environment-all__final_val_accuracy-vs-avg_total_time.png); [feature-importance__task-text__stress-ONLY-client_selector__clients-all__environment-all.png](../plots/feature-importance__task-text__stress-ONLY-client_selector__clients-all__environment-all.png).
+- **Task:** text (AG_NEWS/MLP).
+- **Scope:** Exactly client selector ON and the other two patterns OFF; stress levels 25/50/75%; clients pooled; all environments.
+- **Grouping unit:** one observed run. Compact client attributes are run-level aggregates.
+- **Source notebook:** [analysis-fl-rq-stress-only-client_selector-text.ipynb](../analysis-fl-rq-stress-only-client_selector-text.ipynb); **scope guide:** [NOTEBOOK_STRATIFICATION.md](../NOTEBOOK_STRATIFICATION.md).
+- **Box report:** [boxes__task-text__stress-ONLY-client_selector__clients-all__environment-all.md](../boxes/boxes__task-text__stress-ONLY-client_selector__clients-all__environment-all.md).
+- **Plots:**
+- [quality-space__task-text__stress-ONLY-client_selector__clients-all__environment-all__final_val_accuracy-vs-avg_total_time.png](../plots/quality-space__task-text__stress-ONLY-client_selector__clients-all__environment-all__final_val_accuracy-vs-avg_total_time.png)
+- [feature-importance__task-text__stress-ONLY-client_selector__clients-all__environment-all.png](../plots/feature-importance__task-text__stress-ONLY-client_selector__clients-all__environment-all.png)
 
-## RQ1 — Observed tradeoffs and design alternatives
+The objective grid is shared across the campaign: accuracy and average total round time are each divided into S/M/L bins, giving nine possible regions. A region omitted from the observed split distribution has zero rows in that partition; this is sample absence, not evidence of infeasibility. For the exact total, train/test counts, all populated region counts, grouped split score, and features/rules, see the notebook evidence below.
 
-The notebook varies only the focal pattern stress while holding the other two pattern decisions OFF and pooling client counts. Its stress-level means, region counts and within-level shares are reported below; the percentages alias paired environment percentages, so observed differences are not isolated pattern effects.
+## RQ1 — Which tradeoffs occur, and how do design choices relate to them?
+
+The notebook's printed split diagnostics give the total support and the complete train and held-out region distributions, with omitted regions called out as zero in each partition. Objective-space plots show the individual observed runs; region allocations and robustness outputs are reproduced below where emitted. Interpret stress or pattern-count summaries as marginal groupings: they are not complete configuration comparisons. For combined-pattern stress, each supported configuration contributes 30 rows at 25% and 50%, and at 75% the single-pattern configurations contribute 90 rows each while pairwise configurations contribute 30 each; client count is pooled, so composition can differ by configuration.
+
+## RQ2 — Which joint conditions identify a target tradeoff, and what changes inside the box?
+
+The notebook reports feature importance as model-relative predictive credit, and PRIM/CART rules as joint conditions. Conditions may mix design choices with operating context and run-level descriptors; they are associations, not independent effects. The box report provides architectural interpretation. Held-out rates below are evaluated on the grouped test partition; where a target has zero held-out rows or a box retains zero rows, its precision/coverage is undefined or unavailable rather than zero. Section 11's policy matrices are separate policy-conditioned views, not a substitute for the all-patterns test baseline.
+
+## Evidence from current notebook outputs
+
+#### [Notebook cell 18 — `ddf2adea`](../analysis-fl-rq-stress-only-client_selector-text.ipynb#cell-ddf2adea)
 
 ```text
-runs  final_val_accuracy (mean)  \
-Client Selector Stress Percentage
-25.0                                 30                      0.901
-50.0                                 30                      0.892
-75.0                                 90                      0.842
+Grouped split by partition_seed: 3 of 10 groups held out; stratification score=0.000277.
+Data split: 105 train, 45 test.
 
-                                   avg_total_time (mean)
-Client Selector Stress Percentage
-25.0                                              10.548
-50.0                                               8.215
-75.0                                               6.744
+--- Train Set Tradeoff Counts ---
+  M,S: 3 (2.86%)
+  L,S: 48 (45.71%)
+  L,M: 54 (51.43%)
+
+--- Test Set Tradeoff Counts ---
+  M,S: 1 (2.22%)
+  L,S: 20 (44.44%)
+  L,M: 24 (53.33%)
+  S,S: 0 (0.00%) [not printed in either partition]
+  S,M: 0 (0.00%) [not printed in either partition]
+  S,L: 0 (0.00%) [not printed in either partition]
+  M,M: 0 (0.00%) [not printed in either partition]
+  M,L: 0 (0.00%) [not printed in either partition]
+  L,L: 0 (0.00%) [not printed in either partition]
 ```
 
+#### [Notebook cell 28 — `2970e574`](../analysis-fl-rq-stress-only-client_selector-text.ipynb#cell-2970e574)
+
 ```text
+Saved objective-space chart: plots/quality-space__task-text__stress-ONLY-client_selector__clients-all__environment-all__final_val_accuracy-vs-avg_total_time.png
+
+[figure rendered in notebook]
+```
+
+#### [Notebook cell 33 — `5f75a666`](../analysis-fl-rq-stress-only-client_selector-text.ipynb#cell-5f75a666)
+
+```text
+Deterministic groups (all their runs fall in a single tradeoff)
+------------------------------
+Grouping: configuration
+  none
+------------------------------
+Grouping: Total Clients
+  none
+------------------------------
+Grouping: low_spec_percentage
+  none
+------------------------------
+Grouping: non_iid_percentage
+  none
+------------------------------
+Grouping: delay_percentage
+  none
+```
+
+#### [Notebook cell 34 — `505c4983`](../analysis-fl-rq-stress-only-client_selector-text.ipynb#cell-505c4983)
+
+```text
+Exclusive tradeoffs (reached by a single group of the grouping)
+------------------------------
+Grouping: configuration
+Warning: 'config_id' has a single policy group (['ON,OFF,OFF']) in the 'all' runs, so no tradeoff can be exclusive to one of them.
+  none
+------------------------------
+Grouping: Total Clients
+  none
+------------------------------
+Grouping: low_spec_percentage
+* Tradeoff: M-S --> Group: low_spec_percentage=75
+------------------------------
+Grouping: non_iid_percentage
+* Tradeoff: M-S --> Group: non_iid_percentage=75
+------------------------------
+Grouping: delay_percentage
+* Tradeoff: M-S --> Group: delay_percentage=25
+```
+
+#### [Notebook cell 39 — `796d4445`](../analysis-fl-rq-stress-only-client_selector-text.ipynb#cell-796d4445)
+
+```text
+Robustness Ranking for Tradeoff: S-S
+  1. ON,OFF,OFF: 0% success
+  Top Policy -> ON,OFF,OFF - Starr: 0.0000 - Regret: 6.7514
+Robustness Ranking for Tradeoff: S-M
+  1. ON,OFF,OFF: 0% success
+  Top Policy -> ON,OFF,OFF - Starr: 0.0000 - Regret: 6.8418
+Robustness Ranking for Tradeoff: S-L
+  1. ON,OFF,OFF: 0% success
+  Top Policy -> ON,OFF,OFF - Starr: 0.0000 - Regret: 7.3391
+Robustness Ranking for Tradeoff: M-S
+  1. ON,OFF,OFF: 3% success
+  Top Policy -> ON,OFF,OFF - Starr: 0.0267 - Regret: 2.1031
+Robustness Ranking for Tradeoff: M-M
+  1. ON,OFF,OFF: 0% success
+  Top Policy -> ON,OFF,OFF - Starr: 0.0000 - Regret: 2.3784
+Robustness Ranking for Tradeoff: M-L
+  1. ON,OFF,OFF: 0% success
+  Top Policy -> ON,OFF,OFF - Starr: 0.0000 - Regret: 3.5066
+Robustness Ranking for Tradeoff: L-S
+  1. ON,OFF,OFF: 45% success
+  Top Policy -> ON,OFF,OFF - Starr: 0.4533 - Regret: 0.2276
+Robustness Ranking for Tradeoff: L-M
+  1. ON,OFF,OFF: 52% success
+  Top Policy -> ON,OFF,OFF - Starr: 0.5200 - Regret: 0.6798
+Robustness Ranking for Tradeoff: L-L
+  1. ON,OFF,OFF: 0% success
+  Top Policy -> ON,OFF,OFF - Starr: 0.0000 - Regret: 2.6675
+Overall Robustness Heatmap (STARR):
+
+[figure rendered in notebook]
+```
+
+#### [Notebook cell 42 — `61da6b5b`](../analysis-fl-rq-stress-only-client_selector-text.ipynb#cell-61da6b5b)
+
+```text
+Pattern Types Active: constant in these runs, values [1]
+Pattern Instances: constant in these runs, values [1]
+Per stress level (S_types):
+
+                      runs  configurations  instances_min  instances_max  \
+Pattern Types Active                                                       
+1                      150               1              1              1   
+
+                      final_val_accuracy (mean)  avg_total_time (mean)  
+Pattern Types Active                                                    
+1                                         0.864                  7.799  
+Per configuration:
+
+                                 runs  instances  final_val_accuracy (mean)  \
+Pattern Types Active config_id                                                
+1                    ON,OFF,OFF   150        1.0                      0.864   
+
+                                 avg_total_time (mean)  
+Pattern Types Active config_id                          
+1                    ON,OFF,OFF                  7.799
+```
+
+#### [Notebook cell 43 — `de5fb604`](../analysis-fl-rq-stress-only-client_selector-text.ipynb#cell-de5fb604)
+
+```text
+Pattern Instances is constant in these runs: no stress levels to compare.
+Pattern Types Active is constant in these runs: no stress levels to compare.
+Runs and objective means by Client Selector Stress Percentage:
+
+                                   runs  final_val_accuracy (mean)  \
+Client Selector Stress Percentage                                    
+25.0                                 30                      0.901   
+50.0                                 30                      0.892   
+75.0                                 90                      0.842   
+
+                                   avg_total_time (mean)  
+Client Selector Stress Percentage                         
+25.0                                              10.548  
+50.0                                               8.215  
+75.0                                               6.744  
+Tradeoff counts by stress level:
+
 tradeoff                           L-M  L-S  M-S
-Client Selector Stress Percentage
+Client Selector Stress Percentage               
 25                                  27    3    0
 50                                  18   12    0
 75                                  33   53    4
+Within-level tradeoff shares (STARR) by Client Selector Stress Percentage:
+
+                                      S-S  S-M  S-L    M-S  M-M  M-L    L-S  \
+policy                                                                        
+Client Selector Stress Percentage=25  0.0  0.0  0.0  0.000  0.0  0.0  0.100   
+Client Selector Stress Percentage=50  0.0  0.0  0.0  0.000  0.0  0.0  0.400   
+Client Selector Stress Percentage=75  0.0  0.0  0.0  0.044  0.0  0.0  0.589   
+
+                                        L-M  L-L  
+policy                                            
+Client Selector Stress Percentage=25  0.900  0.0  
+Client Selector Stress Percentage=50  0.600  0.0  
+Client Selector Stress Percentage=75  0.367  0.0  
+[figure rendered in notebook]
 ```
+
+#### [Notebook cell 48 — `0e85d978`](../analysis-fl-rq-stress-only-client_selector-text.ipynb#cell-0e85d978)
 
 ```text
-S-S  S-M  S-L    M-S  M-M  M-L    L-S  \
-policy
-Client Selector Stress Percentage=25  0.0  0.0  0.0  0.000  0.0  0.0  0.100
-Client Selector Stress Percentage=50  0.0  0.0  0.0  0.000  0.0  0.0  0.400
-Client Selector Stress Percentage=75  0.0  0.0  0.0  0.044  0.0  0.0  0.589
+Scoring features for outcome: final_val_accuracy (on subset: train)
 
-                                        L-M  L-L
-policy
-Client Selector Stress Percentage=25  0.900  0.0
-Client Selector Stress Percentage=50  0.600  0.0
-Client Selector Stress Percentage=75  0.367  0.0
+Original features (numerically encoded): ['N Rounds', 'Total Clients', 'Optimizer', 'Learning Rate', 'Batch Size', 'Epochs', 'Client Selector Strategy', 'Client Selector Criteria', 'Client Selector Value', 'Message Compressor Alg', 'HDH Batch Size', 'HDH Beta 1', 'HDH Beta 2', 'HDH Discriminator', 'HDH Epochs', 'HDH Generator', 'HDH Learning Rate', 'HDH Latent Dim', 'HDH Optimizer', 'CPU Mean', 'RAM Mean', 'Alpha Dirichlet Mean', 'JSD Mean', 'Data Distribution Diversity', 'Data Persistence Diversity', 'Pattern Types Active', 'Pattern Instances', 'Client Selector Instances', 'Message Compressor Instances', 'HDH Instances', 'non_iid_percentage', 'delay_percentage', 'Client Selector Stress Percentage', 'Message Compressor Stress Percentage', 'HDH Stress Percentage']
+
+Features selected: ['N Rounds', 'Total Clients', 'Optimizer', 'Learning Rate', 'Batch Size', 'Epochs', 'Client Selector Strategy', 'Client Selector Criteria', 'Client Selector Value', 'Message Compressor Alg', 'HDH Batch Size', 'HDH Beta 1', 'HDH Beta 2', 'HDH Discriminator', 'HDH Epochs', 'HDH Generator', 'HDH Learning Rate', 'HDH Latent Dim', 'HDH Optimizer', 'CPU Mean', 'RAM Mean', 'Alpha Dirichlet Mean', 'JSD Mean', 'Data Distribution Diversity', 'Data Persistence Diversity', 'Pattern Types Active', 'Pattern Instances', 'Client Selector Instances', 'Message Compressor Instances', 'HDH Instances', 'non_iid_percentage', 'delay_percentage', 'Message Compressor Stress Percentage', 'HDH Stress Percentage']
+Scoring features for outcome: avg_total_time (on subset: train)
+Original features (numerically encoded): ['N Rounds', 'Total Clients', 'Optimizer', 'Learning Rate', 'Batch Size', 'Epochs', 'Client Selector Strategy', 'Client Selector Criteria', 'Client Selector Value', 'Message Compressor Alg', 'HDH Batch Size', 'HDH Beta 1', 'HDH Beta 2', 'HDH Discriminator', 'HDH Epochs', 'HDH Generator', 'HDH Learning Rate', 'HDH Latent Dim', 'HDH Optimizer', 'CPU Mean', 'RAM Mean', 'Alpha Dirichlet Mean', 'JSD Mean', 'Data Distribution Diversity', 'Data Persistence Diversity', 'Pattern Types Active', 'Pattern Instances', 'Client Selector Instances', 'Message Compressor Instances', 'HDH Instances', 'non_iid_percentage', 'delay_percentage', 'Client Selector Stress Percentage', 'Message Compressor Stress Percentage', 'HDH Stress Percentage']
+
+Features selected: ['N Rounds', 'Total Clients', 'Optimizer', 'Learning Rate', 'Batch Size', 'Epochs', 'Client Selector Strategy', 'Client Selector Criteria', 'Client Selector Value', 'Message Compressor Alg', 'HDH Batch Size', 'HDH Beta 1', 'HDH Beta 2', 'HDH Discriminator', 'HDH Epochs', 'HDH Generator', 'HDH Learning Rate', 'HDH Latent Dim', 'HDH Optimizer', 'RAM Mean', 'Alpha Dirichlet Mean', 'JSD Mean', 'Data Distribution Diversity', 'Data Persistence Diversity', 'Pattern Types Active', 'Pattern Instances', 'Client Selector Instances', 'Message Compressor Instances', 'HDH Instances', 'non_iid_percentage', 'delay_percentage', 'Client Selector Stress Percentage', 'Message Compressor Stress Percentage', 'HDH Stress Percentage']
+
+                                      final_val_accuracy  avg_total_time
+Alpha Dirichlet Mean                            0.241864        0.108622
+Batch Size                                      0.000000        0.000000
+CPU Mean                                        0.334755        0.000000
+Client Selector Criteria                        0.000000        0.000000
+Client Selector Instances                       0.000000        0.000000
+Client Selector Strategy                        0.000000        0.000000
+Client Selector Stress Percentage               0.000000        0.440579
+Client Selector Value                           0.000000        0.000000
+Data Distribution Diversity                     0.000000        0.000000
+Data Persistence Diversity                      0.000000        0.000000
+Epochs                                          0.000000        0.000000
+HDH Batch Size                                  0.000000        0.000000
+HDH Beta 1                                      0.000000        0.000000
+HDH Beta 2                                      0.000000        0.000000
+HDH Discriminator                               0.000000        0.000000
+HDH Epochs                                      0.000000        0.000000
+HDH Generator                                   0.000000        0.000000
+HDH Instances                                   0.000000        0.000000
+HDH Latent Dim                                  0.000000        0.000000
+HDH Learning Rate                               0.000000        0.000000
+HDH Optimizer                                   0.000000        0.000000
+HDH Stress Percentage                           0.000000        0.000000
+JSD Mean                                        0.000000        0.000000
+Learning Rate                                   0.000000        0.000000
+Message Compressor Alg                          0.000000        0.000000
+Message Compressor Instances                    0.000000        0.000000
+Message Compressor Stress Percentage            0.000000        0.000000
+N Rounds                                        0.000000        0.000000
+Optimizer                                       0.000000        0.000000
+Pattern Instances                               0.000000        0.000000
+Pattern Types Active                            0.000000        0.000000
+RAM Mean                                        0.000000        0.000000
+Total Clients                                   0.134492        0.164659
+delay_percentage                                0.008743        0.245642
+non_iid_percentage                              0.280147        0.040499
 ```
 
-In the held-out partition, **L-M** is the most common region (24/45, 53.33%). The next largest is L-S (20 rows, 44.44%).
-
-The occupied regions and shares above describe this filtered run-level sample. Empty regions mean no observed runs in this scope, not infeasibility. In cases pooling client counts or environments, treat those dimensions as mixed context; in stress-only cases, the stress feature is tied to its paired environment percentage. The analysis is observational.
-
-## RQ2 — Joint conditions, feature roles, and held-out what-if evidence
-
-**Feature-ranking trend in this case.** The leading ADEPT weighted ranks are `Client Selector Stress Percentage`, `Alpha Dirichlet Mean`, `CPU Mean`, `non_iid_percentage`, `Total Clients`. Scenario-discovery candidates are [`Client Selector Stress Percentage`, `Alpha Dirichlet Mean`, `CPU Mean`, `non_iid_percentage`, `Total Clients`, `delay_percentage`]. These are model-relative predictive credits, not directions or effects. See [Section 8](../analysis-fl-rq-stress-only-client_selector-text.ipynb#8-Feature-Importance--Key-Parameter-Selection).
-
-**Highest-ranked architectural boxes in the regenerated report:**
-
-**CART Box 1, target L-M** — held-out status: Evaluated; composite test score 0.4000, coverage 0.2500, target hits 6 / 24, retained/test 6 / 45. Conditions: - `Client Selector Stress Percentage`: [25.000, 37.500]; - `Total Clients`: [5.999, 10.000]; - **Includes NaN / not-selected values:** No.
-
-Architectural reading (joint rule):
+#### [Notebook cell 56 — `914700be`](../analysis-fl-rq-stress-only-client_selector-text.ipynb#cell-914700be)
 
 ```text
-- **Design prescription**:
-  - No pattern policy is required by the box conditions
-- **Observed pattern activation — training partition (rows matching this box)**:
-  - Client Selector: ON (14/14)
-  - HDH: OFF (14/14)
-  - Message Compressor: OFF (14/14)
-- **Observed pattern activation — held-out partition (rows matching this box)**:
-  - Client Selector: ON (6/6)
-  - HDH: OFF (6/6)
-  - Message Compressor: OFF (6/6)
-- **Operating envelope**:
-  - Client Selector Stress Percentage [25, 37.5] (%)
-- **Other design conditions**:
-  - Total Clients [6, 10]
+Summary of PRIM boxes:
+ 1. For tradeoff M-S (M,S): lift=-0.02
+	Total Clients: [4.000, 6.000]
+	non_iid_percentage: [50.000, 75.000]
+ 2. For tradeoff L-S (L,S): lift=0.33
+	CPU Mean: [8.000, 8.875]
+	non_iid_percentage: [25.000, 50.000]
+	delay_percentage: [25.000, 50.000]
+ 3. For tradeoff L-M (L,M): lift=0.47
+	Total Clients: [6.000, 10.000]
+	Client Selector Stress Percentage: [25.000, 37.500]
 ```
-Held-out metrics: Runs retained by box: 6, Target runs inside box: 6, Target prevalence before box: 0.5333, Precision inside box: 1, Recall / target coverage: 0.2500, Absolute lift over held-out prevalence: 0.4667.
 
+#### [Notebook cell 62 — `5487f837`](../analysis-fl-rq-stress-only-client_selector-text.ipynb#cell-5487f837)
 
-The report's global ranking is reproduced here for the leading boxes; retain its full target-by-target table for the remaining boxes, duplicate marks, NaN/not-selected flags, and discovery metrics.
+```text
+PRIM Box 1: M-S (M,S)
+Architectural interpretation
+• Design prescription:
+  ◦ No pattern policy is required by the box conditions
+• Observed pattern activation — training partition (rows matching this box):
+  ◦ Client Selector: ON (7/7)
+  ◦ HDH: OFF (7/7)
+  ◦ Message Compressor: OFF (7/7)
+• Observed pattern activation — held-out partition (rows matching this box):
+  ◦ Client Selector: ON (3/3)
+  ◦ HDH: OFF (3/3)
+  ◦ Message Compressor: OFF (3/3)
+• Operating envelope:
+  ◦ non-IID percentage [50, 75] (%)
+• Other design conditions:
+  ◦ Total Clients [4, 6]
 
-| Global rank | Target | Box | Held-out status | Test score | Coverage | Hits / targets | Retained / test | Conditions | Duplicate mark |
-|---:|:---|:---|:---|---:|---:|---:|---:|---:|:---|
-| 1 | L-S | PRIM Box 2 | Evaluated | 0.4421 | 0.3500 | 7 / 20 | 9 / 45 | 3 | — |
-| 2 | L-M | CART Box 1 | Evaluated | 0.4000 | 0.2500 | 6 / 24 | 6 / 45 | 2 | Near duplicate of PRIM Box 3 (condition similarity 100%; held-out membership Jaccard 100%) |
-| 3 | L-M | PRIM Box 3 | Evaluated | 0.4000 | 0.2500 | 6 / 24 | 6 / 45 | 2 | Representative for CART Box 1 |
-| 4 | L-S | CART Box 2 | Evaluated | 0.2609 | 0.1500 | 3 / 20 | 3 / 45 | 5 | — |
-| 5 | M-S | PRIM Box 1 | Evaluated | 0 | 0 | 0 / 1 | 3 / 45 | 2 | — |
+PRIM Box 2: L-S (L,S)
+Architectural interpretation
+• Design prescription:
+  ◦ No pattern policy is required by the box conditions
+• Observed pattern activation — training partition (rows matching this box):
+  ◦ Client Selector: ON (21/21)
+  ◦ HDH: OFF (21/21)
+  ◦ Message Compressor: OFF (21/21)
+• Observed pattern activation — held-out partition (rows matching this box):
+  ◦ Client Selector: ON (9/9)
+  ◦ HDH: OFF (9/9)
+  ◦ Message Compressor: OFF (9/9)
+• Operating envelope:
+  ◦ CPU Mean [8, 8.88]
+  ◦ non-IID percentage [25, 50] (%)
+  ◦ delay percentage [25, 50] (%)
 
-A boxed held-out what-if is a restriction of existing test runs. It can enrich a discrete target region within this sample; it does not change the FL design or establish future robustness. Check held-out support and coverage before treating a rule as actionable. See [Section 11 and policy matrices](../analysis-fl-rq-stress-only-client_selector-text.ipynb#11-What-if-analysis-robustness-after-applying-box-rules) and the complete [box report](../boxes/boxes__task-text__stress-ONLY-client_selector__clients-all__environment-all.md).
+PRIM Box 3: L-M (L,M)
+Architectural interpretation
+• Design prescription:
+  ◦ No pattern policy is required by the box conditions
+• Observed pattern activation — training partition (rows matching this box):
+  ◦ Client Selector: ON (14/14)
+  ◦ HDH: OFF (14/14)
+  ◦ Message Compressor: OFF (14/14)
+• Observed pattern activation — held-out partition (rows matching this box):
+  ◦ Client Selector: ON (6/6)
+  ◦ HDH: OFF (6/6)
+  ◦ Message Compressor: OFF (6/6)
+• Operating envelope:
+  ◦ Client Selector Stress Percentage [25, 37.5] (%)
+• Other design conditions:
+  ◦ Total Clients [6, 10]
 
-## Practical and research implications
+CART Box 1: L-M (L,M)
+Architectural interpretation
+• Design prescription:
+  ◦ No pattern policy is required by the box conditions
+• Observed pattern activation — training partition (rows matching this box):
+  ◦ Client Selector: ON (14/14)
+  ◦ HDH: OFF (14/14)
+  ◦ Message Compressor: OFF (14/14)
+• Observed pattern activation — held-out partition (rows matching this box):
+  ◦ Client Selector: ON (6/6)
+  ◦ HDH: OFF (6/6)
+  ◦ Message Compressor: OFF (6/6)
+• Operating envelope:
+  ◦ Client Selector Stress Percentage [25, 37.5] (%)
+• Other design conditions:
+  ◦ Total Clients [6, 10]
 
-- **For practitioners:** Use the best-supported joint box as a candidate operating envelope to monitor or validate; make only the policy decisions explicitly constrained by its architectural prescription. Avoid adopting rules with sparse retained support, zero held-out target support, or low target coverage as general guidance.
-- **For researchers:** The feature ordering and box boundaries are specific to this filtered case and grouped holdout. Confirm the same pattern in another relevant stratum or a controlled follow-up; do not interpret feature importance, stress aliases, or box rules causally.
+CART Box 2: L-S (L,S)
+Architectural interpretation
+• Design prescription:
+  ◦ No pattern policy is required by the box conditions
+• Observed pattern activation — training partition (rows matching this box):
+  ◦ Client Selector: ON (7/7)
+  ◦ HDH: OFF (7/7)
+  ◦ Message Compressor: OFF (7/7)
+• Observed pattern activation — held-out partition (rows matching this box):
+  ◦ Client Selector: ON (3/3)
+  ◦ HDH: OFF (3/3)
+  ◦ Message Compressor: OFF (3/3)
+• Operating envelope:
+  ◦ Client Selector Stress Percentage [62.5, 75] (%)
+  ◦ delay percentage [25, 50] (%)
+  ◦ non-IID percentage [50, 75] (%)
+  ◦ Alpha Dirichlet Mean [0.612, 0.9]
+• Other design conditions:
+  ◦ Total Clients [6, 10]
+```
 
-## Case limitations
+#### [Notebook cell 66 — `heldout-box-summary-all`](../analysis-fl-rq-stress-only-client_selector-text.ipynb#cell-heldout-box-summary-all)
 
-Compact client characteristics are aggregated run-level values; they can hide client-level imbalance and round behavior. The ten-seed grouped holdout leaves limited support for rare regions. The box report and notebook provide the full feature set, all box conditions, and metrics.
+```text
+PRIM: held-out support, precision, lift and target coverage
+
+  method target  test_n  baseline_target_n  box_n  target_in_box  \
+0   PRIM    M-S      45                  1      3              0   
+1   PRIM    L-S      45                 20      9              7   
+2   PRIM    L-M      45                 24      6              6   
+
+   baseline_rate  box_precision  test_delta_rate  train_lift_absolute  \
+0          0.022          0.000           -0.022                0.257   
+1          0.444          0.778            0.333                0.400   
+2          0.533          1.000            0.467                0.486   
+
+   test_recall_coverage  
+0                  0.00  
+1                  0.35  
+2                  0.25  
+CART: held-out support, precision, lift and target coverage
+
+  method target  test_n  baseline_target_n  box_n  target_in_box  \
+0   CART    L-M      45                 24      6              6   
+1   CART    L-S      45                 20      3              3   
+
+   baseline_rate  box_precision  test_delta_rate  train_lift_absolute  \
+0          0.533            1.0            0.467                0.486   
+1          0.444            1.0            0.556                0.114   
+
+   test_recall_coverage  
+0                  0.25  
+1                  0.15
+```
+
+#### [Notebook cell 68 — `6d04057a`](../analysis-fl-rq-stress-only-client_selector-text.ipynb#cell-6d04057a)
+
+```text
+Warning: policy group 'OFF,OFF,OFF' has no runs in the data; skipped.
+Warning: policy group 'OFF,ON,OFF' has no runs in the data; skipped.
+Warning: policy group 'OFF,OFF,ON' has no runs in the data; skipped.
+Warning: policy group 'ON,ON,OFF' has no runs in the data; skipped.
+Warning: policy group 'ON,OFF,ON' has no runs in the data; skipped.
+Warning: policy group 'OFF,ON,ON' has no runs in the data; skipped.
+Warning: policy group 'ON,ON,ON' has no runs in the data; skipped.
+Warning: policy group 'OFF,OFF,OFF' has no runs in the data; skipped.
+Warning: policy group 'OFF,ON,OFF' has no runs in the data; skipped.
+Warning: policy group 'OFF,OFF,ON' has no runs in the data; skipped.
+Warning: policy group 'ON,ON,OFF' has no runs in the data; skipped.
+Warning: policy group 'ON,OFF,ON' has no runs in the data; skipped.
+Warning: policy group 'OFF,ON,ON' has no runs in the data; skipped.
+Warning: policy group 'ON,ON,ON' has no runs in the data; skipped.
+
+     method      policy target  L-L       L-M       L-S  M-L  M-M       M-S  \
+0  test set  ON,OFF,OFF         0.0  0.533333  0.444444  0.0  0.0  0.022222   
+1      prim  ON,OFF,OFF    L-M  0.0  1.000000  0.000000  0.0  0.0  0.000000   
+2      prim  ON,OFF,OFF    L-S  0.0  0.222222  0.777778  0.0  0.0  0.000000   
+3      prim  ON,OFF,OFF    M-S  0.0  0.000000  1.000000  0.0  0.0  0.000000   
+4      cart  ON,OFF,OFF    L-M  0.0  1.000000  0.000000  0.0  0.0  0.000000   
+5      cart  ON,OFF,OFF    L-S  0.0  0.000000  1.000000  0.0  0.0  0.000000   
+
+   S-L  S-M  S-S  
+0  0.0  0.0  0.0  
+1  0.0  0.0  0.0  
+2  0.0  0.0  0.0  
+3  0.0  0.0  0.0  
+4  0.0  0.0  0.0  
+5  0.0  0.0  0.0
+```
+
+#### [Notebook cell 70 — `380905a7`](../analysis-fl-rq-stress-only-client_selector-text.ipynb#cell-380905a7)
+
+```text
+S-S  S-M  S-L  M-S  M-M  M-L   L-S       L-M  L-L
+M-S  0.0  0.0  0.0  0.0  0.0  0.0  0.15  0.000000  0.0
+L-S  0.0  0.0  0.0  0.0  0.0  0.0  0.35  0.083333  0.0
+L-M  0.0  0.0  0.0  0.0  0.0  0.0  0.00  0.250000  0.0
+```
+
+#### [Notebook cell 73 — `807637a3`](../analysis-fl-rq-stress-only-client_selector-text.ipynb#cell-807637a3)
+
+```text
+S-S  S-M  S-L  M-S  M-M  M-L   L-S   L-M  L-L
+L-M  0.0  0.0  0.0  0.0  0.0  0.0  0.00  0.25  0.0
+L-S  0.0  0.0  0.0  0.0  0.0  0.0  0.15  0.00  0.0
+```
+
+## Conditional implications and limitations
+
+**Practitioners.** Treat any discovered conjunction as a candidate envelope to validate in this task and scope. Check its held-out retained support and target coverage before using it operationally; the filter describes already observed runs and does not simulate changing policies.
+
+**Researchers.** These are observational, all-environment slices; pattern and operating-condition composition can differ, and pooled client counts or marginal pattern-count groupings do not isolate effects. The split groups by `partition_seed`; rare-class fallback diagnostics in the notebook govern how well the held-out distribution matches. Run-level client aggregation hides client-level imbalance and round-level variation.
+
+**Case-specific limitations:** interpret only the observed task/configuration/stress slice. Empty regions and unsupported configuration/stress combinations do not establish impossibility. See the linked notebook, box report, and both plots for the primary evidence.

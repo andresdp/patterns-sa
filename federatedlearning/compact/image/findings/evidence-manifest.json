@@ -1,6 +1,6 @@
 {
   "task": "image",
-  "generated_at_utc": "2026-10-16T02:29:29+00:00",
+  "generated_at_utc": "2026-10-17T12:59:27+00:00",
   "status": "ready",
   "research_questions": {
     "RQ1": "Which tradeoffs occur, and how do design choices relate to them?",
@@ -25,8 +25,8 @@
   ],
   "scope_guide": {
     "path": "federatedlearning/compact/NOTEBOOK_STRATIFICATION.md",
-    "size_bytes": 16501,
-    "sha256": "7dea356744c267635595fd6e4a5ae9fdfb5ea5b95b3b79a8f5aa4705dcba7512"
+    "size_bytes": 18953,
+    "sha256": "143cf377f567f137af7d169a6a961c2c21d26413ca5cf4aa0f262f90eb41d7f1"
   },
   "notebooks": [
     {
@@ -335,15 +335,15 @@
       ]
     },
     {
-      "path": "federatedlearning/compact/image/analysis-fl-rq-combined-patterns-c8-stress-50-image.ipynb",
-      "sha256": "846968c95f0f325e857900d895f33eed26c1fc1eb056890e0abc6dc4c354a85a",
+      "path": "federatedlearning/compact/image/analysis-fl-rq-combined-patterns-stress-25-image.ipynb",
+      "sha256": "aa281a2bbf2966d553f461d1cad3c73c69beaba9d418cc110458f2d48530d66d",
       "status": "ready",
       "code_cells": 51,
       "output_cells": 46,
       "errors": [],
       "unexecuted_cells": [],
       "sections": [
-        "# ADEPT compact FL combined-pattern analysis: CIFAR-10/CNN 16k — c8, 50% pattern stress by default",
+        "# ADEPT compact FL combined-pattern analysis: CIFAR-10/CNN 16k — 25% stress, all client counts",
         "## Analysis population: supported pattern combinations at one client/stress setting",
         "## 1. Load System & Model Summary",
         "### The design space",
@@ -378,20 +378,142 @@
         "## 13. Performance Metrics"
       ],
       "box_report": {
-        "path": "federatedlearning/compact/image/boxes/boxes__task-image__combined-patterns__clients-8__stress-50__environment-all.md",
-        "size_bytes": 15878,
-        "sha256": "f23d1d50f37adc2a5fc13b584cc76f0f080e30e7491a05f59e02103910dae987"
+        "path": "federatedlearning/compact/image/boxes/boxes__task-image__combined-patterns__clients-all__stress-25__environment-all.md",
+        "size_bytes": 10404,
+        "sha256": "181416624ec096541d9f026003fa1999ec81cc41f6330cb6f42fe9aa31a429e9"
       },
       "plots": [
         {
-          "path": "federatedlearning/compact/image/plots/quality-space__task-image__combined-patterns__clients-8__stress-50__environment-all__final_val_accuracy-vs-avg_total_time.png",
-          "size_bytes": 129902,
-          "sha256": "f16747f78410019802fb5ac82b9c9793e88ad65bbace60199d3159b71552e35f"
+          "path": "federatedlearning/compact/image/plots/quality-space__task-image__combined-patterns__clients-all__stress-25__environment-all__final_val_accuracy-vs-avg_total_time.png",
+          "size_bytes": 149704,
+          "sha256": "53e7da231f573005ee6bc4fa967dad095cd2d5e61f6af67f4331072efc891cc9"
         },
         {
-          "path": "federatedlearning/compact/image/plots/feature-importance__task-image__combined-patterns__clients-8__stress-50__environment-all.png",
-          "size_bytes": 507723,
-          "sha256": "b4ecb0cc2c7b46151afb5442fa57a20804284c0cc873cb552ab6d4087346f089"
+          "path": "federatedlearning/compact/image/plots/feature-importance__task-image__combined-patterns__clients-all__stress-25__environment-all.png",
+          "size_bytes": 529601,
+          "sha256": "7bc85e1d9e737f72fb4e97dde3c8175c01f02b2aaf06c4cb8eeb40354ba8ff64"
+        }
+      ]
+    },
+    {
+      "path": "federatedlearning/compact/image/analysis-fl-rq-combined-patterns-stress-50-image.ipynb",
+      "sha256": "0c608e6cbb4ddbcf9dbc512c360968035c3e8b96034ece8a8697da8f67b01045",
+      "status": "ready",
+      "code_cells": 51,
+      "output_cells": 46,
+      "errors": [],
+      "unexecuted_cells": [],
+      "sections": [
+        "# ADEPT compact FL combined-pattern analysis: CIFAR-10/CNN 16k — 50% stress, all client counts",
+        "## Analysis population: supported pattern combinations at one client/stress setting",
+        "## 1. Load System & Model Summary",
+        "### The design space",
+        "### Reading the model summary",
+        "## 2. Linter Sanity Check",
+        "### Reading the linter warnings",
+        "## 3. Define Tradeoffs",
+        "### Reading the tradeoffs",
+        "## 4. Data Splitting",
+        "## Research Question 1 — Which tradeoffs occur across pattern combinations at a common setting?",
+        "### Reading the split",
+        "### How to read `S`, `M` and `L`",
+        "### Decisions, policies and configurations",
+        "#### What else the model contains",
+        "### Reading the objective space",
+        "## 5. Contingency Analysis: Composite and Marginal Decisions",
+        "### Reading the contingency results",
+        "## 6. Robustness Analysis (Quantifying Stability)",
+        "### How robustness relates to contingency",
+        "## 7. Pattern Stress",
+        "### How to read the pattern-instance charts and tables",
+        "## Research Question 2 — Which joint conditions identify a target tradeoff at this setting?",
+        "## 8. Feature Importance & Key-Parameter Selection",
+        "### Pattern-parameter presence check",
+        "## 9. Scenario Discovery: PRIM",
+        "### Reading the PRIM boxes",
+        "## 10. Global Discovery: CART",
+        "## 10.1 Architectural interpretation of the discovered boxes",
+        "### Reading the CART boxes",
+        "## 11. What-if analysis: robustness after applying box rules",
+        "## 12. Box Diagnostics and \"Not Selected\" Hatching",
+        "## 13. Performance Metrics"
+      ],
+      "box_report": {
+        "path": "federatedlearning/compact/image/boxes/boxes__task-image__combined-patterns__clients-all__stress-50__environment-all.md",
+        "size_bytes": 16251,
+        "sha256": "82b8ebfb2a5f7a2f6e0ed77d024c2882f977c38c1ff5b363d1d37681b624f77f"
+      },
+      "plots": [
+        {
+          "path": "federatedlearning/compact/image/plots/quality-space__task-image__combined-patterns__clients-all__stress-50__environment-all__final_val_accuracy-vs-avg_total_time.png",
+          "size_bytes": 181992,
+          "sha256": "8fc4dd9eea27ee3b3ea41aae76b6a34d79746ddc274932f06e8737e0011b71f1"
+        },
+        {
+          "path": "federatedlearning/compact/image/plots/feature-importance__task-image__combined-patterns__clients-all__stress-50__environment-all.png",
+          "size_bytes": 519664,
+          "sha256": "b17ad4205d7391e74cf99ffc207eba8b3b5d1cd20f9fd3920595944416b1cf40"
+        }
+      ]
+    },
+    {
+      "path": "federatedlearning/compact/image/analysis-fl-rq-combined-patterns-stress-75-image.ipynb",
+      "sha256": "eea4a1323bc0404eeb947646d5d90a4d6cd0cd0c4bfea07ae155a8c46cae3240",
+      "status": "ready",
+      "code_cells": 51,
+      "output_cells": 46,
+      "errors": [],
+      "unexecuted_cells": [],
+      "sections": [
+        "# ADEPT compact FL combined-pattern analysis: CIFAR-10/CNN 16k — 75% stress, all client counts",
+        "## Analysis population: supported pattern combinations at one client/stress setting",
+        "## 1. Load System & Model Summary",
+        "### The design space",
+        "### Reading the model summary",
+        "## 2. Linter Sanity Check",
+        "### Reading the linter warnings",
+        "## 3. Define Tradeoffs",
+        "### Reading the tradeoffs",
+        "## 4. Data Splitting",
+        "## Research Question 1 — Which tradeoffs occur across pattern combinations at a common setting?",
+        "### Reading the split",
+        "### How to read `S`, `M` and `L`",
+        "### Decisions, policies and configurations",
+        "#### What else the model contains",
+        "### Reading the objective space",
+        "## 5. Contingency Analysis: Composite and Marginal Decisions",
+        "### Reading the contingency results",
+        "## 6. Robustness Analysis (Quantifying Stability)",
+        "### How robustness relates to contingency",
+        "## 7. Pattern Stress",
+        "### How to read the pattern-instance charts and tables",
+        "## Research Question 2 — Which joint conditions identify a target tradeoff at this setting?",
+        "## 8. Feature Importance & Key-Parameter Selection",
+        "### Pattern-parameter presence check",
+        "## 9. Scenario Discovery: PRIM",
+        "### Reading the PRIM boxes",
+        "## 10. Global Discovery: CART",
+        "## 10.1 Architectural interpretation of the discovered boxes",
+        "### Reading the CART boxes",
+        "## 11. What-if analysis: robustness after applying box rules",
+        "## 12. Box Diagnostics and \"Not Selected\" Hatching",
+        "## 13. Performance Metrics"
+      ],
+      "box_report": {
+        "path": "federatedlearning/compact/image/boxes/boxes__task-image__combined-patterns__clients-all__stress-75__environment-all.md",
+        "size_bytes": 17135,
+        "sha256": "44e90925d3c391ac19e7e126b879d9f09d254874f97064fd95dbc4bfea07ea42"
+      },
+      "plots": [
+        {
+          "path": "federatedlearning/compact/image/plots/quality-space__task-image__combined-patterns__clients-all__stress-75__environment-all__final_val_accuracy-vs-avg_total_time.png",
+          "size_bytes": 234084,
+          "sha256": "aab3d841156465f5fa39be7c7e461442cd557f1013be32704b0098a9cc8321d8"
+        },
+        {
+          "path": "federatedlearning/compact/image/plots/feature-importance__task-image__combined-patterns__clients-all__stress-75__environment-all.png",
+          "size_bytes": 530761,
+          "sha256": "69c17cd0c582a87936dd1a7831f9f3eea27bf31f50200afe4503fbdc9a51e68f"
         }
       ]
     },
