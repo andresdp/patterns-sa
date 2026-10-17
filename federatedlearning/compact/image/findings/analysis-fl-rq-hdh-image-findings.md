@@ -123,7 +123,7 @@ Policy-specific before/boxed/gain and target-coverage matrices (Section 11, cell
 Policy-specific matrices are in notebook Section 11
 ```
 
-Read conditions jointly as candidate prescriptions and operating envelopes; see the [box report](../boxes/boxes__task-image__hdh-only_OFF_OFF_ON__clients-all__environment-all.md). Small retained support is narrow evidence. If a held-out target is absent, evaluation is unavailable rather than zero precision/recall. These predictive associations can guide a conditional experiment, but do not establish that imposing a rule causes the outcome.
+Read conditions jointly as candidate prescriptions and operating envelopes; see the [box report](../boxes/analysis-fl-rq-hdh-image.md). Small retained support is narrow evidence. If a held-out target is absent, evaluation is unavailable rather than zero precision/recall. These predictive associations can guide a conditional experiment, but do not establish that imposing a rule causes the outcome.
 
 ### Implications and limits
 
@@ -131,4 +131,4 @@ Read conditions jointly as candidate prescriptions and operating envelopes; see 
 
 **Researchers:** report train and held-out region counts, target prevalence, precision, lift, coverage, retained rows and target support together. Controlled comparisons are needed to separate design choices from sampled context. Findings are observational and specific to CIFAR-10/CNN 16k and run-level aggregates.
 
-**Artifacts:** notebook [cell 18](../analysis-fl-rq-hdh-image.ipynb#cell-18), [cell 48](../analysis-fl-rq-hdh-image.ipynb#cell-48), [cell 55](../analysis-fl-rq-hdh-image.ipynb#cell-55), [cell 66](../analysis-fl-rq-hdh-image.ipynb#cell-66), [cell 68](../analysis-fl-rq-hdh-image.ipynb#cell-68); [box report](../boxes/boxes__task-image__hdh-only_OFF_OFF_ON__clients-all__environment-all.md); [quality-space plot](../plots/quality-space__task-image__hdh-only_OFF_OFF_ON__clients-all__environment-all__final_val_accuracy-vs-avg_total_time.png); [feature-importance plot](../plots/feature-importance__task-image__hdh-only_OFF_OFF_ON__clients-all__environment-all.png).
+**Artifacts:** notebook [cell 18](../analysis-fl-rq-hdh-image.ipynb#cell-18), [cell 48](../analysis-fl-rq-hdh-image.ipynb#cell-48), [cell 55](../analysis-fl-rq-hdh-image.ipynb#cell-55), [cell 66](../analysis-fl-rq-hdh-image.ipynb#cell-66), [cell 68](../analysis-fl-rq-hdh-image.ipynb#cell-68); [box report](../boxes/analysis-fl-rq-hdh-image.md); [quality-space plot](../plots/quality-space__task-image__hdh-only_OFF_OFF_ON__clients-all__environment-all__final_val_accuracy-vs-avg_total_time.png); [feature-importance plot](../plots/feature-importance__task-image__hdh-only_OFF_OFF_ON__clients-all__environment-all.png).

@@ -277,8 +277,8 @@ The table includes a **global rank** across all scoreable boxes and a **within-t
 
 **Learned box conditions**
 
-- `delay_percentage`: [12.500, 100.000]
 - `Client Selector Stress Percentage`: (not selected) or <= 37.500
+- `delay_percentage`: [12.500, 100.000]
 - **Includes NaN / not-selected values:** `Client Selector Stress Percentage`
 
 **Architectural interpretation**
@@ -294,8 +294,8 @@ The table includes a **global rank** across all scoreable boxes and a **within-t
   - HDH: OFF (42/78), ON (36/78)
   - Message Compressor: OFF (36/78), ON (42/78)
 - **Operating envelope**:
-  - delay percentage [12.5, 100] (%)
   - Client Selector Stress Percentage [20, 37.5] (%)
+  - delay percentage [12.5, 100] (%)
 
 **Discovery metrics (training partition)**
 

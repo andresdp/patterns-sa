@@ -225,8 +225,8 @@ The table includes a **global rank** across all scoreable boxes and a **within-t
 
 **Learned box conditions**
 
-- `JSD Mean`: (not selected) or <= 0.006
 - `Total Clients`: [5.999, 10.000]
+- `JSD Mean`: (not selected) or <= 0.006
 - **Includes NaN / not-selected values:** `JSD Mean`
 
 **Architectural interpretation**

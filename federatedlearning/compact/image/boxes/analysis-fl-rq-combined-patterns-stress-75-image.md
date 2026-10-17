@@ -296,9 +296,9 @@ The table includes a **global rank** across all scoreable boxes and a **within-t
 
 **Learned box conditions**
 
-- `Total Clients`: [5.999, 10.000]
 - `Alpha Dirichlet Mean`: [0.600, 0.750]
 - `Client Selector Criteria`: {(not selected)}
+- `Total Clients`: [5.999, 10.000]
 - **Includes NaN / not-selected values:** `Client Selector Criteria`
 
 **Architectural interpretation**
@@ -350,8 +350,8 @@ The table includes a **global rank** across all scoreable boxes and a **within-t
 
 **Learned box conditions**
 
-- `delay_percentage`: [50.001, 75.000]
 - `Alpha Dirichlet Mean`: [0.750, 0.900]
+- `delay_percentage`: [50.001, 75.000]
 - `Client Selector Criteria`: {(not selected)}
 - **Includes NaN / not-selected values:** `Client Selector Criteria`
 
@@ -368,8 +368,8 @@ The table includes a **global rank** across all scoreable boxes and a **within-t
   - HDH: OFF (18/18)
   - Message Compressor: ON (18/18)
 - **Operating envelope**:
-  - delay percentage [50, 75] (%)
   - Alpha Dirichlet Mean [0.75, 0.9]
+  - delay percentage [50, 75] (%)
 - **Other parameter conditions**:
   - Criteria {(not selected)}
 
@@ -403,10 +403,10 @@ The table includes a **global rank** across all scoreable boxes and a **within-t
 
 **Learned box conditions**
 
-- `Total Clients`: [5.999, 10.000]
-- `JSD Mean`: [0.004, 0.097]
 - `Alpha Dirichlet Mean`: [0.600, 0.750]
 - `Client Selector Criteria`: {CPU}
+- `Total Clients`: [5.999, 10.000]
+- `JSD Mean`: [0.004, 0.097]
 - **Includes NaN / not-selected values:** No
 
 **Architectural interpretation**
@@ -422,8 +422,8 @@ The table includes a **global rank** across all scoreable boxes and a **within-t
   - HDH: ON (4/4)
   - Message Compressor: OFF (4/4)
 - **Operating envelope**:
-  - JSD Mean [0.004, 0.0975]
   - Alpha Dirichlet Mean [0.6, 0.75]
+  - JSD Mean [0.004, 0.0975]
 - **Other design conditions**:
   - Total Clients [6, 10]
 
@@ -457,10 +457,10 @@ The table includes a **global rank** across all scoreable boxes and a **within-t
 
 **Learned box conditions**
 
-- `Total Clients`: [4.000, 5.999]
-- `JSD Mean`: (not selected) or <= -0.006
 - `Alpha Dirichlet Mean`: [0.600, 0.750]
 - `Client Selector Criteria`: {CPU}
+- `Total Clients`: [4.000, 5.999]
+- `JSD Mean`: (not selected) or <= -0.006
 - **Includes NaN / not-selected values:** `JSD Mean`
 
 **Architectural interpretation**
@@ -476,8 +476,8 @@ The table includes a **global rank** across all scoreable boxes and a **within-t
   - HDH: OFF (3/3)
   - Message Compressor: OFF (3/3)
 - **Operating envelope**:
-  - JSD Mean [-0.012, -0.00601]
   - Alpha Dirichlet Mean [0.6, 0.75]
+  - JSD Mean [-0.012, -0.00601]
 - **Other design conditions**:
   - Total Clients [4, 6]
 

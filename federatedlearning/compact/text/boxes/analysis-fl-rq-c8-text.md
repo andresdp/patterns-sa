@@ -278,8 +278,8 @@ The table includes a **global rank** across all scoreable boxes and a **within-t
 
 **Learned box conditions**
 
-- `Client Selector Stress Percentage`: (not selected) or <= 37.500
 - `delay_percentage`: [12.500, 100.000]
+- `Client Selector Stress Percentage`: (not selected) or <= 37.500
 - **Includes NaN / not-selected values:** `Client Selector Stress Percentage`
 
 **Architectural interpretation**
@@ -295,8 +295,8 @@ The table includes a **global rank** across all scoreable boxes and a **within-t
   - HDH: OFF (42/78), ON (36/78)
   - Message Compressor: OFF (36/78), ON (42/78)
 - **Operating envelope**:
-  - Client Selector Stress Percentage [20, 37.5] (%)
   - delay percentage [12.5, 100] (%)
+  - Client Selector Stress Percentage [20, 37.5] (%)
 
 **Discovery metrics (training partition)**
 
@@ -376,10 +376,10 @@ The table includes a **global rank** across all scoreable boxes and a **within-t
 
 **Learned box conditions**
 
-- `Client Selector Stress Percentage`: [62.498, 75.000]
-- `Pattern Instances`: [0.000, 2.499]
 - `delay_percentage`: [12.500, 37.485]
+- `Pattern Instances`: [0.000, 2.499]
 - `HDH Instances`: [0.500, 6.000]
+- `Client Selector Stress Percentage`: [62.498, 75.000]
 - **Includes NaN / not-selected values:** No
 
 **Architectural interpretation**
@@ -395,10 +395,10 @@ The table includes a **global rank** across all scoreable boxes and a **within-t
   - HDH: ON (1/1)
   - Message Compressor: OFF (1/1)
 - **Operating envelope**:
-  - Client Selector Stress Percentage [62.5, 75] (%)
-  - Pattern Instances [0, 2.5]
   - delay percentage [12.5, 37.5] (%)
+  - Pattern Instances [0, 2.5]
   - HDH Instances [0.5, 6]
+  - Client Selector Stress Percentage [62.5, 75] (%)
 
 **Discovery metrics (training partition)**
 

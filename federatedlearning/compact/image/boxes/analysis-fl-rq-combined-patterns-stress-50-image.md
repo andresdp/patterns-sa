@@ -344,8 +344,8 @@ The table includes a **global rank** across all scoreable boxes and a **within-t
 
 **Learned box conditions**
 
-- `CPU Mean`: [10.875, 11.000]
 - `JSD Mean`: [0.025, 0.062]
+- `CPU Mean`: [10.875, 11.000]
 - **Includes NaN / not-selected values:** No
 
 **Architectural interpretation**
@@ -361,8 +361,8 @@ The table includes a **global rank** across all scoreable boxes and a **within-t
   - HDH: ON (2/2)
   - Message Compressor: OFF (1/2), ON (1/2)
 - **Operating envelope**:
-  - CPU Mean [10.9, 11]
   - JSD Mean [0.025, 0.062]
+  - CPU Mean [10.9, 11]
 
 **Discovery metrics (training partition)**
 
@@ -394,8 +394,8 @@ The table includes a **global rank** across all scoreable boxes and a **within-t
 
 **Learned box conditions**
 
-- `CPU Mean`: [9.500, 10.125]
 - `JSD Mean`: [0.011, 0.019]
+- `CPU Mean`: [9.500, 10.125]
 - **Includes NaN / not-selected values:** No
 
 **Architectural interpretation**
@@ -411,8 +411,8 @@ The table includes a **global rank** across all scoreable boxes and a **within-t
   - HDH: ON (1/1)
   - Message Compressor: OFF (1/1)
 - **Operating envelope**:
-  - CPU Mean [9.5, 10.1]
   - JSD Mean [0.0113, 0.0187]
+  - CPU Mean [9.5, 10.1]
 
 **Discovery metrics (training partition)**
 
@@ -444,8 +444,8 @@ The table includes a **global rank** across all scoreable boxes and a **within-t
 
 **Learned box conditions**
 
-- `CPU Mean`: [9.500, 10.125]
 - `JSD Mean`: [0.043, 0.049]
+- `CPU Mean`: [9.500, 10.125]
 - **Includes NaN / not-selected values:** No
 
 **Architectural interpretation**
@@ -461,8 +461,8 @@ The table includes a **global rank** across all scoreable boxes and a **within-t
   - HDH: no matching rows
   - Message Compressor: no matching rows
 - **Operating envelope**:
-  - CPU Mean [9.5, 10.1]
   - JSD Mean [0.043, 0.0487]
+  - CPU Mean [9.5, 10.1]
 
 **Discovery metrics (training partition)**
 

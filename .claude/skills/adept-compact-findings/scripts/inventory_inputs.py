@@ -77,7 +77,7 @@ def inspect_notebook(path: Path, root: Path, issues: list[str]) -> dict[str, Any
         task_dir / "plots" / f"{plot_match.group(1)}__final_val_accuracy-vs-avg_total_time.png",
         task_dir / "plots" / f"{heatmap_match.group(1)}.png",
     ]
-    report_name = plot_match.group(1).replace("quality-space__", "boxes__") + ".md"
+    report_name = path.stem + ".md"
     report_path = task_dir / "boxes" / report_name
     for artifact in [*plot_paths, report_path]:
         if not artifact.is_file():
@@ -88,8 +88,8 @@ def inspect_notebook(path: Path, root: Path, issues: list[str]) -> dict[str, Any
         for cell in cells for output in cell.get("outputs", [])
         if output.get("output_type") == "stream"
     )
-    if report_path.is_file() and "Saved box report:" not in stream_text:
-        issues.append(f"Notebook {notebook_path} has no recorded successful box-report export output.")
+    if report_path.is_file() and f"Saved box report: boxes/{report_name}" not in stream_text:
+        issues.append(f"Notebook {notebook_path} has no recorded successful export output for {report_name}.")
 
     return {
         "path": notebook_path,

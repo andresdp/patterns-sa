@@ -317,8 +317,8 @@ The table includes a **global rank** across all scoreable boxes and a **within-t
 **Learned box conditions**
 
 - `Alpha Dirichlet Mean`: [0.600, 0.750]
-- `Message Compressor Instances`: [5.999, 10.000]
 - `Message Compressor Stress Percentage`: [12.485, 100.000]
+- `Message Compressor Instances`: [5.999, 10.000]
 - **Includes NaN / not-selected values:** No
 
 **Architectural interpretation**
@@ -335,8 +335,8 @@ The table includes a **global rank** across all scoreable boxes and a **within-t
   - Message Compressor: ON (6/6)
 - **Operating envelope**:
   - Alpha Dirichlet Mean [0.6, 0.75]
-  - Message Compressor Instances [6, 10]
   - Message Compressor Stress Percentage [12.5, 100] (%)
+  - Message Compressor Instances [6, 10]
 
 **Discovery metrics (training partition)**
 

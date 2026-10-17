@@ -4,7 +4,7 @@
 
 - **Task:** image classification
 - **Configuration slice:** all
-- **Client-count scope:** 8 clients
+- **Client-count scope:** 10 clients
 - **Environment scope:** all
 - **Outcomes:** final_val_accuracy and avg_total_time
 
@@ -26,30 +26,29 @@ The table includes a **global rank** across all scoreable boxes and a **within-t
 
 | Global rank | Within-target rank | Target | Box | Status | Test score | Train score | Score Δ (test−train) | Enrichment | Coverage | Hits / targets | Retained / test | Conditions | Duplicate mark |
 |---:|---:|:---|:---|:---|---:|---:|---:|---:|---:|---:|---:|---:|:---|
-| 1 | 1 | S-M | CART Box 2 | Evaluated | 0.8077 | 0.8033 | 0.0044 | 1 | 0.6774 | 21 / 31 | 21 / 117 | 2 | Near duplicate of PRIM Box 2 (condition similarity 100%; held-out membership Jaccard 100%) |
-| 2 | 2 | S-M | PRIM Box 2 | Evaluated | 0.8077 | 0.8033 | 0.0044 | 1 | 0.6774 | 21 / 31 | 21 / 117 | 2 | Representative for CART Box 2 |
-| 3 | 1 | M-M | CART Box 1 | Evaluated | 0.6947 | 0.6937 | 0.0010 | 1 | 0.5323 | 33 / 62 | 33 / 117 | 3 | Near duplicate of PRIM Box 4 (condition similarity 100%; held-out membership Jaccard 100%) |
-| 4 | 2 | M-M | PRIM Box 4 | Evaluated | 0.6947 | 0.6937 | 0.0010 | 1 | 0.5323 | 33 / 62 | 33 / 117 | 3 | Representative for CART Box 1 |
-| 5 | 1 | M-S | CART Box 3 | Evaluated | 0.6667 | 0.6667 | 0 | 1 | 0.5000 | 9 / 18 | 9 / 117 | 3 | Near duplicate of PRIM Box 3 (condition similarity 92%; held-out membership Jaccard 100%) |
-| 6 | 2 | M-S | PRIM Box 3 | Evaluated | 0.6667 | 0.6667 | 0 | 1 | 0.5000 | 9 / 18 | 9 / 117 | 3 | Representative for CART Box 3 |
-| 7 | 1 | S-S | CART Box 4 | Evaluated | 0.6575 | 0.6569 | 0.0006 | 0.6486 | 0.6667 | 4 / 6 | 6 / 117 | 3 | Near duplicate of PRIM Box 1 (condition similarity 100%; held-out membership Jaccard 100%) |
-| 8 | 2 | S-S | PRIM Box 1 | Evaluated | 0.6575 | 0.6569 | 0.0006 | 0.6486 | 0.6667 | 4 / 6 | 6 / 117 | 3 | Representative for CART Box 4 |
+| 1 | 1 | M-S | CART Box 3 | Evaluated | 0.9677 | 0.9589 | 0.0088 | 1 | 0.9375 | 15 / 16 | 15 / 117 | 2 | Near duplicate of PRIM Box 3 (condition similarity 100%; held-out membership Jaccard 100%) |
+| 2 | 2 | M-S | PRIM Box 3 | Evaluated | 0.9677 | 0.9589 | 0.0088 | 1 | 0.9375 | 15 / 16 | 15 / 117 | 2 | Representative for CART Box 3 |
+| 3 | 1 | M-M | CART Box 1 | Evaluated | 0.9027 | 0.8981 | 0.0045 | 1 | 0.8226 | 51 / 62 | 51 / 117 | 3 | — |
+| 4 | 2 | M-M | PRIM Box 4 | Evaluated | 0.9027 | 0.8981 | 0.0045 | 1 | 0.8226 | 51 / 62 | 51 / 117 | 4 | — |
+| 5 | 1 | S-M | CART Box 2 | Evaluated | 0.9000 | 0.9065 | -0.0065 | 1 | 0.8182 | 27 / 33 | 27 / 117 | 2 | Near duplicate of PRIM Box 2 (condition similarity 100%; held-out membership Jaccard 100%) |
+| 6 | 2 | S-M | PRIM Box 2 | Evaluated | 0.9000 | 0.9065 | -0.0065 | 1 | 0.8182 | 27 / 33 | 27 / 117 | 2 | Representative for CART Box 2 |
+| 7 | 1 | S-S | PRIM Box 1 | Evaluated | 0.4861 | 0.7330 | -0.2469 | 0.4730 | 0.5000 | 3 / 6 | 6 / 117 | 2 | — |
+| 8 | 2 | S-S | CART Box 4 | Evaluated | 0.2136 | 0.3735 | -0.1599 | 0.2973 | 0.1667 | 1 / 6 | 3 / 117 | 3 | — |
 
 ## PRIM
 
-### Box 1 — S-S (S,S) — Representative for CART Box 4
+### Box 1 — S-S (S,S)
 
 **Learned box conditions**
 
-- `Client Selector Criteria`: {CPU}
-- `CPU Mean`: [8.250, 8.875]
-- `Alpha Dirichlet Mean`: [0.625, 0.812]
+- `Alpha Dirichlet Mean`: [0.600, 0.675]
+- `Client Selector Stress Percentage`: [22.500, 75.000]
 - **Includes NaN / not-selected values:** No
 
 **Architectural interpretation**
 
 - **Design prescription**:
-  - Client Selector = ON (Strategy = Resource-Based; Criteria = CPU; Value = 2.0)
+  - No pattern policy is required by the box conditions
 - **Observed pattern activation — training partition (rows matching this box)**:
   - Client Selector: ON (14/14)
   - HDH: OFF (7/14), ON (7/14)
@@ -59,29 +58,29 @@ The table includes a **global rank** across all scoreable boxes and a **within-t
   - HDH: OFF (3/6), ON (3/6)
   - Message Compressor: OFF (6/6)
 - **Operating envelope**:
-  - CPU Mean [8.25, 8.88]
-  - Alpha Dirichlet Mean [0.625, 0.812]
+  - Alpha Dirichlet Mean [0.6, 0.675]
+  - Client Selector Stress Percentage [22.5, 75] (%)
 
 **Discovery metrics (training partition)**
 
 | Metric | Value |
 |:---|---:|
-| Train precision / density | 0.6429 |
-| Train recall / coverage | 0.6923 |
+| Train precision / density | 0.7143 |
+| Train recall / coverage | 0.7692 |
 | Train target prevalence | 0.0476 |
-| Train absolute lift | 0.5952 |
+| Train absolute lift | 0.6667 |
 | Train observations | 273 |
 | Train target observations | 13 |
 | Train samples in box | 14 |
-| Train targets in box | 9 |
+| Train targets in box | 10 |
 
 **Algorithm fit diagnostics**
 
 | Diagnostic | Value |
 |:---|---:|
-| Density | 0.6429 |
-| Coverage | 0.6923 |
-| Mean | 0.6429 |
+| Density | 0.7143 |
+| Coverage | 0.7692 |
+| Mean | 0.7143 |
 | Mass | 0.0513 |
 
 **Held-out metrics (test partition)**
@@ -91,182 +90,179 @@ The table includes a **global rank** across all scoreable boxes and a **within-t
 | Test runs | 117 |
 | Target runs before box | 6 |
 | Runs retained by box | 6 |
-| Target runs inside box | 4 |
+| Target runs inside box | 3 |
 | Target prevalence before box | 0.0513 |
-| Precision inside box | 0.6667 |
-| Recall / target coverage | 0.6667 |
-| Absolute lift over held-out prevalence | 0.6154 |
+| Precision inside box | 0.5000 |
+| Recall / target coverage | 0.5000 |
+| Absolute lift over held-out prevalence | 0.4487 |
 
 ### Box 2 — S-M (S,M) — Representative for CART Box 2
 
 **Learned box conditions**
 
-- `Client Selector Criteria`: {(not selected)}
-- `Alpha Dirichlet Mean`: [0.625, 0.688]
-- **Includes NaN / not-selected values:** `Client Selector Criteria`
+- `Alpha Dirichlet Mean`: [0.600, 0.825]
+- `Client Selector Stress Percentage`: (not selected) or <= 35.000
+- **Includes NaN / not-selected values:** `Client Selector Stress Percentage`
 
 **Architectural interpretation**
 
 - **Design prescription**:
-  - Client Selector = OFF
+  - No pattern policy is required by the box conditions
 - **Observed pattern activation — training partition (rows matching this box)**:
-  - Client Selector: OFF (49/49)
-  - HDH: OFF (21/49), ON (28/49)
-  - Message Compressor: OFF (35/49), ON (14/49)
+  - Client Selector: OFF (63/63)
+  - HDH: OFF (21/63), ON (42/63)
+  - Message Compressor: OFF (42/63), ON (21/63)
 - **Observed pattern activation — held-out partition (rows matching this box)**:
-  - Client Selector: OFF (21/21)
-  - HDH: OFF (9/21), ON (12/21)
-  - Message Compressor: OFF (15/21), ON (6/21)
+  - Client Selector: OFF (27/27)
+  - HDH: OFF (9/27), ON (18/27)
+  - Message Compressor: OFF (18/27), ON (9/27)
 - **Operating envelope**:
-  - Alpha Dirichlet Mean [0.625, 0.688]
-- **Other parameter conditions**:
-  - Criteria {(not selected)}
+  - Alpha Dirichlet Mean [0.6, 0.825]
+  - Client Selector Stress Percentage [20, 35] (%)
 
 **Discovery metrics (training partition)**
 
 | Metric | Value |
 |:---|---:|
 | Train precision / density | 1 |
-| Train recall / coverage | 0.6712 |
-| Train target prevalence | 0.2674 |
-| Train absolute lift | 0.7326 |
+| Train recall / coverage | 0.8289 |
+| Train target prevalence | 0.2784 |
+| Train absolute lift | 0.7216 |
 | Train observations | 273 |
-| Train target observations | 73 |
-| Train samples in box | 49 |
-| Train targets in box | 49 |
+| Train target observations | 76 |
+| Train samples in box | 63 |
+| Train targets in box | 63 |
 
 **Algorithm fit diagnostics**
 
 | Diagnostic | Value |
 |:---|---:|
 | Density | 1 |
-| Coverage | 0.6712 |
+| Coverage | 0.8289 |
 | Mean | 1 |
-| Mass | 0.1795 |
+| Mass | 0.2308 |
 
 **Held-out metrics (test partition)**
 
 | Metric | Value |
 |:---|---:|
 | Test runs | 117 |
-| Target runs before box | 31 |
-| Runs retained by box | 21 |
-| Target runs inside box | 21 |
-| Target prevalence before box | 0.2650 |
+| Target runs before box | 33 |
+| Runs retained by box | 27 |
+| Target runs inside box | 27 |
+| Target prevalence before box | 0.2821 |
 | Precision inside box | 1 |
-| Recall / target coverage | 0.6774 |
-| Absolute lift over held-out prevalence | 0.7350 |
+| Recall / target coverage | 0.8182 |
+| Absolute lift over held-out prevalence | 0.7179 |
 
 ### Box 3 — M-S (M,S) — Representative for CART Box 3
 
 **Learned box conditions**
 
-- `Client Selector Criteria`: {(not selected)}
-- `Alpha Dirichlet Mean`: [0.688, 0.875]
+- `Alpha Dirichlet Mean`: [0.825, 0.900]
 - `delay_percentage`: [0.000, 12.500]
-- **Includes NaN / not-selected values:** `Client Selector Criteria`
+- **Includes NaN / not-selected values:** No
 
 **Architectural interpretation**
 
 - **Design prescription**:
-  - Client Selector = OFF
+  - No pattern policy is required by the box conditions
 - **Observed pattern activation — training partition (rows matching this box)**:
-  - Client Selector: OFF (21/21)
-  - HDH: OFF (14/21), ON (7/21)
-  - Message Compressor: OFF (7/21), ON (14/21)
+  - Client Selector: OFF (21/35), ON (14/35)
+  - HDH: OFF (21/35), ON (14/35)
+  - Message Compressor: OFF (7/35), ON (28/35)
 - **Observed pattern activation — held-out partition (rows matching this box)**:
-  - Client Selector: OFF (9/9)
-  - HDH: OFF (6/9), ON (3/9)
-  - Message Compressor: OFF (3/9), ON (6/9)
+  - Client Selector: OFF (9/15), ON (6/15)
+  - HDH: OFF (9/15), ON (6/15)
+  - Message Compressor: OFF (3/15), ON (12/15)
 - **Operating envelope**:
-  - Alpha Dirichlet Mean [0.688, 0.875]
+  - Alpha Dirichlet Mean [0.825, 0.9]
   - delay percentage [0, 12.5] (%)
-- **Other parameter conditions**:
-  - Criteria {(not selected)}
 
 **Discovery metrics (training partition)**
 
 | Metric | Value |
 |:---|---:|
 | Train precision / density | 1 |
-| Train recall / coverage | 0.5000 |
-| Train target prevalence | 0.1538 |
-| Train absolute lift | 0.8462 |
+| Train recall / coverage | 0.9211 |
+| Train target prevalence | 0.1392 |
+| Train absolute lift | 0.8608 |
 | Train observations | 273 |
-| Train target observations | 42 |
-| Train samples in box | 21 |
-| Train targets in box | 21 |
+| Train target observations | 38 |
+| Train samples in box | 35 |
+| Train targets in box | 35 |
 
 **Algorithm fit diagnostics**
 
 | Diagnostic | Value |
 |:---|---:|
 | Density | 1 |
-| Coverage | 0.5000 |
+| Coverage | 0.9211 |
 | Mean | 1 |
-| Mass | 0.0769 |
+| Mass | 0.1282 |
 
 **Held-out metrics (test partition)**
 
 | Metric | Value |
 |:---|---:|
 | Test runs | 117 |
-| Target runs before box | 18 |
-| Runs retained by box | 9 |
-| Target runs inside box | 9 |
-| Target prevalence before box | 0.1538 |
+| Target runs before box | 16 |
+| Runs retained by box | 15 |
+| Target runs inside box | 15 |
+| Target prevalence before box | 0.1368 |
 | Precision inside box | 1 |
-| Recall / target coverage | 0.5000 |
-| Absolute lift over held-out prevalence | 0.8462 |
+| Recall / target coverage | 0.9375 |
+| Absolute lift over held-out prevalence | 0.8632 |
 
-### Box 4 — M-M (M,M) — Representative for CART Box 1
+### Box 4 — M-M (M,M)
 
 **Learned box conditions**
 
-- `Client Selector Criteria`: {(not selected)}
-- `Alpha Dirichlet Mean`: [0.812, 0.875]
+- `Alpha Dirichlet Mean`: [0.675, 0.900]
+- `JSD Mean`: (not selected) or <= 0.013
 - `delay_percentage`: [12.500, 100.000]
-- **Includes NaN / not-selected values:** `Client Selector Criteria`
+- `Client Selector Stress Percentage`: (not selected) or <= 37.500
+- **Includes NaN / not-selected values:** `Client Selector Stress Percentage`, `JSD Mean`
 
 **Architectural interpretation**
 
 - **Design prescription**:
-  - Client Selector = OFF
+  - No pattern policy is required by the box conditions
 - **Observed pattern activation — training partition (rows matching this box)**:
-  - Client Selector: OFF (77/77)
-  - HDH: OFF (56/77), ON (21/77)
-  - Message Compressor: OFF (28/77), ON (49/77)
+  - Client Selector: OFF (77/119), ON (42/119)
+  - HDH: OFF (77/119), ON (42/119)
+  - Message Compressor: OFF (42/119), ON (77/119)
 - **Observed pattern activation — held-out partition (rows matching this box)**:
-  - Client Selector: OFF (33/33)
-  - HDH: OFF (24/33), ON (9/33)
-  - Message Compressor: OFF (12/33), ON (21/33)
+  - Client Selector: OFF (33/51), ON (18/51)
+  - HDH: OFF (33/51), ON (18/51)
+  - Message Compressor: OFF (18/51), ON (33/51)
 - **Operating envelope**:
-  - Alpha Dirichlet Mean [0.812, 0.875]
+  - Alpha Dirichlet Mean [0.675, 0.9]
+  - JSD Mean [-0.01, 0.0131]
   - delay percentage [12.5, 100] (%)
-- **Other parameter conditions**:
-  - Criteria {(not selected)}
+  - Client Selector Stress Percentage [20, 37.5] (%)
 
 **Discovery metrics (training partition)**
 
 | Metric | Value |
 |:---|---:|
 | Train precision / density | 1 |
-| Train recall / coverage | 0.5310 |
-| Train target prevalence | 0.5311 |
-| Train absolute lift | 0.4689 |
+| Train recall / coverage | 0.8151 |
+| Train target prevalence | 0.5348 |
+| Train absolute lift | 0.4652 |
 | Train observations | 273 |
-| Train target observations | 145 |
-| Train samples in box | 77 |
-| Train targets in box | 77 |
+| Train target observations | 146 |
+| Train samples in box | 119 |
+| Train targets in box | 119 |
 
 **Algorithm fit diagnostics**
 
 | Diagnostic | Value |
 |:---|---:|
 | Density | 1 |
-| Coverage | 0.5310 |
+| Coverage | 0.8151 |
 | Mean | 1 |
-| Mass | 0.2821 |
+| Mass | 0.4359 |
 
 **Held-out metrics (test partition)**
 
@@ -274,54 +270,53 @@ The table includes a **global rank** across all scoreable boxes and a **within-t
 |:---|---:|
 | Test runs | 117 |
 | Target runs before box | 62 |
-| Runs retained by box | 33 |
-| Target runs inside box | 33 |
+| Runs retained by box | 51 |
+| Target runs inside box | 51 |
 | Target prevalence before box | 0.5299 |
 | Precision inside box | 1 |
-| Recall / target coverage | 0.5323 |
+| Recall / target coverage | 0.8226 |
 | Absolute lift over held-out prevalence | 0.4701 |
 
 ## CART
 
-### Box 1 — M-M (M,M) — Near duplicate of PRIM Box 4 (condition similarity 100%; held-out membership Jaccard 100%)
+### Box 1 — M-M (M,M)
 
 **Learned box conditions**
 
-- `Client Selector Criteria`: {(not selected)}
-- `Alpha Dirichlet Mean`: [0.813, 0.875]
+- `Client Selector Stress Percentage`: (not selected) or <= 37.500
 - `delay_percentage`: [12.500, 100.000]
-- **Includes NaN / not-selected values:** `Client Selector Criteria`
+- `Alpha Dirichlet Mean`: [0.825, 0.900]
+- **Includes NaN / not-selected values:** `Client Selector Stress Percentage`
 
 **Architectural interpretation**
 
 - **Design prescription**:
-  - Client Selector = OFF
+  - No pattern policy is required by the box conditions
 - **Observed pattern activation — training partition (rows matching this box)**:
-  - Client Selector: OFF (77/77)
-  - HDH: OFF (56/77), ON (21/77)
-  - Message Compressor: OFF (28/77), ON (49/77)
+  - Client Selector: OFF (77/119), ON (42/119)
+  - HDH: OFF (77/119), ON (42/119)
+  - Message Compressor: OFF (42/119), ON (77/119)
 - **Observed pattern activation — held-out partition (rows matching this box)**:
-  - Client Selector: OFF (33/33)
-  - HDH: OFF (24/33), ON (9/33)
-  - Message Compressor: OFF (12/33), ON (21/33)
+  - Client Selector: OFF (33/51), ON (18/51)
+  - HDH: OFF (33/51), ON (18/51)
+  - Message Compressor: OFF (18/51), ON (33/51)
 - **Operating envelope**:
-  - Alpha Dirichlet Mean [0.813, 0.875]
+  - Client Selector Stress Percentage [20, 37.5] (%)
   - delay percentage [12.5, 100] (%)
-- **Other parameter conditions**:
-  - Criteria {(not selected)}
+  - Alpha Dirichlet Mean [0.825, 0.9]
 
 **Discovery metrics (training partition)**
 
 | Metric | Value |
 |:---|---:|
 | Train precision / density | 1 |
-| Train recall / coverage | 0.5310 |
-| Train target prevalence | 0.5311 |
-| Train absolute lift | 0.4689 |
+| Train recall / coverage | 0.8151 |
+| Train target prevalence | 0.5348 |
+| Train absolute lift | 0.4652 |
 | Train observations | 273 |
-| Train target observations | 145 |
-| Train samples in box | 77 |
-| Train targets in box | 77 |
+| Train target observations | 146 |
+| Train samples in box | 119 |
+| Train targets in box | 119 |
 
 **Held-out metrics (test partition)**
 
@@ -329,154 +324,151 @@ The table includes a **global rank** across all scoreable boxes and a **within-t
 |:---|---:|
 | Test runs | 117 |
 | Target runs before box | 62 |
-| Runs retained by box | 33 |
-| Target runs inside box | 33 |
+| Runs retained by box | 51 |
+| Target runs inside box | 51 |
 | Target prevalence before box | 0.5299 |
 | Precision inside box | 1 |
-| Recall / target coverage | 0.5323 |
+| Recall / target coverage | 0.8226 |
 | Absolute lift over held-out prevalence | 0.4701 |
 
 ### Box 2 — S-M (S,M) — Near duplicate of PRIM Box 2 (condition similarity 100%; held-out membership Jaccard 100%)
 
 **Learned box conditions**
 
-- `Client Selector Criteria`: {(not selected)}
-- `Alpha Dirichlet Mean`: [0.625, 0.688]
-- **Includes NaN / not-selected values:** `Client Selector Criteria`
+- `Client Selector Stress Percentage`: (not selected) or <= 34.996
+- `Alpha Dirichlet Mean`: [0.600, 0.825]
+- **Includes NaN / not-selected values:** `Client Selector Stress Percentage`
 
 **Architectural interpretation**
 
 - **Design prescription**:
-  - Client Selector = OFF
+  - No pattern policy is required by the box conditions
 - **Observed pattern activation — training partition (rows matching this box)**:
-  - Client Selector: OFF (49/49)
-  - HDH: OFF (21/49), ON (28/49)
-  - Message Compressor: OFF (35/49), ON (14/49)
+  - Client Selector: OFF (63/63)
+  - HDH: OFF (21/63), ON (42/63)
+  - Message Compressor: OFF (42/63), ON (21/63)
 - **Observed pattern activation — held-out partition (rows matching this box)**:
-  - Client Selector: OFF (21/21)
-  - HDH: OFF (9/21), ON (12/21)
-  - Message Compressor: OFF (15/21), ON (6/21)
+  - Client Selector: OFF (27/27)
+  - HDH: OFF (9/27), ON (18/27)
+  - Message Compressor: OFF (18/27), ON (9/27)
 - **Operating envelope**:
-  - Alpha Dirichlet Mean [0.625, 0.688]
-- **Other parameter conditions**:
-  - Criteria {(not selected)}
+  - Client Selector Stress Percentage [20, 35] (%)
+  - Alpha Dirichlet Mean [0.6, 0.825]
 
 **Discovery metrics (training partition)**
 
 | Metric | Value |
 |:---|---:|
 | Train precision / density | 1 |
-| Train recall / coverage | 0.6712 |
-| Train target prevalence | 0.2674 |
-| Train absolute lift | 0.7326 |
+| Train recall / coverage | 0.8289 |
+| Train target prevalence | 0.2784 |
+| Train absolute lift | 0.7216 |
 | Train observations | 273 |
-| Train target observations | 73 |
-| Train samples in box | 49 |
-| Train targets in box | 49 |
+| Train target observations | 76 |
+| Train samples in box | 63 |
+| Train targets in box | 63 |
 
 **Held-out metrics (test partition)**
 
 | Metric | Value |
 |:---|---:|
 | Test runs | 117 |
-| Target runs before box | 31 |
-| Runs retained by box | 21 |
-| Target runs inside box | 21 |
-| Target prevalence before box | 0.2650 |
+| Target runs before box | 33 |
+| Runs retained by box | 27 |
+| Target runs inside box | 27 |
+| Target prevalence before box | 0.2821 |
 | Precision inside box | 1 |
-| Recall / target coverage | 0.6774 |
-| Absolute lift over held-out prevalence | 0.7350 |
+| Recall / target coverage | 0.8182 |
+| Absolute lift over held-out prevalence | 0.7179 |
 
-### Box 3 — M-S (M,S) — Near duplicate of PRIM Box 3 (condition similarity 92%; held-out membership Jaccard 100%)
+### Box 3 — M-S (M,S) — Near duplicate of PRIM Box 3 (condition similarity 100%; held-out membership Jaccard 100%)
 
 **Learned box conditions**
 
-- `Client Selector Criteria`: {(not selected)}
-- `Alpha Dirichlet Mean`: [0.813, 0.875]
 - `delay_percentage`: [0.000, 12.500]
-- **Includes NaN / not-selected values:** `Client Selector Criteria`
-
-**Architectural interpretation**
-
-- **Design prescription**:
-  - Client Selector = OFF
-- **Observed pattern activation — training partition (rows matching this box)**:
-  - Client Selector: OFF (21/21)
-  - HDH: OFF (14/21), ON (7/21)
-  - Message Compressor: OFF (7/21), ON (14/21)
-- **Observed pattern activation — held-out partition (rows matching this box)**:
-  - Client Selector: OFF (9/9)
-  - HDH: OFF (6/9), ON (3/9)
-  - Message Compressor: OFF (3/9), ON (6/9)
-- **Operating envelope**:
-  - Alpha Dirichlet Mean [0.813, 0.875]
-  - delay percentage [0, 12.5] (%)
-- **Other parameter conditions**:
-  - Criteria {(not selected)}
-
-**Discovery metrics (training partition)**
-
-| Metric | Value |
-|:---|---:|
-| Train precision / density | 1 |
-| Train recall / coverage | 0.5000 |
-| Train target prevalence | 0.1538 |
-| Train absolute lift | 0.8462 |
-| Train observations | 273 |
-| Train target observations | 42 |
-| Train samples in box | 21 |
-| Train targets in box | 21 |
-
-**Held-out metrics (test partition)**
-
-| Metric | Value |
-|:---|---:|
-| Test runs | 117 |
-| Target runs before box | 18 |
-| Runs retained by box | 9 |
-| Target runs inside box | 9 |
-| Target prevalence before box | 0.1538 |
-| Precision inside box | 1 |
-| Recall / target coverage | 0.5000 |
-| Absolute lift over held-out prevalence | 0.8462 |
-
-### Box 4 — S-S (S,S) — Near duplicate of PRIM Box 1 (condition similarity 100%; held-out membership Jaccard 100%)
-
-**Learned box conditions**
-
-- `Client Selector Criteria`: {CPU}
-- `Alpha Dirichlet Mean`: [0.625, 0.813]
-- `CPU Mean`: [8.250, 8.875]
+- `Alpha Dirichlet Mean`: [0.825, 0.900]
 - **Includes NaN / not-selected values:** No
 
 **Architectural interpretation**
 
 - **Design prescription**:
-  - Client Selector = ON (Strategy = Resource-Based; Criteria = CPU; Value = 2.0)
+  - No pattern policy is required by the box conditions
 - **Observed pattern activation — training partition (rows matching this box)**:
-  - Client Selector: ON (14/14)
-  - HDH: OFF (7/14), ON (7/14)
-  - Message Compressor: OFF (14/14)
+  - Client Selector: OFF (21/35), ON (14/35)
+  - HDH: OFF (21/35), ON (14/35)
+  - Message Compressor: OFF (7/35), ON (28/35)
 - **Observed pattern activation — held-out partition (rows matching this box)**:
-  - Client Selector: ON (6/6)
-  - HDH: OFF (3/6), ON (3/6)
-  - Message Compressor: OFF (6/6)
+  - Client Selector: OFF (9/15), ON (6/15)
+  - HDH: OFF (9/15), ON (6/15)
+  - Message Compressor: OFF (3/15), ON (12/15)
 - **Operating envelope**:
-  - Alpha Dirichlet Mean [0.625, 0.813]
-  - CPU Mean [8.25, 8.88]
+  - delay percentage [0, 12.5] (%)
+  - Alpha Dirichlet Mean [0.825, 0.9]
 
 **Discovery metrics (training partition)**
 
 | Metric | Value |
 |:---|---:|
-| Train precision / density | 0.6429 |
-| Train recall / coverage | 0.6923 |
+| Train precision / density | 1 |
+| Train recall / coverage | 0.9211 |
+| Train target prevalence | 0.1392 |
+| Train absolute lift | 0.8608 |
+| Train observations | 273 |
+| Train target observations | 38 |
+| Train samples in box | 35 |
+| Train targets in box | 35 |
+
+**Held-out metrics (test partition)**
+
+| Metric | Value |
+|:---|---:|
+| Test runs | 117 |
+| Target runs before box | 16 |
+| Runs retained by box | 15 |
+| Target runs inside box | 15 |
+| Target prevalence before box | 0.1368 |
+| Precision inside box | 1 |
+| Recall / target coverage | 0.9375 |
+| Absolute lift over held-out prevalence | 0.8632 |
+
+### Box 4 — S-S (S,S)
+
+**Learned box conditions**
+
+- `JSD Mean`: (not selected) or <= 0.010
+- `Client Selector Stress Percentage`: [62.498, 75.000]
+- `Alpha Dirichlet Mean`: [0.600, 0.825]
+- **Includes NaN / not-selected values:** `JSD Mean`
+
+**Architectural interpretation**
+
+- **Design prescription**:
+  - No pattern policy is required by the box conditions
+- **Observed pattern activation — training partition (rows matching this box)**:
+  - Client Selector: ON (8/8)
+  - HDH: OFF (7/8), ON (1/8)
+  - Message Compressor: OFF (8/8)
+- **Observed pattern activation — held-out partition (rows matching this box)**:
+  - Client Selector: ON (3/3)
+  - HDH: OFF (3/3)
+  - Message Compressor: OFF (3/3)
+- **Operating envelope**:
+  - JSD Mean [-0.01, 0.01]
+  - Client Selector Stress Percentage [62.5, 75] (%)
+  - Alpha Dirichlet Mean [0.6, 0.825]
+
+**Discovery metrics (training partition)**
+
+| Metric | Value |
+|:---|---:|
+| Train precision / density | 0.5000 |
+| Train recall / coverage | 0.3077 |
 | Train target prevalence | 0.0476 |
-| Train absolute lift | 0.5952 |
+| Train absolute lift | 0.4524 |
 | Train observations | 273 |
 | Train target observations | 13 |
-| Train samples in box | 14 |
-| Train targets in box | 9 |
+| Train samples in box | 8 |
+| Train targets in box | 4 |
 
 **Held-out metrics (test partition)**
 
@@ -484,9 +476,9 @@ The table includes a **global rank** across all scoreable boxes and a **within-t
 |:---|---:|
 | Test runs | 117 |
 | Target runs before box | 6 |
-| Runs retained by box | 6 |
-| Target runs inside box | 4 |
+| Runs retained by box | 3 |
+| Target runs inside box | 1 |
 | Target prevalence before box | 0.0513 |
-| Precision inside box | 0.6667 |
-| Recall / target coverage | 0.6667 |
-| Absolute lift over held-out prevalence | 0.6154 |
+| Precision inside box | 0.3333 |
+| Recall / target coverage | 0.1667 |
+| Absolute lift over held-out prevalence | 0.2821 |

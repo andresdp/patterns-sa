@@ -129,7 +129,9 @@ Each notebook also writes a Markdown report to its task's `boxes/` folder. The r
 all non-empty PRIM and CART boxes, gives the specification-aware architectural interpretation,
 lists discovery metrics and held-out support, precision, recall and lift, and flags boxes that
 include NaN or not-selected values. Its filename records the task, configuration slice, client
-scope and environment filter.
+scope and environment filter. Each report uses the exact stem of its source notebook
+(for example, `analysis-fl-rq-baseline-image.ipynb` produces
+`boxes/analysis-fl-rq-baseline-image.md`), making the notebook-to-report mapping direct.
 
 ### Refreshing research findings
 

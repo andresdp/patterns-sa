@@ -1,6 +1,6 @@
 {
   "task": "text",
-  "generated_at_utc": "2026-10-17T21:24:22+00:00",
+  "generated_at_utc": "2026-10-17T21:40:33+00:00",
   "status": "ready",
   "research_questions": {
     "RQ1": "Which tradeoffs occur, and how do design choices relate to them?",
@@ -31,7 +31,7 @@
   "notebooks": [
     {
       "path": "federatedlearning/compact/text/analysis-fl-rq-baseline-text.ipynb",
-      "sha256": "9fcff01ad758e236ada61748e7ffb626e122e7a01b1a1a95ba467554a8c34bb1",
+      "sha256": "7fa5b44f1c0d4a1cf75732b9dc69c177bfde1febf4a1c587c88e98fb355c2cd1",
       "status": "ready",
       "code_cells": 51,
       "output_cells": 46,
@@ -73,7 +73,7 @@
         "## 13. Performance Metrics"
       ],
       "box_report": {
-        "path": "federatedlearning/compact/text/boxes/boxes__task-text__baseline_OFF_OFF_OFF__clients-all__environment-all.md",
+        "path": "federatedlearning/compact/text/boxes/analysis-fl-rq-baseline-text.md",
         "size_bytes": 9267,
         "sha256": "f03552fbc9a3d5c1597a47e6349ef2c6d0df67773514bf1d7c893cf6ede85252"
       },
@@ -92,7 +92,7 @@
     },
     {
       "path": "federatedlearning/compact/text/analysis-fl-rq-c10-text.ipynb",
-      "sha256": "3ea210073c1d908feb393836c814706b9b625634057f8907ef8c5addeddb4df7",
+      "sha256": "f8a694f42cd6dee483ee03349863c047511e878251ab1ecd13c41b55c5b202a7",
       "status": "ready",
       "code_cells": 51,
       "output_cells": 46,
@@ -134,7 +134,7 @@
         "## 13. Performance Metrics"
       ],
       "box_report": {
-        "path": "federatedlearning/compact/text/boxes/boxes__task-text__all-configurations__clients-10__environment-all.md",
+        "path": "federatedlearning/compact/text/boxes/analysis-fl-rq-c10-text.md",
         "size_bytes": 13520,
         "sha256": "3b50c51cf91622c78e76e84f32c70661a481f762bc6c8555fb67ba3e262f1f3c"
       },
@@ -153,7 +153,7 @@
     },
     {
       "path": "federatedlearning/compact/text/analysis-fl-rq-c4-text.ipynb",
-      "sha256": "a2107a2d35489b500a3cf1a96567d6743249324392465e15ad0bb156e654f053",
+      "sha256": "b1b1bcdfc01aee0caec79bfc3c25b85d7c7cb5c4521c7fa748834449c87e8551",
       "status": "ready",
       "code_cells": 51,
       "output_cells": 46,
@@ -195,7 +195,7 @@
         "## 13. Performance Metrics"
       ],
       "box_report": {
-        "path": "federatedlearning/compact/text/boxes/boxes__task-text__all-configurations__clients-4__environment-all.md",
+        "path": "federatedlearning/compact/text/boxes/analysis-fl-rq-c4-text.md",
         "size_bytes": 17053,
         "sha256": "72a7f0df657b35dbc063ed12207f829c78233b34033e7d05910bd4c5f07f4a4e"
       },
@@ -214,7 +214,7 @@
     },
     {
       "path": "federatedlearning/compact/text/analysis-fl-rq-c8-text.ipynb",
-      "sha256": "9e0ac0e4dc8640fb6e3cea2ecfb5d059b91db1756751959450d1b4070bf6224d",
+      "sha256": "45f866b39ed46540d0ac51ff1a48916567323dfcb8a330a792191f3ad6b316d0",
       "status": "ready",
       "code_cells": 51,
       "output_cells": 46,
@@ -256,7 +256,7 @@
         "## 13. Performance Metrics"
       ],
       "box_report": {
-        "path": "federatedlearning/compact/text/boxes/boxes__task-text__all-configurations__clients-8__environment-all.md",
+        "path": "federatedlearning/compact/text/boxes/analysis-fl-rq-c8-text.md",
         "size_bytes": 15322,
         "sha256": "6c438d0cffeb47be7464cb2b72fd44aaafa370b0c3a6b6ab9b1cf55ae3ddb199"
       },
@@ -275,7 +275,7 @@
     },
     {
       "path": "federatedlearning/compact/text/analysis-fl-rq-client_selector-text.ipynb",
-      "sha256": "b0c77aba1df28804acf21fb386eceb067f5711698cdf003956e5d7d942597bd9",
+      "sha256": "6805d0a06e59855a31248c399b3ab25dcbb037f454e1566b1737fe3fe0bc067b",
       "status": "ready",
       "code_cells": 51,
       "output_cells": 46,
@@ -317,7 +317,7 @@
         "## 13. Performance Metrics"
       ],
       "box_report": {
-        "path": "federatedlearning/compact/text/boxes/boxes__task-text__client_selector-only_ON_OFF_OFF__clients-all__environment-all.md",
+        "path": "federatedlearning/compact/text/boxes/analysis-fl-rq-client_selector-text.md",
         "size_bytes": 11261,
         "sha256": "591114bbddfd8b60f44b5340223320d009560962eec41b677b29d0b814752527"
       },
@@ -336,7 +336,7 @@
     },
     {
       "path": "federatedlearning/compact/text/analysis-fl-rq-combined-patterns-stress-25-text.ipynb",
-      "sha256": "4553db588de20b4000ecdf2a12c4d31e357c48e740e50f9d8a9af0ee196ca2cb",
+      "sha256": "26e16b28586223e7c134ce3568510bf9cf02d929d97e0f26073bf25d0e2977c9",
       "status": "ready",
       "code_cells": 51,
       "output_cells": 46,
@@ -378,7 +378,7 @@
         "## 13. Performance Metrics"
       ],
       "box_report": {
-        "path": "federatedlearning/compact/text/boxes/boxes__task-text__combined-patterns__clients-all__stress-25__environment-all.md",
+        "path": "federatedlearning/compact/text/boxes/analysis-fl-rq-combined-patterns-stress-25-text.md",
         "size_bytes": 8469,
         "sha256": "faa149cfa6b883b0ac89d9a151c605ebe508b62d29e03c3376bb978df1faee87"
       },
@@ -397,7 +397,7 @@
     },
     {
       "path": "federatedlearning/compact/text/analysis-fl-rq-combined-patterns-stress-50-text.ipynb",
-      "sha256": "b6b98e333d864117d919c6568d329b45321d2c6a2224cc0479855b78f7f9c69b",
+      "sha256": "d77f0fe5aac6237a423cf22ea0075cd31917d1e8e42a700bf85505612242676e",
       "status": "ready",
       "code_cells": 51,
       "output_cells": 46,
@@ -439,7 +439,7 @@
         "## 13. Performance Metrics"
       ],
       "box_report": {
-        "path": "federatedlearning/compact/text/boxes/boxes__task-text__combined-patterns__clients-all__stress-50__environment-all.md",
+        "path": "federatedlearning/compact/text/boxes/analysis-fl-rq-combined-patterns-stress-50-text.md",
         "size_bytes": 15634,
         "sha256": "b37226f7c6ab3328940b221c3c87f8717c7727e1cc696cc1ae832d7d78fd68d8"
       },
@@ -458,7 +458,7 @@
     },
     {
       "path": "federatedlearning/compact/text/analysis-fl-rq-combined-patterns-stress-75-text.ipynb",
-      "sha256": "0a3d71642aeba4f404adb967a88905876085224aa7f240c103cf03597054d975",
+      "sha256": "8b5c7b6a133f141895960476dca4542ec21eae368f992e439f5e4a5cb568a2da",
       "status": "ready",
       "code_cells": 51,
       "output_cells": 46,
@@ -500,7 +500,7 @@
         "## 13. Performance Metrics"
       ],
       "box_report": {
-        "path": "federatedlearning/compact/text/boxes/boxes__task-text__combined-patterns__clients-all__stress-75__environment-all.md",
+        "path": "federatedlearning/compact/text/boxes/analysis-fl-rq-combined-patterns-stress-75-text.md",
         "size_bytes": 16911,
         "sha256": "a0ea95ca44c113b168fb632c4ce759b6bb712c3cd968fbd42b9218e58ff3a7e2"
       },
@@ -519,7 +519,7 @@
     },
     {
       "path": "federatedlearning/compact/text/analysis-fl-rq-hdh-text.ipynb",
-      "sha256": "04d794e82ce6fc1414d59f295cd92542eda5098edd4552d69e64409376644d82",
+      "sha256": "b76e856b831748fb961b2efd8074503731eae7c6f0dd61c483de1e05a0c61408",
       "status": "ready",
       "code_cells": 51,
       "output_cells": 46,
@@ -561,7 +561,7 @@
         "## 13. Performance Metrics"
       ],
       "box_report": {
-        "path": "federatedlearning/compact/text/boxes/boxes__task-text__hdh-only_OFF_OFF_ON__clients-all__environment-all.md",
+        "path": "federatedlearning/compact/text/boxes/analysis-fl-rq-hdh-text.md",
         "size_bytes": 11502,
         "sha256": "3d2e7885187347d047951073bf0007f57ac8b8cda62c7043190517160bb933d3"
       },
@@ -580,7 +580,7 @@
     },
     {
       "path": "federatedlearning/compact/text/analysis-fl-rq-message_compressor-text.ipynb",
-      "sha256": "a4f119cfec7d9f530752f449347dbdd448b677f4595c7175e9ce79c90197a058",
+      "sha256": "5d970e414cd6a9263501e430b808a16ff33cf37f6810b8a76fa209dfdb3f6d6b",
       "status": "ready",
       "code_cells": 51,
       "output_cells": 46,
@@ -622,7 +622,7 @@
         "## 13. Performance Metrics"
       ],
       "box_report": {
-        "path": "federatedlearning/compact/text/boxes/boxes__task-text__message_compressor-only_OFF_ON_OFF__clients-all__environment-all.md",
+        "path": "federatedlearning/compact/text/boxes/analysis-fl-rq-message_compressor-text.md",
         "size_bytes": 9280,
         "sha256": "f23925e7310bc7f5667949c628004864d46c21a3917bbd2618a2d9eeb32949ae"
       },
@@ -641,7 +641,7 @@
     },
     {
       "path": "federatedlearning/compact/text/analysis-fl-rq-stress-only-client_selector-text.ipynb",
-      "sha256": "b1cdf0ca14c14a046fdb8f1d453f5f546266f597e2af149c117dae3bbc2abc2a",
+      "sha256": "4dd704b2a09b6ddb1d047ea4fcbc71e8adf17d2a887972347b532c4f88c97043",
       "status": "ready",
       "code_cells": 51,
       "output_cells": 46,
@@ -683,7 +683,7 @@
         "## 13. Performance Metrics"
       ],
       "box_report": {
-        "path": "federatedlearning/compact/text/boxes/boxes__task-text__stress-ONLY-client_selector__clients-all__environment-all.md",
+        "path": "federatedlearning/compact/text/boxes/analysis-fl-rq-stress-only-client_selector-text.md",
         "size_bytes": 11755,
         "sha256": "3d5ae5a96b551f0cffa10730f58f76325f75bee2037d38e23b69412b2379270f"
       },
@@ -702,7 +702,7 @@
     },
     {
       "path": "federatedlearning/compact/text/analysis-fl-rq-stress-only-hdh-text.ipynb",
-      "sha256": "922ba84f902fc50a84a7a26d15461d2bf1491f36a69846856bc38fd927b94b16",
+      "sha256": "7523b260b7a5c41eba7937e49607be920e9f2e60cc9e9d59e6b05bbb2bcf06bd",
       "status": "ready",
       "code_cells": 51,
       "output_cells": 46,
@@ -744,7 +744,7 @@
         "## 13. Performance Metrics"
       ],
       "box_report": {
-        "path": "federatedlearning/compact/text/boxes/boxes__task-text__stress-ONLY-hdh__clients-all__environment-all.md",
+        "path": "federatedlearning/compact/text/boxes/analysis-fl-rq-stress-only-hdh-text.md",
         "size_bytes": 11538,
         "sha256": "51050ce042902a804d58a566b784a23af6923ab7b3cbdbf4b1cf9c56c0236590"
       },
@@ -763,7 +763,7 @@
     },
     {
       "path": "federatedlearning/compact/text/analysis-fl-rq-stress-only-message_compressor-text.ipynb",
-      "sha256": "8289bc7f4419e635ff21c093eaa7a0c5aeba7746c2e02e04f3293d5814f978ac",
+      "sha256": "ed80a0f805f934694c386d0751632518ec8aa837d7bf5b0347e20b0b507f502c",
       "status": "ready",
       "code_cells": 51,
       "output_cells": 46,
@@ -805,7 +805,7 @@
         "## 13. Performance Metrics"
       ],
       "box_report": {
-        "path": "federatedlearning/compact/text/boxes/boxes__task-text__stress-ONLY-message_compressor__clients-all__environment-all.md",
+        "path": "federatedlearning/compact/text/boxes/analysis-fl-rq-stress-only-message_compressor-text.md",
         "size_bytes": 9476,
         "sha256": "c14ff66107c491075ad77cddfee51dec81c0b67f08e86eb9e2a75ef5a7bed049"
       },
