@@ -174,22 +174,28 @@ support, and whether the design/context distinctions and observational limits ar
 
 ### Running
 
-Open a notebook from its task folder and run it top to bottom with the `perfmodels` conda
-environment. Each notebook sets `ENVIRONMENT = 'all'`; none runs or reports the same-environment
-analysis. For either task, run the three all-configuration notebooks in client-count order, the three
-stress-only notebooks (Client Selector, HDH, Message Compressor), the combined-pattern notebook,
-then baseline and the three single-configuration profiles. The stress-only notebooks pool client
-counts and require exactly their named pattern ON; the other pattern decisions are OFF. Their
-colors consistently map increasing stress to green/orange/red, with Message Compressor using five
-steps from light green to dark red; its five-level legend is displayed horizontally. The
-combined-pattern notebook defaults to `CLIENTS = 8` and
-`TARGET_STRESS = 50`; change either parameter to explore another supported slice. It lists support
-for all seven non-empty pattern combinations before analyzing those with rows.
-The baseline and single-pattern profiles keep one exact configuration. Each objective-space chart
-and Section 8 feature-importance heatmap is saved as a 300 dpi PNG in its task folder's `plots/`
-directory. Filenames record the scope and filters. The findings workflow takes the selected
-notebook set and stratification guide as inputs, then refreshes one case report per notebook plus
-one task synthesis.
+To run every maintained image and text notebook in sequence with the `perfmodels` conda
+environment, use the runner from the repository root:
+
+```bash
+./federatedlearning/compact/run_all_notebooks.sh
+```
+
+It asks whether to clear existing contents from both tasks' `plots/` and `boxes/` folders before
+execution. Choose yes to regenerate those outputs from scratch, or no to keep existing files (the
+notebooks overwrite their own named outputs). Use `--clean` to select clearing without a prompt, or
+`--keep` to preserve existing files without a prompt. In non-interactive runs, outputs are kept by
+default. The runner executes notebooks sequentially, then validates each notebook's expected plots
+and same-name box report and refreshes the task evidence manifests. It stops if a notebook fails or
+the expected artifacts are missing. It does not generate the written findings or RQ syntheses; run
+the `adept-compact-findings` skill separately for that step.
+
+For manual execution, open a notebook from its task folder and run it top to bottom with the
+`perfmodels` conda environment. Each notebook sets `ENVIRONMENT = 'all'`; none runs or reports the
+same-environment analysis. Each objective-space chart and Section 8 feature-importance heatmap is
+saved as a 300 dpi PNG in its task folder's `plots/` directory. Filenames record the scope and
+filters. The findings workflow takes the selected notebook set and stratification guide as inputs,
+then refreshes one case report per notebook plus one task synthesis.
 
 ## 4. Filters (`fl_slices.slice_filter`)
 
