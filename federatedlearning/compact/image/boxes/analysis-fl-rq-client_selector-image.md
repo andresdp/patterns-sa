@@ -340,8 +340,8 @@ The table includes a **global rank** across all scoreable boxes and a **within-t
 **Learned box conditions**
 
 - `delay_percentage`: [50.000, 75.000]
-- `CPU Mean`: [8.000, 8.874]
 - `Total Clients`: [9.000, 10.000]
+- `CPU Mean`: [8.000, 8.874]
 - **Includes NaN / not-selected values:** No
 
 **Architectural interpretation**
@@ -392,10 +392,10 @@ The table includes a **global rank** across all scoreable boxes and a **within-t
 
 **Learned box conditions**
 
-- `delay_percentage`: [25.000, 50.000]
 - `Alpha Dirichlet Mean`: [0.750, 0.900]
-- `CPU Mean`: [8.000, 8.874]
+- `delay_percentage`: [25.000, 50.000]
 - `Total Clients`: [9.000, 10.000]
+- `CPU Mean`: [8.000, 8.874]
 - **Includes NaN / not-selected values:** No
 
 **Architectural interpretation**
@@ -411,8 +411,8 @@ The table includes a **global rank** across all scoreable boxes and a **within-t
   - HDH: OFF (3/3)
   - Message Compressor: OFF (3/3)
 - **Operating envelope**:
-  - delay percentage [25, 50] (%)
   - Alpha Dirichlet Mean [0.75, 0.9]
+  - delay percentage [25, 50] (%)
   - CPU Mean [8, 8.87]
 - **Other design conditions**:
   - Total Clients [9, 10]
@@ -447,10 +447,10 @@ The table includes a **global rank** across all scoreable boxes and a **within-t
 
 **Learned box conditions**
 
-- `delay_percentage`: [25.000, 50.000]
 - `Alpha Dirichlet Mean`: [0.600, 0.612]
-- `CPU Mean`: [8.000, 8.874]
+- `delay_percentage`: [25.000, 50.000]
 - `Total Clients`: [5.999, 10.000]
+- `CPU Mean`: [8.000, 8.874]
 - **Includes NaN / not-selected values:** No
 
 **Architectural interpretation**
@@ -466,8 +466,8 @@ The table includes a **global rank** across all scoreable boxes and a **within-t
   - HDH: OFF (3/3)
   - Message Compressor: OFF (3/3)
 - **Operating envelope**:
-  - delay percentage [25, 50] (%)
   - Alpha Dirichlet Mean [0.6, 0.612]
+  - delay percentage [25, 50] (%)
   - CPU Mean [8, 8.87]
 - **Other design conditions**:
   - Total Clients [6, 10]

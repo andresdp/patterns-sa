@@ -218,8 +218,8 @@ The table includes a **global rank** across all scoreable boxes and a **within-t
 
 **Learned box conditions**
 
-- `Alpha Dirichlet Mean`: [0.750, 0.900]
 - `Message Compressor Stress Percentage`: [12.485, 100.000]
+- `Alpha Dirichlet Mean`: [0.750, 0.900]
 - **Includes NaN / not-selected values:** No
 
 **Architectural interpretation**
@@ -235,8 +235,8 @@ The table includes a **global rank** across all scoreable boxes and a **within-t
   - HDH: OFF (45/45)
   - Message Compressor: ON (45/45)
 - **Operating envelope**:
-  - Alpha Dirichlet Mean [0.75, 0.9]
   - Message Compressor Stress Percentage [12.5, 100] (%)
+  - Alpha Dirichlet Mean [0.75, 0.9]
 
 **Discovery metrics (training partition)**
 
@@ -316,9 +316,9 @@ The table includes a **global rank** across all scoreable boxes and a **within-t
 
 **Learned box conditions**
 
-- `Alpha Dirichlet Mean`: [0.600, 0.750]
-- `Message Compressor Stress Percentage`: [12.485, 100.000]
 - `Message Compressor Instances`: [5.999, 10.000]
+- `Message Compressor Stress Percentage`: [12.485, 100.000]
+- `Alpha Dirichlet Mean`: [0.600, 0.750]
 - **Includes NaN / not-selected values:** No
 
 **Architectural interpretation**
@@ -334,9 +334,9 @@ The table includes a **global rank** across all scoreable boxes and a **within-t
   - HDH: OFF (6/6)
   - Message Compressor: ON (6/6)
 - **Operating envelope**:
-  - Alpha Dirichlet Mean [0.6, 0.75]
-  - Message Compressor Stress Percentage [12.5, 100] (%)
   - Message Compressor Instances [6, 10]
+  - Message Compressor Stress Percentage [12.5, 100] (%)
+  - Alpha Dirichlet Mean [0.6, 0.75]
 
 **Discovery metrics (training partition)**
 

@@ -1,6 +1,6 @@
 {
   "task": "image",
-  "generated_at_utc": "2026-10-17T21:58:08+00:00",
+  "generated_at_utc": "2026-10-17T23:59:08+00:00",
   "status": "ready",
   "research_questions": {
     "RQ1": "Which tradeoffs occur, and how do design choices relate to them?",
@@ -25,13 +25,13 @@
   ],
   "scope_guide": {
     "path": "federatedlearning/compact/NOTEBOOK_STRATIFICATION.md",
-    "size_bytes": 18953,
-    "sha256": "143cf377f567f137af7d169a6a961c2c21d26413ca5cf4aa0f262f90eb41d7f1"
+    "size_bytes": 19113,
+    "sha256": "619d084ce98a765142c6d32a047995e400b110e3ded2838e856706d29802397c"
   },
   "notebooks": [
     {
       "path": "federatedlearning/compact/image/analysis-fl-rq-baseline-image.ipynb",
-      "sha256": "2a7737729793e604f98d10c967ce0efd571c2c7a5a4cc60c2987b1079e80b884",
+      "sha256": "5881ebfb31de6ed6d1afc6f9521418ed57aebd7e400815d198680c45a914635b",
       "status": "ready",
       "code_cells": 51,
       "output_cells": 46,
@@ -75,7 +75,7 @@
       "box_report": {
         "path": "federatedlearning/compact/image/boxes/analysis-fl-rq-baseline-image.md",
         "size_bytes": 12964,
-        "sha256": "ad7432d8ec0cbe7a64ed2a36bfa275e31529b9a1e5c69af6a2684b3dbe9bcbb9"
+        "sha256": "52e63d8184f0efc50460e7b4772e0e3ef867ce0ce8b92996dcac6b7693ceeee0"
       },
       "plots": [
         {
@@ -92,7 +92,7 @@
     },
     {
       "path": "federatedlearning/compact/image/analysis-fl-rq-c10-image.ipynb",
-      "sha256": "a3bf75e2f7f2060e44ac4e1d9098188bb3b08f4c9020d0b773f85995e9316746",
+      "sha256": "bb13369e8cc262d0808efa4b95a9832065606f04b2769ce70e41f26083346971",
       "status": "ready",
       "code_cells": 51,
       "output_cells": 46,
@@ -136,7 +136,7 @@
       "box_report": {
         "path": "federatedlearning/compact/image/boxes/analysis-fl-rq-c10-image.md",
         "size_bytes": 17414,
-        "sha256": "aac7b9f8af09dc74c04aedafdd543ba403e3b8804c3920aed15b6acdd0eaf1a4"
+        "sha256": "247f965e9c27d0888a0893cb4945a75f3ec3d293faf3476508b7bc018394e357"
       },
       "plots": [
         {
@@ -153,7 +153,7 @@
     },
     {
       "path": "federatedlearning/compact/image/analysis-fl-rq-c4-image.ipynb",
-      "sha256": "7d2ea2ad8f0cef4459f53e555d399efbba0f404732c3dc230173efbd602b7572",
+      "sha256": "b83e4526ba3835285ddc656c0a711e9a9d4e84d5c79c1843c9faf43578d70b42",
       "status": "ready",
       "code_cells": 51,
       "output_cells": 46,
@@ -197,7 +197,7 @@
       "box_report": {
         "path": "federatedlearning/compact/image/boxes/analysis-fl-rq-c4-image.md",
         "size_bytes": 17182,
-        "sha256": "69b3543829fa4a8bd9549926a41f91df740ae251c386059629279d6aaa89cf29"
+        "sha256": "596e82c72ed515df6ba603cdbdc64774a635defe781ef7217866dc1b6f7d07c3"
       },
       "plots": [
         {
@@ -214,7 +214,7 @@
     },
     {
       "path": "federatedlearning/compact/image/analysis-fl-rq-c8-image.ipynb",
-      "sha256": "e8d6104f08eb1490116f78726c6dcb7c161bc6ad99d68668a7e17badb41bdb2f",
+      "sha256": "5dc9461c886887f2309d2ea1795f67add02ece9a94fd44525407c824c6fe2b91",
       "status": "ready",
       "code_cells": 51,
       "output_cells": 46,
@@ -258,7 +258,7 @@
       "box_report": {
         "path": "federatedlearning/compact/image/boxes/analysis-fl-rq-c8-image.md",
         "size_bytes": 17659,
-        "sha256": "4d22c383244033f92ed28d5916de4f3b41fdc98964655f585f77d23ca516629a"
+        "sha256": "ffe2431339f570316701b6450e9e08568662ff7284a57d8e5cfb6fc1f6c9225e"
       },
       "plots": [
         {
@@ -275,7 +275,7 @@
     },
     {
       "path": "federatedlearning/compact/image/analysis-fl-rq-client_selector-image.ipynb",
-      "sha256": "f2c8aacdd8195057e57fccf07687fb7111d34b428e32a72f8c70716ca5bdf5ad",
+      "sha256": "d219b54221d1895dcc8c804abddee4e30bfab54e970a9ee92e9bbd76e3971105",
       "status": "ready",
       "code_cells": 51,
       "output_cells": 46,
@@ -319,7 +319,7 @@
       "box_report": {
         "path": "federatedlearning/compact/image/boxes/analysis-fl-rq-client_selector-image.md",
         "size_bytes": 16308,
-        "sha256": "e87bb21a5b90344b1127a7423ea07c72ad7bd02f1f413f5d35e9e508ee55977d"
+        "sha256": "e8fe240dc3c8bf30b08683105afc9cccb1ccd3c1f2633cc12053f2d05ca647b5"
       },
       "plots": [
         {
@@ -336,7 +336,7 @@
     },
     {
       "path": "federatedlearning/compact/image/analysis-fl-rq-combined-patterns-stress-25-image.ipynb",
-      "sha256": "68a357f2361fe6e83f732500acffb91dc88ed48a261f8d30281ac93a2f222910",
+      "sha256": "1f635c9e62bc7496cc531a935af6f324b238c12f5dc3a615993f30c246542a12",
       "status": "ready",
       "code_cells": 51,
       "output_cells": 46,
@@ -397,7 +397,7 @@
     },
     {
       "path": "federatedlearning/compact/image/analysis-fl-rq-combined-patterns-stress-50-image.ipynb",
-      "sha256": "84ad23e5dd7240768914baa849361a266f843d4c406881ea794c3a8970d09ce1",
+      "sha256": "78c6969a2ba5c107941face3f815666213bc54b441113f6df7009d63e7c93ccd",
       "status": "ready",
       "code_cells": 51,
       "output_cells": 46,
@@ -441,7 +441,7 @@
       "box_report": {
         "path": "federatedlearning/compact/image/boxes/analysis-fl-rq-combined-patterns-stress-50-image.md",
         "size_bytes": 16251,
-        "sha256": "fcf240f0e22c84cef8c3ae112956a34e68ced1c820072aa3d92088d394a50da0"
+        "sha256": "a5d8b8cd416399ace583f78ecaa858f9c690772a3b3bf4d351c095a043a69c70"
       },
       "plots": [
         {
@@ -458,7 +458,7 @@
     },
     {
       "path": "federatedlearning/compact/image/analysis-fl-rq-combined-patterns-stress-75-image.ipynb",
-      "sha256": "9296ac59277881a640287ae95bf65a1504e9463c947a061e1d1ad42bd44f4e0e",
+      "sha256": "1b85b3806057dfdb12b2bfa5cdd6d1d3fa2e35b764ce9aa520bd291cec5e8969",
       "status": "ready",
       "code_cells": 51,
       "output_cells": 46,
@@ -502,7 +502,7 @@
       "box_report": {
         "path": "federatedlearning/compact/image/boxes/analysis-fl-rq-combined-patterns-stress-75-image.md",
         "size_bytes": 17135,
-        "sha256": "ed565382016d48bd36de7ceccaebcada0c4d25e672de8cea1183ceeb4cb02745"
+        "sha256": "44e90925d3c391ac19e7e126b879d9f09d254874f97064fd95dbc4bfea07ea42"
       },
       "plots": [
         {
@@ -519,7 +519,7 @@
     },
     {
       "path": "federatedlearning/compact/image/analysis-fl-rq-hdh-image.ipynb",
-      "sha256": "fac1c4b8e8bbb3293aeec2d9b0004a2a04c82ce583636cd02c91082fb01aba47",
+      "sha256": "fe0bdfc6772b3460f19f28e8a7dfa68351d569caa07a0d78d14f8d7d0722f698",
       "status": "ready",
       "code_cells": 51,
       "output_cells": 46,
@@ -580,7 +580,7 @@
     },
     {
       "path": "federatedlearning/compact/image/analysis-fl-rq-message_compressor-image.ipynb",
-      "sha256": "680d91790a8e76a3f7a0010d5759f091a526700a09487f5187c4fb8634d6f0e1",
+      "sha256": "bbfdae5704b5a98e8c6ba71de0546f46379fe032542e433a27034e25bab84b9b",
       "status": "ready",
       "code_cells": 51,
       "output_cells": 46,
@@ -624,7 +624,7 @@
       "box_report": {
         "path": "federatedlearning/compact/image/boxes/analysis-fl-rq-message_compressor-image.md",
         "size_bytes": 12799,
-        "sha256": "445cae566aaf06a01bd669353db864443856343116efdbae9474a268b30261d5"
+        "sha256": "002be40f3ddd9837c571e80eda25ebb384203243962178e01cb37e282fdaedf6"
       },
       "plots": [
         {
@@ -641,7 +641,7 @@
     },
     {
       "path": "federatedlearning/compact/image/analysis-fl-rq-stress-only-client_selector-image.ipynb",
-      "sha256": "e3e01ee79e4bb4633a23ce2ac2acd6cf870fac03d868ed561131275bbb9a2c62",
+      "sha256": "d000ced1d0471409db3873cb3b4c6f8cd33b595f6305dc1bd9a3db875dec080e",
       "status": "ready",
       "code_cells": 51,
       "output_cells": 46,
@@ -685,7 +685,7 @@
       "box_report": {
         "path": "federatedlearning/compact/image/boxes/analysis-fl-rq-stress-only-client_selector-image.md",
         "size_bytes": 16344,
-        "sha256": "304d4b41faec684df351d5079a2f531fe986b7a3c36770e15e891b6a6709d8c3"
+        "sha256": "0fdaf007891a75860f207162c27ff08f7c9ab1266b9063e8b3e9ae06d66c2774"
       },
       "plots": [
         {
@@ -702,7 +702,7 @@
     },
     {
       "path": "federatedlearning/compact/image/analysis-fl-rq-stress-only-hdh-image.ipynb",
-      "sha256": "37dadbe7bdfdf8b1935732a4b635decbdd952f620de719044dcb2ea0dc5fa2ae",
+      "sha256": "bce29805fc3fa18136709b3d02267babd9103c28d1e7ae71d53da26f310a59a2",
       "status": "ready",
       "code_cells": 51,
       "output_cells": 46,
@@ -763,7 +763,7 @@
     },
     {
       "path": "federatedlearning/compact/image/analysis-fl-rq-stress-only-message_compressor-image.ipynb",
-      "sha256": "ad99c082d52355110c8b897eb931683154c6c1c4ed26fb0d95eacb0d1f8bd4cc",
+      "sha256": "2fe031e5c608ac456be655a23faf9191ae6ed8c2fd288dc1c44f42eca5ec6bb5",
       "status": "ready",
       "code_cells": 51,
       "output_cells": 46,
@@ -807,7 +807,7 @@
       "box_report": {
         "path": "federatedlearning/compact/image/boxes/analysis-fl-rq-stress-only-message_compressor-image.md",
         "size_bytes": 13035,
-        "sha256": "4deeb0eaa0c5a259e024c6d869853e4fb8f97fa97693848cad93ff6245169cc0"
+        "sha256": "c01e591487336e1553b4b0c9c052b147d56153bc8d71dce72389c081322f7fcc"
       },
       "plots": [
         {

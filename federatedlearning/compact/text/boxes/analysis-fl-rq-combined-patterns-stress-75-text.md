@@ -339,8 +339,8 @@ The table includes a **global rank** across all scoreable boxes and a **within-t
 
 **Learned box conditions**
 
-- `Pattern Instances`: [3.500, 18.000]
 - `Total Clients`: [5.999, 10.000]
+- `Pattern Instances`: [3.500, 18.000]
 - **Includes NaN / not-selected values:** No
 
 **Architectural interpretation**
@@ -390,11 +390,11 @@ The table includes a **global rank** across all scoreable boxes and a **within-t
 
 **Learned box conditions**
 
-- `Total Clients`: [5.999, 9.000]
-- `delay_percentage`: [25.000, 50.001]
-- `JSD Mean`: (not selected) or <= -0.008
-- `Pattern Instances`: [1.000, 1.502]
 - `non_iid_percentage`: [25.000, 50.001]
+- `JSD Mean`: (not selected) or <= -0.008
+- `Total Clients`: [5.999, 9.000]
+- `Pattern Instances`: [1.000, 1.502]
+- `delay_percentage`: [25.000, 50.001]
 - **Includes NaN / not-selected values:** `JSD Mean`
 
 **Architectural interpretation**
@@ -410,10 +410,10 @@ The table includes a **global rank** across all scoreable boxes and a **within-t
   - HDH: OFF (3/3)
   - Message Compressor: OFF (3/3)
 - **Operating envelope**:
-  - delay percentage [25, 50] (%)
+  - non-IID percentage [25, 50] (%)
   - JSD Mean [-0.0155, -0.00776]
   - Pattern Instances [1, 1.5]
-  - non-IID percentage [25, 50] (%)
+  - delay percentage [25, 50] (%)
 - **Other design conditions**:
   - Total Clients [6, 9]
 
@@ -447,9 +447,9 @@ The table includes a **global rank** across all scoreable boxes and a **within-t
 
 **Learned box conditions**
 
+- `Client Selector Criteria`: {(not selected)}
 - `Pattern Instances`: [2.501, 3.500]
 - `JSD Mean`: [-0.008, 0.017]
-- `Client Selector Criteria`: {(not selected)}
 - `delay_percentage`: [50.001, 75.000]
 - **Includes NaN / not-selected values:** `Client Selector Criteria`
 

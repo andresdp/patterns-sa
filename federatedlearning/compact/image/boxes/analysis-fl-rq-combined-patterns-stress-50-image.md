@@ -294,8 +294,8 @@ The table includes a **global rank** across all scoreable boxes and a **within-t
 
 **Learned box conditions**
 
-- `Pattern Instances`: [3.502, 10.000]
 - `JSD Mean`: (not selected) or <= 0.011
+- `Pattern Instances`: [3.502, 10.000]
 - **Includes NaN / not-selected values:** `JSD Mean`
 
 **Architectural interpretation**
@@ -311,8 +311,8 @@ The table includes a **global rank** across all scoreable boxes and a **within-t
   - HDH: OFF (15/18), ON (3/18)
   - Message Compressor: ON (18/18)
 - **Operating envelope**:
-  - Pattern Instances [3.5, 10]
   - JSD Mean [-0.0018, 0.0113]
+  - Pattern Instances [3.5, 10]
 
 **Discovery metrics (training partition)**
 

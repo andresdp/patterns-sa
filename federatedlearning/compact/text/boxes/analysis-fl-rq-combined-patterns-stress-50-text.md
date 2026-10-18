@@ -404,10 +404,10 @@ The table includes a **global rank** across all scoreable boxes and a **within-t
 **Learned box conditions**
 
 - `Client Selector Criteria`: {CPU}
-- `JSD Mean`: (not selected) or <= -0.003
-- `Pattern Instances`: [1.000, 1.999]
-- `HDH Instances`: [0.000, 1.500]
 - `Total Clients`: [4.000, 5.999]
+- `JSD Mean`: (not selected) or <= -0.003
+- `HDH Instances`: [0.000, 1.500]
+- `Pattern Instances`: [1.000, 1.999]
 - **Includes NaN / not-selected values:** `JSD Mean`
 
 **Architectural interpretation**
@@ -424,8 +424,8 @@ The table includes a **global rank** across all scoreable boxes and a **within-t
   - Message Compressor: OFF (3/3)
 - **Operating envelope**:
   - JSD Mean [-0.007, -0.0035]
-  - Pattern Instances [1, 2]
   - HDH Instances [0, 1.5]
+  - Pattern Instances [1, 2]
 - **Other design conditions**:
   - Total Clients [4, 6]
 

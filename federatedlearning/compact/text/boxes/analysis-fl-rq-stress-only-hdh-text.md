@@ -271,9 +271,9 @@ The table includes a **global rank** across all scoreable boxes and a **within-t
 
 **Learned box conditions**
 
-- `Total Clients`: [4.000, 5.999]
 - `JSD Mean`: [0.000, 0.018]
 - `delay_percentage`: [50.000, 75.000]
+- `Total Clients`: [4.000, 5.999]
 - **Includes NaN / not-selected values:** No
 
 **Architectural interpretation**

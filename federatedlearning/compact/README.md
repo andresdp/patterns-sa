@@ -197,6 +197,15 @@ saved as a 300 dpi PNG in its task folder's `plots/` directory. Filenames record
 filters. The findings workflow takes the selected notebook set and stratification guide as inputs,
 then refreshes one case report per notebook plus one task synthesis.
 
+To check whether notebooks select identical campaign rows, run
+`conda run -n perfmodels python federatedlearning/compact/compare_notebook_datasets.py`. It compares
+the notebook filters, then uses `datacompy.PandasCompare` to compare selected row values across
+every notebook pair. It aligns records by `run_id` and normalizes source field names by position,
+so the exact duplicate decision is based on the data values rather than source column labels. The
+Markdown result is written to
+`federatedlearning/compact/notebook_dataset_overlap_report.md`; pass `--task text` or `--task image`
+to check one task.
+
 ## 4. Filters (`fl_slices.slice_filter`)
 
 | Argument | Keeps |

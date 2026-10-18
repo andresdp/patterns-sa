@@ -283,8 +283,8 @@ The table includes a **global rank** across all scoreable boxes and a **within-t
 
 **Learned box conditions**
 
-- `Client Selector Stress Percentage`: (not selected) or <= 37.500
 - `delay_percentage`: [12.500, 100.000]
+- `Client Selector Stress Percentage`: (not selected) or <= 37.500
 - `Alpha Dirichlet Mean`: [0.825, 0.900]
 - **Includes NaN / not-selected values:** `Client Selector Stress Percentage`
 
@@ -301,8 +301,8 @@ The table includes a **global rank** across all scoreable boxes and a **within-t
   - HDH: OFF (33/51), ON (18/51)
   - Message Compressor: OFF (18/51), ON (33/51)
 - **Operating envelope**:
-  - Client Selector Stress Percentage [20, 37.5] (%)
   - delay percentage [12.5, 100] (%)
+  - Client Selector Stress Percentage [20, 37.5] (%)
   - Alpha Dirichlet Mean [0.825, 0.9]
 
 **Discovery metrics (training partition)**

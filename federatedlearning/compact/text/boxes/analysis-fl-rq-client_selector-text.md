@@ -273,9 +273,9 @@ The table includes a **global rank** across all scoreable boxes and a **within-t
 **Learned box conditions**
 
 - `Total Clients`: [9.000, 10.000]
-- `CPU Mean`: [8.000, 8.874]
 - `non_iid_percentage`: [50.000, 75.000]
 - `delay_percentage`: [25.000, 50.000]
+- `CPU Mean`: [8.000, 8.874]
 - **Includes NaN / not-selected values:** No
 
 **Architectural interpretation**
@@ -291,9 +291,9 @@ The table includes a **global rank** across all scoreable boxes and a **within-t
   - HDH: OFF (3/3)
   - Message Compressor: OFF (3/3)
 - **Operating envelope**:
-  - CPU Mean [8, 8.87]
   - non-IID percentage [50, 75] (%)
   - delay percentage [25, 50] (%)
+  - CPU Mean [8, 8.87]
 - **Other design conditions**:
   - Total Clients [9, 10]
 
