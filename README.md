@@ -19,7 +19,7 @@
 
 - **Coordinator Pattern Architecture**: Centralized orchestration (`ArchSpaceCore`) with specialized managers.
 - **Robustness Quantification**: Metrics like STARR (Success Rate), REGRET (Risk), and Stability Radius.
-- **Scenario Discovery**: Algorithms (PRIM, CART) to find parameter regions that guarantee specific tradeoffs.
+- **Scenario Discovery**: PRIM and CART identify sampled parameter regions associated with selected tradeoffs.
 - **Tradeoff Analysis**: Automated definition of performance regions using Discretization, Pareto Fronts, or Thresholds.
 - **Advanced Visualization**: Interactive plots for Quality Objective Spaces, Robustness Heatmaps, and Feature Importance.
 
@@ -74,6 +74,15 @@ For deep dives into the design and usage:
 - `docs/analysis_journey.md` - The logical flow of an ADEPT session.
 - `docs/scenario_discovery_metrics.md` - Explanation of Density and Coverage.
 - `docs/legacy_vs_adept_comparison.md` - Migration guide for v2 users.
+
+## Federated learning study
+
+The compact FL campaign evaluates three composed pattern decisions—Client Selector, Message Compressor, and Heterogeneous Data Handler—across paired dataset/model contexts and 4, 8, and 10 clients. The current paper scope uses two research questions:
+
+- **RQ1:** Which accuracy–round-time tradeoffs occur, and how do complete configurations and pattern-count groups relate to them?
+- **RQ2:** Which joint design and operating conditions are associated with each target tradeoff, and how do box restrictions change held-out target rates, coverage, and the retained design space?
+
+The analyses are intended to help **software architects** compare design alternatives and assess their operating envelopes, and to help **researchers** interpret the strength and limits of the observational evidence. The six notebooks and execution order are in [`docs/fl_notebook_findings/README.md`](docs/fl_notebook_findings/README.md); cross-scenario conclusions are in [`docs/fl_research_question_synthesis.md`](docs/fl_research_question_synthesis.md). The earlier notebooks are preserved in [`federatedlearning/old-analysis/`](federatedlearning/old-analysis/README.md).
 
 ## License
 

@@ -192,31 +192,31 @@
               0,
               3
             ],
-            "description": "Number of pattern decisions that are ON in the configuration (S_types, 0-3). Derived at load time by federatedlearning/pattern_stress.py (see compact/README.md, 'Pattern stress')."
+            "description": "Number of pattern decisions that are ON in the configuration (S_types, 0-3). Derived at load time by federatedlearning/derived_pattern_measures.py (see compact/README.md, 'Derived pattern measures')."
           },
           "Pattern Instances": {
             "data_type": "integer",
             "type": "uncertainty",
             "level": "system",
-            "description": "Number of deployed pattern instances, summed over the three patterns (S_inst). Depends on the decisions and on the client environment (participating and non-IID clients). Derived at load time by federatedlearning/pattern_stress.py (see compact/README.md, 'Pattern stress')."
+            "description": "Number of deployed pattern instances, summed over the three patterns (S_inst). Depends on the decisions and on the client environment (participating and non-IID clients). Derived at load time by federatedlearning/derived_pattern_measures.py (see compact/README.md, 'Derived pattern measures')."
           },
           "Client Selector Instances": {
             "data_type": "integer",
             "type": "uncertainty",
             "level": "system",
-            "description": "Client selector instances: 1 when ON (assumption A1). Derived at load time by federatedlearning/pattern_stress.py (see compact/README.md, 'Pattern stress')."
+            "description": "Client selector instances: 1 when ON (assumption A1). Derived at load time by federatedlearning/derived_pattern_measures.py (see compact/README.md, 'Derived pattern measures')."
           },
           "Message Compressor Instances": {
             "data_type": "integer",
             "type": "uncertainty",
             "level": "system",
-            "description": "Message compressor instances: one per participating client when ON (assumption A2). Derived at load time by federatedlearning/pattern_stress.py (see compact/README.md, 'Pattern stress')."
+            "description": "Message compressor instances: one per participating client when ON (assumption A2). Derived at load time by federatedlearning/derived_pattern_measures.py (see compact/README.md, 'Derived pattern measures')."
           },
           "HDH Instances": {
             "data_type": "integer",
             "type": "uncertainty",
             "level": "system",
-            "description": "HDH instances: one per participating non-IID client when ON (assumption A3). Derived at load time by federatedlearning/pattern_stress.py (see compact/README.md, 'Pattern stress')."
+            "description": "HDH instances: one per participating non-IID client when ON (assumption A3). Derived at load time by federatedlearning/derived_pattern_measures.py (see compact/README.md, 'Derived pattern measures')."
           },
           "low_spec_percentage": {
             "data_type": "integer",
@@ -247,6 +247,39 @@
               100
             ],
             "description": "Designed share of delayed clients (%), a factor of the experiment campaign."
+          },
+          "Client Selector Stress Percentage": {
+            "data_type": "float",
+            "type": "uncertainty",
+            "level": "infrastructure",
+            "bounds": [
+              0,
+              100
+            ],
+            "optional": true,
+            "description": "Derived pattern-context feature: the low-spec client percentage associated with the Client Selector when that pattern is ON; parsed from pattern_stress and equal to low_spec_percentage. NaN means the pattern is OFF. This is not an independent uncertainty."
+          },
+          "Message Compressor Stress Percentage": {
+            "data_type": "float",
+            "type": "uncertainty",
+            "level": "infrastructure",
+            "bounds": [
+              0,
+              100
+            ],
+            "optional": true,
+            "description": "Derived pattern-context feature: the delayed-client percentage associated with the Message Compressor when that pattern is ON; parsed from pattern_stress and equal to delay_percentage. NaN means the pattern is OFF. This is not an independent uncertainty."
+          },
+          "HDH Stress Percentage": {
+            "data_type": "float",
+            "type": "uncertainty",
+            "level": "infrastructure",
+            "bounds": [
+              0,
+              100
+            ],
+            "optional": true,
+            "description": "Derived pattern-context feature: the non-IID client percentage associated with HDH when that pattern is ON; parsed from pattern_stress and equal to non_iid_percentage. NaN means the pattern is OFF. This is not an independent uncertainty."
           }
         },
         "decisions": {
@@ -613,7 +646,7 @@
     "version": "3.1",
     "author": "System Architect",
     "created_date": "2024-03-20",
-    "notes": "Compact FL data, all observed configurations (baseline, single patterns, pattern combinations): concatenation of adept_experiments_all_waves.csv and adept_experiments_all_waves_combinedAP.csv. Pattern-stress parameters are derived by the loader preprocessor fl_slices.slice_filter (pattern_stress.py); load with session.load(preprocessor=fl_slices.slice_filter(...)).",
+    "notes": "Compact FL data, all observed configurations (baseline, single patterns, pattern combinations): concatenation of adept_experiments_all_waves.csv and adept_experiments_all_waves_combinedAP.csv. Derived pattern measures are added by the loader preprocessor fl_slices.slice_filter (derived_pattern_measures.py). The source CSV pattern_stress field is parsed by fl_slices into optional pattern-specific percentage features (pattern_stress.py); these are conditional aliases of existing environment uncertainties, not independent factors. Load with session.load(preprocessor=fl_slices.slice_filter(...)).",
     "analysis_paradigm": "discovery",
     "validation_status": "verified",
     "nan_features": {
@@ -632,6 +665,9 @@
         "HDH Learning Rate",
         "HDH Latent Dim",
         "HDH Optimizer",
+        "Client Selector Stress Percentage",
+        "Message Compressor Stress Percentage",
+        "HDH Stress Percentage",
         "JSD Mean"
       ],
       "description": "When a pattern is OFF, its specific parameters are NaN (not applicable)"

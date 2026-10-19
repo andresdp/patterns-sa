@@ -89,8 +89,8 @@ class ContingencyAnalyzer:
             policy_df: DataFrame of Policies (output of get_decision_policy_map).
             tradeoff_mask_df: Boolean DataFrame of Tradeoff membership.
             decision_key: Specific decision column to analyze. If None, analyzes 'Configuration'.
-            normalization_mode: 'population' (default, divides by policy count), 
-                                'row' (divides by row sum, so row sums to 100%),
+            normalization_mode: 'population' (default, share of the policy's runs, 0.0-1.0),
+                                'row' (share of the row sum, so each row sums to 1.0),
                                 'none' (raw counts).
 
         Returns:
@@ -139,12 +139,12 @@ class ContingencyAnalyzer:
         # Normalization logic
         if normalization_mode == 'population':
             totals = row_series.value_counts()
-            result_df = result_df.div(totals, axis=0) * 100.0
+            result_df = result_df.div(totals, axis=0)
         elif normalization_mode == 'row':
             row_sums = result_df.sum(axis=1)
             # Avoid division by zero
             row_sums = row_sums.replace(0, 1) 
-            result_df = result_df.div(row_sums, axis=0) * 100.0
+            result_df = result_df.div(row_sums, axis=0)
         elif normalization_mode == 'none':
             pass
         else:

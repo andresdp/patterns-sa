@@ -20,7 +20,18 @@
       "Bash(python3 /private/tmp/claude-501/-Users-adiazpace-Documents-GitHub-patterns-sa/2c0ab4a1-8e34-4657-bdf9-59eee1cc2f85/scratchpad/rewrite_cells.py analysis-fl.ipynb)",
       "Bash(timeout 600 python3 -m pytest -q tests/test_fl_slices.py)",
       "Bash(python3 make_slice_notebooks.py --execute)",
-      "Bash(python3 make_slice_notebooks.py --stress --execute)"
+      "Bash(python3 make_slice_notebooks.py --stress --execute)",
+      "Bash(timeout 600 python3 -m pytest -q tests/test_composite_contingency.py tests/test_contingency.py tests/test_policy_grouping.py)",
+      "Bash(python3 /private/tmp/claude-501/-Users-adiazpace-Documents-GitHub-patterns-sa/2c0ab4a1-8e34-4657-bdf9-59eee1cc2f85/scratchpad/section5.py analysis-fl.ipynb)",
+      "Bash(timeout 900 python3 -m pytest -q tests)",
+      "Bash(python3 /private/tmp/claude-501/-Users-adiazpace-Documents-GitHub-patterns-sa/2c0ab4a1-8e34-4657-bdf9-59eee1cc2f85/scratchpad/robust_boxes.py analysis-fl.ipynb)",
+      "Bash(timeout 600 python3 -m pytest -q tests)",
+      "Bash(sed -i '' 's/pattern-stress levels \\(Section 6b of the base notebook\\)/pattern-stress levels \\(Section 7 of the base notebook\\)/; s/Section 6b compares the pattern-stress levels/Section 7 compares the pattern-stress levels/' federatedlearning/make_slice_notebooks.py)",
+      "Bash(sed -i '' 's/Its Section 6b \\(pattern stress\\)/Its Section 7 \\(pattern stress\\)/' federatedlearning/compact/README.md)",
+      "Bash(cd /Users/adiazpace/Documents/GitHub/patterns-sa/federatedlearning *)",
+      "Read(//Users/adiazpace/Documents/GitHub/tests/**)",
+      "Bash(cat)",
+      "Bash(rm tests/test_composite_contingency.py.tmp)"
     ],
     "additionalDirectories": [
       "/tmp/compound-engineering-501/ce-brainstorm/fl-adept-support",

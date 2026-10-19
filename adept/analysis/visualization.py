@@ -105,19 +105,32 @@ def show_quality_objective_space(
     
     alpha = kwargs.get('alpha', 0.3)
     s = kwargs.get('s', 20)
-    
+    hue_series = kwargs.pop('hue_series', None)
+    hue_order = kwargs.pop('hue_order', None)
+    hue_labels = kwargs.pop('hue_labels', None) or {}
+    hue_palette = kwargs.pop('hue_palette', None)
+    hue_legend_title = kwargs.pop('hue_legend_title', None)
+    hue_legend_ncol = kwargs.pop('hue_legend_ncol', None)
+    category_count = len(hue_order) if hue_order is not None else (
+        hue_series.nunique(dropna=True) if hue_series is not None else 0
+    )
+
+    if policy_series is not None and hue_series is not None:
+        raise ValueError("policy highlighting and generic categorical coloring cannot be combined.")
+
     coloring_by_policy = policy_series is not None
+    coloring_by_category = hue_series is not None
     
     if coloring_by_policy:
         color_points = False
         draw_rectangles = True
 
-    if coloring_by_policy and show_overall:
+    if (coloring_by_policy or coloring_by_category) and show_overall:
         sns.scatterplot(
             data=outcomes_df, x=x_metric, y=y_metric, 
             ax=ax, color=overall_color, alpha=background_alpha, s=s, zorder=0
         )
-    elif not coloring_by_policy:
+    elif not coloring_by_policy and not coloring_by_category:
          sns.scatterplot(
             data=outcomes_df, x=x_metric, y=y_metric, 
             ax=ax, 
@@ -127,15 +140,27 @@ def show_quality_objective_space(
             s=s
         )
     
-    if coloring_by_policy:
+    if coloring_by_policy or coloring_by_category:
         plot_data = outcomes_df.copy()
-        plot_data['__policy__'] = policy_series
-        plot_data = plot_data.dropna(subset=['__policy__'])
+        group_series = policy_series if coloring_by_policy else hue_series
+        group_key = '__policy__' if coloring_by_policy else '__category__'
+        plot_data[group_key] = group_series.to_numpy()
+        plot_data = plot_data.dropna(subset=[group_key])
+
+        if coloring_by_category:
+            display_order = [hue_labels.get(value, str(value)) for value in hue_order] if hue_order is not None else None
+            plot_data[group_key] = plot_data[group_key].map(lambda value: hue_labels.get(value, str(value)))
+            palette = hue_palette
+        else:
+            display_order = None
+            palette = kwargs.get('palette')
         
         if not plot_data.empty:
             sns.scatterplot(
                 data=plot_data, x=x_metric, y=y_metric,
-                hue='__policy__',
+                hue=group_key,
+                hue_order=display_order,
+                palette=palette,
                 ax=ax,
                 alpha=alpha,
                 s=s,
@@ -193,7 +218,10 @@ def show_quality_objective_space(
                 verticalalignment=va, horizontalalignment=ha, multialignment='left',
                 bbox=props, zorder=15, family='monospace')
 
-    ax.legend(loc='upper center', bbox_to_anchor=(0.5, -0.15), ncol=3, borderaxespad=0.)
+    legend_columns = hue_legend_ncol or (1 if coloring_by_category and category_count >= 5 else 3)
+    ax.legend(loc='upper center', bbox_to_anchor=(0.5, -0.15), ncol=legend_columns, borderaxespad=0.)
+    if coloring_by_category and ax.get_legend() is not None:
+        ax.get_legend().set_title(hue_legend_title or '')
     
     plt.tight_layout()
     return fig
@@ -224,16 +252,18 @@ def _get_best_annotation_position(df, x_col, y_col, manual_loc='auto'):
 def show_contingency_heatmap(
     contingency_table: pd.DataFrame, 
     figsize: Tuple[int, int] = (10, 8),
-    title: str = "Policy vs. Tradeoff Contingency"
+    title: str = "Policy vs. Tradeoff Contingency",
+    fmt: str = ".2f",
+    value_label: str = "Share of runs"
 ) -> plt.Figure:
     fig, ax = plt.subplots(figsize=figsize)
     sns.heatmap(
         contingency_table, 
         annot=True, 
-        fmt=".1f", 
+        fmt=fmt, 
         cmap="YlGnBu", 
         ax=ax,
-        cbar_kws={'label': 'Percentage / Frequency'}
+        cbar_kws={'label': value_label}
     )
     ax.set_title(title, pad=20)
     ax.set_xlabel("Tradeoff")
@@ -281,6 +311,8 @@ def show_importance_heatmap(
         annot=True, 
         fmt=".3f", 
         cmap="Reds", 
+        vmin=0.0,
+        vmax=1.0,
         ax=ax,
         cbar_kws={'label': 'Importance Score'}
     )
@@ -795,9 +827,11 @@ def show_box_diagnostics(
         ax_bars.set_ylim(-1, len(params)); ax_bars.invert_yaxis() 
 
     ax_text.axis('off')
-    metrics = getattr(box, 'metrics', {})
+    metrics = getattr(box, 'heldout_metrics', {}) or getattr(box, 'metrics', {})
     text_content = f"Analysis: {getattr(box, 'name', 'Unnamed Box')}\n" + "-" * 30 + "\n\n"
     if metrics:
+        if getattr(box, 'heldout_metrics', {}):
+            text_content += "Held-out evaluation\n"
         text_content += f"Density (precision): {metrics.get('density', 0):.2f}\nCoverage (recall):   {metrics.get('coverage', 0):.2f}\n"
         if metrics.get('lift'): text_content += f"Lift:                {metrics.get('lift'):.2f}\n"
         if metrics.get('mass'): text_content += f"Mass (Support):      {metrics.get('mass'):.2f}\n"

@@ -4,6 +4,7 @@ import pandas as pd
 import numpy as np
 from collections import Counter
 from operator import itemgetter
+from types import SimpleNamespace
 
 # EMA Workbench and Sklearn imports
 try:
@@ -36,9 +37,44 @@ except ImportError:
 
 class BoxEvaluator:
     """Computes performance metrics for discovered boxes on independent datasets."""
+
+    @staticmethod
+    def membership_mask(
+        X: pd.DataFrame,
+        box: Any,
+        *,
+        raw_X: Optional[pd.DataFrame] = None,
+        atol: float = 1e-9,
+    ) -> pd.Series:
+        """Return rows satisfying a box, honoring semantic NaN inclusion.
+
+        Box bounds can pass through encode/decode transformations. A small absolute
+        tolerance prevents round-trip noise from excluding values on a boundary.
+        ``raw_X`` supplies original missingness when ``X`` is encoded for discovery.
+        """
+        limits = getattr(box, "limits", box)
+        includes_na = getattr(box, "includes_na", {}) or {}
+        mask = pd.Series(True, index=X.index)
+        if raw_X is not None:
+            raw_X = raw_X.reindex(X.index)
+        for param, bounds in limits.items():
+            if param not in X.columns:
+                raise KeyError(f"Box parameter {param!r} is missing from evaluation data.")
+            values = pd.to_numeric(X[param], errors="coerce")
+            low, high = float(bounds["min"]), float(bounds["max"])
+            scale = max(1.0, abs(low), abs(high))
+            tolerance = atol * scale
+            within = values.ge(low - tolerance) & values.le(high + tolerance)
+            if includes_na.get(param):
+                if raw_X is not None and param in raw_X.columns:
+                    within |= raw_X[param].isna()
+                else:
+                    within |= values.isna()
+            mask &= within.fillna(False)
+        return mask
     
     @staticmethod
-    def evaluate(box_limits: Dict[str, Dict[str, float]], X: pd.DataFrame, y: pd.Series, population_prevalence: float = 0.0) -> Dict[str, float]:
+    def evaluate(box_limits: Dict[str, Dict[str, float]], X: pd.DataFrame, y: pd.Series, population_prevalence: float = 0.0, *, includes_na: Optional[Dict[str, bool]] = None, raw_X: Optional[pd.DataFrame] = None) -> Dict[str, float]:
         """
         Evaluates a box against a target mask y.
         
@@ -46,34 +82,48 @@ class BoxEvaluator:
             box_limits: Dict of {param: {'min': float, 'max': float}}
             X: Feature matrix
             y: Binary target mask
-            population_prevalence: The baseline % of target in the original space (e.g. Train set).
+            population_prevalence: Target prevalence in the same partition as X and y.
         """
-        if X.empty or y.empty:
-            return {'density': 0.0, 'coverage': 0.0, 'population_prevalence': population_prevalence}
+        if len(X) != len(y):
+            raise ValueError("X and y must contain the same number of rows.")
+        if not X.index.equals(y.index):
+            y = y.reindex(X.index)
+        prevalence = float(population_prevalence)
+        if X.empty:
+            return {
+                'density': float('nan'),
+                'coverage': float('nan'),
+                'population_prevalence': prevalence,
+                'lift': float('nan'),
+                'population_size': 0,
+                'total_targets': int(y.sum()) if len(y) else 0,
+                'samples_in_box': 0,
+                'targets_in_box': 0,
+            }
             
         # 1. Identify rows in X that satisfy all box_limits
-        mask = pd.Series(True, index=X.index)
-        for param, limits in box_limits.items():
-            if param in X.columns:
-                mask &= (X[param] >= limits['min']) & (X[param] <= limits['max'])
+        box_view = SimpleNamespace(limits=box_limits, includes_na=includes_na or {})
+        mask = BoxEvaluator.membership_mask(X, box_view, raw_X=raw_X)
         
         # 2. Compute metrics
         points_in_box = mask.sum()
         targets_in_box = (mask & y).sum()
         total_targets = y.sum()
         
-        density = targets_in_box / points_in_box if points_in_box > 0 else 0.0
-        coverage = targets_in_box / total_targets if total_targets > 0 else 0.0
+        density = targets_in_box / points_in_box if points_in_box > 0 else float('nan')
+        coverage = targets_in_box / total_targets if total_targets > 0 else float('nan')
         
         # Lift is how much better we are than the baseline
         # lift = (density / population_prevalence) if population_prevalence > 0 else 0.0
-        lift = density - population_prevalence # This can be a positive or negative improvement
+        lift = density - prevalence if np.isfinite(density) else float('nan')
         
         return {
             'density': float(density),
             'coverage': float(coverage),
-            'population_prevalence': float(population_prevalence),
+            'population_prevalence': prevalence,
             'lift': float(lift),
+            'population_size': int(len(X)),
+            'total_targets': int(total_targets),
             'samples_in_box': int(points_in_box),
             'targets_in_box': int(targets_in_box)
         }
@@ -157,10 +207,7 @@ class BoxEvaluator:
                 succ_pol = is_success_overall[policy_mask]
                 
                 # 2. Apply Box Constraints
-                box_mask = pd.Series(True, index=exp_pol.index)
-                for param, limits in box.limits.items():
-                    if param in exp_pol.columns:
-                        box_mask &= (exp_pol[param] >= limits['min']) & (exp_pol[param] <= limits['max'])
+                box_mask = BoxEvaluator.membership_mask(exp_pol, box)
                 
                 n_samples = box_mask.sum()
                 
