@@ -1,0 +1,22 @@
+task,Total Clients,exit,env_point,n,cfgs,n_env,rate
+image,4,left,25/75/25,3,HDH 3,10,0.3
+image,4,left,25/75/75,6,"MC 2, MC+HDH 2, Baseline 1, HDH 1",40,0.15
+image,4,left,75/75/25,17,"CS 6, CS+HDH 6, Baseline 3, HDH 2",40,0.42
+image,10,left,25/50/25,10,HDH 10,10,1.0
+image,10,left,25/50/50,10,MC+HDH 10,10,1.0
+image,10,left,25/75/25,10,HDH 10,10,1.0
+image,10,left,25/75/75,40,"Baseline 10, HDH 10, MC 10, MC+HDH 10",40,1.0
+image,10,left,50/25/25,1,CS 1,10,0.1
+image,10,left,50/50/25,8,CS+HDH 8,10,0.8
+image,10,left,75/25/25,4,CS 4,10,0.4
+image,10,left,75/25/75,7,"CS 4, CS+MC 3",40,0.18
+image,10,left,75/75/25,38,"Baseline 10, HDH 10, CS 9, CS+HDH 9",40,0.95
+text,4,left,25/75/25,1,HDH 1,10,0.1
+text,4,left,25/75/75,2,"HDH 1, MC+HDH 1",40,0.05
+text,4,left,50/50/25,1,CS+HDH 1,10,0.1
+text,4,left,75/75/25,6,"CS+HDH 3, CS 2, HDH 1",40,0.15
+text,4,up,25/50/50,1,MC+HDH 1,10,0.1
+text,4,up,25/75/25,2,HDH 2,10,0.2
+text,4,up,25/75/75,12,"MC+HDH 7, HDH 5",40,0.3
+text,4,up,75/75/25,2,HDH 2,40,0.05
+text,10,left,75/75/25,4,"CS+HDH 3, CS 1",40,0.1
