@@ -280,6 +280,24 @@
             ],
             "optional": true,
             "description": "Derived pattern-context feature: the non-IID client percentage associated with HDH when that pattern is ON; parsed from pattern_stress and equal to non_iid_percentage. NaN means the pattern is OFF. This is not an independent uncertainty."
+          },
+          "CS Enabled": {
+            "data_type": "string",
+            "type": "lever",
+            "level": "pattern",
+            "description": "Whether Client Selector is enabled (copied from client_selector_pattern)."
+          },
+          "MC Enabled": {
+            "data_type": "string",
+            "type": "lever",
+            "level": "pattern",
+            "description": "Whether Message Compressor is enabled (copied from message_compressor_pattern)."
+          },
+          "HDH Enabled": {
+            "data_type": "string",
+            "type": "lever",
+            "level": "pattern",
+            "description": "Whether HDH is enabled (copied from hdh_pattern)."
           }
         },
         "decisions": {

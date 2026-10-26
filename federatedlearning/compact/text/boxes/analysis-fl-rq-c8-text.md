@@ -377,8 +377,8 @@ The table includes a **global rank** across all scoreable boxes and a **within-t
 **Learned box conditions**
 
 - `HDH Instances`: [0.500, 6.000]
-- `Pattern Instances`: [0.000, 2.499]
 - `delay_percentage`: [12.500, 37.485]
+- `Pattern Instances`: [0.000, 2.499]
 - `Client Selector Stress Percentage`: [62.498, 75.000]
 - **Includes NaN / not-selected values:** No
 
@@ -396,8 +396,8 @@ The table includes a **global rank** across all scoreable boxes and a **within-t
   - Message Compressor: OFF (1/1)
 - **Operating envelope**:
   - HDH Instances [0.5, 6]
-  - Pattern Instances [0, 2.5]
   - delay percentage [12.5, 37.5] (%)
+  - Pattern Instances [0, 2.5]
   - Client Selector Stress Percentage [62.5, 75] (%)
 
 **Discovery metrics (training partition)**

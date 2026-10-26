@@ -287,8 +287,8 @@ The table includes a **global rank** across all scoreable boxes and a **within-t
 
 **Learned box conditions**
 
-- `Alpha Dirichlet Mean`: [0.813, 0.875]
 - `Client Selector Criteria`: {(not selected)}
+- `Alpha Dirichlet Mean`: [0.813, 0.875]
 - `delay_percentage`: [12.500, 100.000]
 - **Includes NaN / not-selected values:** `Client Selector Criteria`
 
@@ -391,8 +391,8 @@ The table includes a **global rank** across all scoreable boxes and a **within-t
 
 **Learned box conditions**
 
-- `Alpha Dirichlet Mean`: [0.813, 0.875]
 - `Client Selector Criteria`: {(not selected)}
+- `Alpha Dirichlet Mean`: [0.813, 0.875]
 - `delay_percentage`: [0.000, 12.500]
 - **Includes NaN / not-selected values:** `Client Selector Criteria`
 
@@ -444,9 +444,9 @@ The table includes a **global rank** across all scoreable boxes and a **within-t
 
 **Learned box conditions**
 
+- `CPU Mean`: [8.250, 8.875]
 - `Alpha Dirichlet Mean`: [0.625, 0.813]
 - `Client Selector Criteria`: {CPU}
-- `CPU Mean`: [8.250, 8.875]
 - **Includes NaN / not-selected values:** No
 
 **Architectural interpretation**
@@ -462,8 +462,8 @@ The table includes a **global rank** across all scoreable boxes and a **within-t
   - HDH: OFF (3/6), ON (3/6)
   - Message Compressor: OFF (6/6)
 - **Operating envelope**:
-  - Alpha Dirichlet Mean [0.625, 0.813]
   - CPU Mean [8.25, 8.88]
+  - Alpha Dirichlet Mean [0.625, 0.813]
 
 **Discovery metrics (training partition)**
 
