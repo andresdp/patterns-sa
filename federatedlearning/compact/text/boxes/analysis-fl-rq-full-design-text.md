@@ -405,9 +405,9 @@ The table includes a **global rank** across all scoreable boxes and a **within-t
 
 - `HDH Instances`: [0.000, 0.501]
 - `CPU Mean`: [8.125, 11.000]
+- `Client Selector Stress Percentage`: [62.494, 75.000]
 - `non_iid_percentage`: [25.000, 50.010]
 - `Total Clients`: [4.000, 5.999]
-- `Client Selector Stress Percentage`: [62.494, 75.000]
 - `delay_percentage`: [25.000, 50.010]
 - **Includes NaN / not-selected values:** No
 
@@ -426,8 +426,8 @@ The table includes a **global rank** across all scoreable boxes and a **within-t
 - **Operating envelope**:
   - HDH Instances [0, 0.501]
   - CPU Mean [8.12, 11]
-  - non-IID percentage [25, 50] (%)
   - Client Selector Stress Percentage [62.5, 75] (%)
+  - non-IID percentage [25, 50] (%)
   - delay percentage [25, 50] (%)
 - **Other design conditions**:
   - Total Clients [4, 6]
@@ -462,11 +462,11 @@ The table includes a **global rank** across all scoreable boxes and a **within-t
 
 **Learned box conditions**
 
-- `Total Clients`: [4.000, 5.999]
-- `JSD Mean`: (not selected) or <= 0.018
-- `Client Selector Stress Percentage`: (not selected) or <= 37.501
 - `Message Compressor Instances`: [2.001, 10.000]
 - `HDH Stress Percentage`: [62.494, 75.000]
+- `Client Selector Stress Percentage`: (not selected) or <= 37.501
+- `Total Clients`: [4.000, 5.999]
+- `JSD Mean`: (not selected) or <= 0.018
 - **Includes NaN / not-selected values:** `Client Selector Stress Percentage`, `JSD Mean`
 
 **Architectural interpretation**
@@ -482,10 +482,10 @@ The table includes a **global rank** across all scoreable boxes and a **within-t
   - HDH: ON (2/2)
   - Message Compressor: ON (2/2)
 - **Operating envelope**:
-  - JSD Mean [-0.0155, 0.0175]
-  - Client Selector Stress Percentage [20, 37.5] (%)
   - Message Compressor Instances [2, 10]
   - HDH Stress Percentage [62.5, 75] (%)
+  - Client Selector Stress Percentage [20, 37.5] (%)
+  - JSD Mean [-0.0155, 0.0175]
 - **Other design conditions**:
   - Total Clients [4, 6]
 
@@ -519,9 +519,9 @@ The table includes a **global rank** across all scoreable boxes and a **within-t
 
 **Learned box conditions**
 
-- `HDH Instances`: [0.501, 1.500]
-- `delay_percentage`: [25.000, 50.010]
 - `Total Clients`: [5.999, 9.000]
+- `delay_percentage`: [25.000, 50.010]
+- `HDH Instances`: [0.501, 1.500]
 - `Client Selector Stress Percentage`: [62.494, 75.000]
 - **Includes NaN / not-selected values:** No
 
@@ -538,8 +538,8 @@ The table includes a **global rank** across all scoreable boxes and a **within-t
   - HDH: ON (2/2)
   - Message Compressor: OFF (2/2)
 - **Operating envelope**:
-  - HDH Instances [0.501, 1.5]
   - delay percentage [25, 50] (%)
+  - HDH Instances [0.501, 1.5]
   - Client Selector Stress Percentage [62.5, 75] (%)
 - **Other design conditions**:
   - Total Clients [6, 9]
