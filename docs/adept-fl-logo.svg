@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 150" role="img" aria-labelledby="title desc">
+  <title id="title">ADEPT-FL</title>
+  <desc id="desc">A federated network mark paired with the ADEPT-FL wordmark.</desc>
+  <rect width="640" height="150" fill="#ffffff"/>
+  <rect x="12" y="18" width="112" height="112" rx="25" fill="#f4f8fc" stroke="#18324f" stroke-width="4"/>
+  <path d="M39 51 65 72 96 48M39 100 65 77 96 101M65 72v5" fill="none" stroke="#3577a8" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
+  <rect x="51" y="55" width="29" height="38" rx="5" fill="#18324f"/>
+  <path d="M57 65h17M57 74h17M57 83h17" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round"/>
+  <circle cx="35" cy="48" r="9" fill="#34a6a0" stroke="#fff" stroke-width="3"/>
+  <circle cx="35" cy="103" r="9" fill="#34a6a0" stroke="#fff" stroke-width="3"/>
+  <circle cx="100" cy="45" r="9" fill="#ecaa45" stroke="#fff" stroke-width="3"/>
+  <circle cx="100" cy="104" r="9" fill="#ecaa45" stroke="#fff" stroke-width="3"/>
+  <text x="151" y="84" fill="#18324f" font-family="Arial, Helvetica, sans-serif" font-size="60" font-weight="700" letter-spacing="1">ADEPT</text>
+  <text x="361" y="84" fill="#258a8b" font-family="Arial, Helvetica, sans-serif" font-size="60" font-weight="700" letter-spacing="1">-FL</text>
+  <path d="M154 101h281" stroke="#d8e3ed" stroke-width="2"/>
+  <text x="155" y="126" fill="#526579" font-family="Arial, Helvetica, sans-serif" font-size="16" font-weight="600" letter-spacing="2.2">ARCHITECTURE  /  FEDERATED LEARNING</text>
+</svg>

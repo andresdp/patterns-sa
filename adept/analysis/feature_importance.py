@@ -1,0 +1,237 @@
+from typing import List, Dict, Any, Optional, Tuple, Union
+import pandas as pd
+import numpy as np
+from sklearn.model_selection import train_test_split
+from sklearn.ensemble import RandomForestRegressor
+from sklearn.base import clone
+from feature_engine.selection import SmartCorrelatedSelection
+from ..core.models import SystemDefinition, Tradeoff, ParameterType, Parameter
+from ..utils.feature_encoding import FeatureEncoder
+
+from sklearn.preprocessing import StandardScaler
+
+class FeatureImportanceAnalyzer:
+    """
+    Analyzes the influence of architectural parameters (levers/uncertainties) 
+    on quality objectives (outcomes) using Machine Learning techniques.
+    """
+
+    def __init__(self, sys_def: SystemDefinition):
+        self.sys_def = sys_def
+
+    def _get_all_parameters(self) -> List[Parameter]:
+        """Helper to flatten all parameter objects from the system definition."""
+        all_params = []
+        for comp in self.sys_def.system.components.values():
+            all_params.extend(comp.parameters.values())
+        all_params.extend(self.sys_def.system.parameters.values())
+        return all_params
+
+    def get_parameter_columns(self, df: pd.DataFrame, include_levers: bool = True, include_uncertainties: bool = True, include_constraints: bool = True) -> List[str]:
+        """Identifies columns in the dataframe that correspond to system parameters."""
+        valid_cols = []
+        
+        # Helper to iterate components
+        for comp in self.sys_def.system.components.values():
+            for param in comp.parameters.values():
+                is_lever = param.type == ParameterType.LEVER
+                is_uncert = param.type == ParameterType.UNCERTAINTY
+                is_constraint = param.type == ParameterType.CONSTRAINT
+                
+                if (is_lever and include_levers) or (is_uncert and include_uncertainties) or (is_constraint and include_constraints):
+                    # Check for name or component_name format
+                    if param.name in df.columns:
+                        valid_cols.append(param.name)
+                    # We might need to check for prefixed names if loader did that, 
+                    # but usually loader canonicalizes to param.name if unique
+        
+        # Also check system-level parameters
+        for param in self.sys_def.system.parameters.values():
+             is_lever = param.type == ParameterType.LEVER
+             is_uncert = param.type == ParameterType.UNCERTAINTY
+             is_constraint = param.type == ParameterType.CONSTRAINT
+             if (is_lever and include_levers) or (is_uncert and include_uncertainties) or (is_constraint and include_constraints):
+                 if param.name in df.columns:
+                     valid_cols.append(param.name)
+                     
+        return list(dict.fromkeys(valid_cols))  # declaration order: deterministic across runs
+
+    def preprocess_features(
+        self, 
+        df: pd.DataFrame, 
+        standardize: bool = False, 
+        remove_outliers: bool = False, 
+        z_threshold: float = 3.0
+    ) -> Tuple[pd.DataFrame, pd.Series, Dict[str, Any]]:
+        """
+        Preprocesses features by optionally standardizing and removing outliers.
+        
+        Args:
+            df: Input feature dataframe.
+            standardize: Whether to return Z-scores instead of raw values.
+            remove_outliers: Whether to remove rows with any feature Z-score > threshold.
+            z_threshold: Threshold for Z-score outlier detection.
+            
+        Returns:
+            (processed_df, mask, stats): 
+                - processed_df: The processed dataframe.
+                - mask: Boolean mask of rows kept.
+                - stats: Dict with 'scaler' for de-standardization.
+        """
+        # Numeric encoding of categorical/optional parameters BEFORE scaling
+        # (NaN -> "not selected"; see utils/feature_encoding.py)
+        encoder = FeatureEncoder.fit(df, self._get_all_parameters())
+        df_trans = encoder.transform(df)
+
+        # Ensure we work with numeric data
+        numeric_cols = df_trans.select_dtypes(include=[np.number]).columns
+            
+        # Initialize and fit scaler
+        scaler = StandardScaler()
+        # If there are still NaNs (not optional), fill with 0 for scaler compatibility
+        X_for_scaler = df_trans[numeric_cols].fillna(0.0)
+        z_scores_arr = scaler.fit_transform(X_for_scaler)
+        z_scores = pd.DataFrame(z_scores_arr, index=df_trans.index, columns=numeric_cols)
+        
+        mask = pd.Series(True, index=df_trans.index)
+        
+        if remove_outliers:
+            # Identify outliers: any row where any feature |z| > threshold
+            is_outlier = (z_scores.abs() > z_threshold).any(axis=1)
+            mask = ~is_outlier
+            
+        # Construct result
+        df_processed = df_trans.copy() # Use the transformed one
+        
+        if standardize:
+            # Replace numeric columns with their Z-scores
+            df_processed[numeric_cols] = z_scores
+            
+        # Apply mask
+        if remove_outliers:
+            df_processed = df_processed[mask]
+            
+        stats = {
+            'scaler': scaler,
+            'standardized': standardize,
+            'numeric_cols': numeric_cols.tolist(),
+            'encoder': encoder
+        }
+
+        return df_processed, mask, stats
+
+    @staticmethod
+    def transform_features(df: pd.DataFrame, stats: Dict[str, Any]) -> pd.DataFrame:
+        """
+        Standardizes new data (e.g. a test set) with the state fitted by preprocess_features.
+
+        Reuses the fitted encoder rather than re-fitting one, so categorical and optional
+        parameters are encoded exactly as in the fitted data.
+
+        Returns:
+            DataFrame with the Z-scores of stats['numeric_cols'].
+        """
+        df_trans = stats['encoder'].transform(df) if 'encoder' in stats else df
+        numeric_cols = stats['numeric_cols']
+        X = df_trans[numeric_cols].fillna(0.0)
+        return pd.DataFrame(stats['scaler'].transform(X), index=df.index, columns=numeric_cols)
+
+
+    @staticmethod
+    def _stable_features_to_drop(X: pd.DataFrame, y: pd.Series, selector: "SmartCorrelatedSelection") -> set:
+        """Features to drop after correlated-feature selection, with deterministic ties.
+
+        feature-engine ranks each correlated group while iterating a Python set, so when
+        several features perform exactly alike (e.g. all settings of one pattern, which
+        only encode "pattern on/off") the one it keeps depends on the process hash seed.
+        Each group is re-scored in sorted order: the best-performing feature is kept, and
+        exact ties go to the alphabetically first feature, so results are reproducible.
+        """
+        from feature_engine.selection.base_selection_functions import single_feature_performance
+
+        to_drop = set(selector.features_to_drop_)
+        for kept, dropped in getattr(selector, 'correlated_feature_dict_', {}).items():
+            group = sorted({kept, *dropped})
+            performance, _ = single_feature_performance(
+                X=X, y=y, variables=group, estimator=selector.estimator,
+                cv=selector.cv, scoring=selector.scoring, groups=getattr(selector, 'groups', None)
+            )
+            best = max(performance.values())
+            representative = min(f for f in group if performance[f] >= best - 1e-12)
+            to_drop.update(group)
+            to_drop.discard(representative)
+        return to_drop
+
+    def compute_importance(
+        self, 
+        X_train: pd.DataFrame, 
+        y_train: pd.Series, 
+        use_smart_correlation: bool = False,
+        random_state: int = 42
+    ) -> pd.Series:
+        """
+        Computes feature importance scores for a single target.
+        
+        Args:
+            X_train: Feature matrix (parameters).
+            y_train: Target vector (outcome).
+            use_smart_correlation: If True, uses feature-engine to drop correlated features first.
+        
+        Returns:
+            pd.Series: Importance scores indexed by feature name.
+        """
+        # Numeric encoding of categorical/optional parameters (see utils/feature_encoding.py)
+        X_train = FeatureEncoder.fit(X_train, self._get_all_parameters()).transform(X_train)
+        # Fill any remaining non-optional NaNs
+        X_train = X_train.fillna(0.0)
+        
+        # Keep numeric columns (every declared parameter is numeric after encoding)
+        numeric_cols = X_train.select_dtypes(include=[np.number]).columns.tolist()
+        X_train = X_train[numeric_cols]
+        
+        # 1. Selection (Optional)
+        features_to_use = X_train.columns.tolist()
+        print(f"Original features (numerically encoded): {features_to_use}")
+        
+        if use_smart_correlation:
+            # SmartCorrelatedSelection groups correlated features and selects one.
+            # We use 'variance' as selection method (default) or 'model_performance'
+            # Here we use model_performance with a Regressor to pick the most predictive one.
+            estimator = RandomForestRegressor(n_estimators=10, random_state=random_state)
+            sel = SmartCorrelatedSelection(
+                variables=None,
+                method="spearman",
+                threshold=0.8,
+                missing_values="ignore",
+                selection_method="model_performance",
+                estimator=estimator,
+                scoring="r2"
+            )
+            sel.fit(X_train, y_train)
+            to_drop = self._stable_features_to_drop(X_train, y_train, sel)
+            features_to_use = [col for col in X_train.columns if col not in to_drop]
+            print(f"Features selected: {features_to_use}")
+            X_train_transformed = X_train[features_to_use]
+        else:
+            X_train_transformed = X_train
+
+        # 2. Scoring (Random Forest)
+        model = RandomForestRegressor(n_estimators=50, random_state=random_state)
+        model.fit(X_train_transformed, y_train)
+        
+        importances = pd.Series(model.feature_importances_, index=features_to_use)
+        # print("Shape:", importances.shape, importances.index.tolist())
+        
+        # Reindex to include dropped features (as 0) if any
+        if use_smart_correlation:
+            full_series = pd.Series(0.0, index=X_train.columns)
+            full_series[features_to_use] = importances
+            # return full_series.sort_values(ascending=False)
+            importances = full_series
+        
+        importances = importances.sort_values(ascending=False)
+
+        # print("Parameters:", importances.index.tolist())
+        # print("Importances:", importances.tolist())
+            
+        return importances
