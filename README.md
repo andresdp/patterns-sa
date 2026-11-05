@@ -62,12 +62,13 @@ Notebook execution writes plots and box reports under the matching `image/` or `
 
 ## AP4Fed data generation
 
-The bundled CSVs are precomputed AP4Fed runs and are the inputs used for the paper analyses. To generate a new campaign, use [AP4Fed](https://github.com/IvanComp/AP4Fed), a Flower-based FL platform with local and Docker execution modes. Its [headless campaign instructions](https://github.com/IvanComp/AP4Fed#headless-experiments--cluster-runs) and setup details are maintained with the platform.
+The bundled CSVs are precomputed AP4Fed runs and are the inputs used for the paper analyses. Reproducing the analyses does not require AP4Fed source code or new FL runs. To generate a new campaign, use the AP4Fed Flower-based FL platform with local and Docker execution modes. Its upstream URL is omitted because it identifies an author. This snapshot does not include an anonymous AP4Fed mirror, so generating new runs requires an anonymized mirror URL.
 
-From a separate checkout of AP4Fed, the current campaign runner can be inspected and run as follows:
+With a checkout from an anonymized AP4Fed mirror, inspect and run the campaign runner as follows:
 
 ```bash
-git clone https://github.com/IvanComp/AP4Fed.git
+# Replace this placeholder with the anonymous mirror URL before cloning.
+git clone <anonymous-AP4Fed-mirror-url>
 cd AP4Fed
 python3 -m venv .venv
 source .venv/bin/activate
