@@ -16,7 +16,7 @@ Two measures (see compact/README.md, "Derived pattern measures"):
 `Pattern Instances` is a derived deployment-size measure;
 `Pattern Types Active` is secondary but exact. The compact CSVs do not record instances, so they are
 derived from the per-client columns with the deployment rules in INSTANCE_RULES, which are
-ASSUMPTIONS about AP4FED (compact/README.md lists them with the open questions):
+ASSUMPTIONS about the FL platform (compact/README.md lists them with the open questions):
 
   A1. Client selector: one instance, on the server.
   A2. Message compressor: one instance per participating client (the server-side

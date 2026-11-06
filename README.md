@@ -22,7 +22,7 @@ Figure 1 shows the underlying FL execution cycle: the server broadcasts global m
 
 ## Reproduce the paper analyses
 
-Precomputed AP4Fed run data is included, so reproducing the analyses does not require running FL training again. The two CSV inputs and the system definition are in `federatedlearning/compact/`.
+Precomputed FL run data is included, so reproducing the analyses does not require running FL training again. The two CSV inputs and the system definition are in `federatedlearning/compact/`.
 
 Set up the Python environment from this directory:
 
@@ -60,23 +60,21 @@ The `analysis-fl-rq-baseline-*` and `analysis-fl-rq-c8-*` notebooks are supporti
 
 Notebook execution writes plots and box reports under the matching `image/` or `text/` directory. The two precomputed CSVs are `adept_experiments_all_waves.csv` and `adept_experiments_all_waves_combinedAP.csv`; `FLsystem_compact_all.json` declares their schema, aggregations, parameters, and outcome measures.
 
-## AP4Fed data generation
+## FL data generation
 
-The bundled CSVs are precomputed AP4Fed runs and are the inputs used for the paper analyses. Reproducing the analyses does not require AP4Fed source code or new FL runs. To generate a new campaign, use the AP4Fed Flower-based FL platform with local and Docker execution modes. The upstream repository and its owner are identifiable from the URL below; replace it with an anonymized mirror if needed for anonymous review.
+The bundled CSVs are precomputed runs of a Flower-based FL platform and are the inputs used for the paper analyses. Reproducing the analyses does not require the platform or new FL runs.
 
-From a separate AP4Fed checkout, inspect and run the campaign runner as follows:
+To generate a new campaign, use the anonymized platform snapshot in [`fl-platform/`](fl-platform/README.md). It contains only the code needed to run the experiment matrices locally with Docker (Linux host, Docker with the Compose plugin, Python 3.12 or newer):
 
 ```bash
-git clone https://github.com/IvanComp/AP4Fed.git
-cd AP4Fed
+cd fl-platform
 python3 -m venv .venv
 source .venv/bin/activate
 python -m pip install -r requirements.txt
-python run_adept_campaign.py --dry-run
+python run_adept_campaign.py --dry-run            # single-pattern campaign, 1,380 runs
+python run_adept_campaign_combinedAP.py --dry-run # combined-pattern campaign, 960 runs
 ```
 
-For interactive setup instead of the headless runner, launch the AP4Fed interface with `python home.py` after installing its requirements. AP4Fed supports local execution; its Docker mode is intended for isolated clients and requires Docker plus Python 3.12 or newer.
-
-The runner resumes the Local campaign before starting the Docker campaign. To populate the currently empty Local cells once, run `python run_adept_campaign.py --through-wave 1`; to resume and continue through the full Local and Docker matrices, run `python run_adept_campaign.py`. The runner records mode-specific indexes under `adept_campaign_results/local/` and `adept_campaign_results/docker/` and maintains a combined run index. Docker execution requires Docker and Python 3.12 or newer on the documented Linux host.
+Drop `--dry-run` to execute the campaigns. Runs are serial and resumable; [`fl-platform/README.md`](fl-platform/README.md) lists the options and the CPU settings used for the bundled data.
 
 New campaign output is not substituted into the included precomputed inputs automatically. Confirm its settings and schema before using it in the notebooks.

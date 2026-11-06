@@ -1,6 +1,6 @@
 # Compact FL inputs and notebooks
 
-The [ADEPT-FL guide](../../README.md) explains the research-question mapping, environment setup, and run commands. This directory contains the precomputed AP4Fed data and the corresponding ADEPT system definition.
+The [ADEPT-FL guide](../../README.md) explains the research-question mapping, environment setup, and run commands. This directory contains the precomputed FL run data and the corresponding ADEPT system definition.
 
 ## Inputs
 

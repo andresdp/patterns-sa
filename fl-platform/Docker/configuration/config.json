@@ -1,0 +1,93 @@
+{
+    "simulation_type": "Docker",
+    "rounds": 2,
+    "clients": 2,
+    "clients_per_round": 2,
+    "adaptation": "None",
+    "LLM": "llama3.2:3b",
+    "aggregation_baselines": {
+        "enabled": false,
+        "policy": "Random",
+        "llm_model": "llama3.2:3b",
+        "initial_baseline": "FedAvg",
+        "candidates": [
+            "FedAvg",
+            "FedAvgM",
+            "FedProx",
+            "FedAdam",
+            "FedAdagrad",
+            "FedYogi",
+            "QFedAvg"
+        ],
+        "params": {
+            "fedavgm_momentum": 0.9,
+            "fedavgm_learning_rate": 1.0,
+            "fedprox_mu": 0.01,
+            "fedopt_eta": 0.1,
+            "fedopt_eta_l": 0.1,
+            "fedopt_beta_1": 0.9,
+            "fedopt_beta_2": 0.99,
+            "fedopt_tau": 1e-09,
+            "qfedavg_q": 0.2,
+            "qfedavg_learning_rate": 0.1
+        }
+    },
+    "patterns": {
+        "client_registry": {
+            "enabled": true,
+            "params": {}
+        },
+        "client_selector": {
+            "enabled": false,
+            "params": {}
+        },
+        "client_cluster": {
+            "enabled": false,
+            "params": {}
+        },
+        "message_compressor": {
+            "enabled": false,
+            "params": {}
+        },
+        "model_co-versioning_registry": {
+            "enabled": false,
+            "params": {}
+        },
+        "multi-task_model_trainer": {
+            "enabled": false,
+            "params": {}
+        },
+        "heterogeneous_data_handler": {
+            "enabled": false,
+            "params": {}
+        }
+    },
+    "client_generation_mode": "manual",
+    "client_profiles": [],
+    "client_details": [
+        {
+            "client_id": 1,
+            "cpu": 5,
+            "ram": 2,
+            "dataset": "CIFAR-10",
+            "data_distribution_type": "IID",
+            "non_iid_alpha": 0.5,
+            "data_persistence_type": "Same Data",
+            "delay_combobox": "No",
+            "model": "CNN 16k",
+            "epochs": 1
+        },
+        {
+            "client_id": 2,
+            "cpu": 5,
+            "ram": 2,
+            "dataset": "CIFAR-10",
+            "data_distribution_type": "IID",
+            "non_iid_alpha": 0.5,
+            "data_persistence_type": "Same Data",
+            "delay_combobox": "No",
+            "model": "CNN 16k",
+            "epochs": 1
+        }
+    ]
+}
